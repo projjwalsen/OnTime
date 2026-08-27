@@ -1,0 +1,18 @@
+{
+  "name": "@ontime/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OnTime mobile app — React Native (iOS & Android)",
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "keywords": [],
+  "note": "Full React Native setup will be implemented in the mobile development task."
+}

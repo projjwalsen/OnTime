@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+// Platform-wide user role hierarchy.
+//
+// DISTRIBUTOR_ADMIN  — Platform owner. Has no organisationId.
+//                      Manages all retailer organisations, products, categories, orders.
+//
+// ORGANISATION_ADMIN — Primary user of a single retailer organisation.
+//                      Can invite staff to their own organisation.
+//
+// ORGANISATION_STAFF — Standard staff of a single retailer organisation.
+//                      Cannot invite users or create/manage organisations.
+enum UserRole {
+  DISTRIBUTOR_ADMIN
+  ORGANISATION_ADMIN
+  ORGANISATION_STAFF
+}
+
+// Lifecycle states of an organisation invitation.
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+// Operational status of a retailer organisation.
+// Managed exclusively by the distributor.
+enum OrganisationStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ============================================================
+// ORGANISATION
+// Represents a retailer/customer company onboarded by the distributor.
+//
+// DATA OWNERSHIP: This is a RETAILER-LEVEL entity.
+// The distributor is NOT modelled as an Organisation.
+// Distributor users are identified by UserRole.DISTRIBUTOR_ADMIN.
+// ============================================================
+
+model Organisation {
+  id        String             @id @default(uuid())
+  name      String
+  email     String             @unique
+  mobile    String?
+  address   String?
+  area      String?
+  city      String?
+  taxNumber String?
+  status    OrganisationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  users       User[]
+  invitations OrganisationInvitation[]
+
+  // Future relations (not yet implemented):
+  // orders      Order[]
+
+  @@map("organisations")
+}
+
+// ============================================================
+// USER
+// Represents both distributor-side and retailer-side users.
+//
+// IMPORTANT: organisationId is NULL for DISTRIBUTOR_ADMIN users.
+//            organisationId is REQUIRED for ORGANISATION_ADMIN and ORGANISATION_STAFF.
+//
+// The email is globally unique as it serves as the platform login identity.
+//
+// DATA OWNERSHIP:
+//   - DISTRIBUTOR_ADMIN: Platform-level (no org)
+//   - ORGANISATION_ADMIN / ORGANISATION_STAFF: Retailer organisation-level
+// ============================================================
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  name           String
+  mobile         String?
+  role           UserRole
+  // null for DISTRIBUTOR_ADMIN; always set for organisation users
+  organisationId String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organisation Organisation? @relation(fields: [organisationId], references: [id])
+
+  // Future relations (not yet implemented):
+  // createdOrders Order[]
+
+  @@index([organisationId])
+  @@index([role])
+  @@map("users")
+}
+
+// ============================================================
+// ORGANISATION INVITATION
+// Tracks invitations sent by an ORGANISATION_ADMIN to join their organisation.
+//
+// RULES:
+//   - Only ORGANISATION_ADMIN can create invitations.
+//   - ORGANISATION_STAFF can NEVER create invitations.
+//   - Invitable roles: ORGANISATION_ADMIN, ORGANISATION_STAFF only.
+//   - DISTRIBUTOR_ADMIN is never created via invitations.
+//
+// DATA OWNERSHIP: Retailer organisation-level.
+// ============================================================
+
+model OrganisationInvitation {
+  id             String           @id @default(uuid())
+  organisationId String
+  email          String
+  // Only ORGANISATION_ADMIN or ORGANISATION_STAFF are valid here.
+  // DISTRIBUTOR_ADMIN must never appear as an invitation role.
+  role           UserRole
+  token          String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+
+  @@unique([email, organisationId])
+  @@index([organisationId])
+  @@index([token])
+  @@index([status])
+  @@map("organisation_invitations")
+}
+
+// ============================================================
+// FUTURE ENTITIES (not yet implemented — deferred to later tasks)
+// The schema is intentionally designed to accommodate these naturally.
+//
+// Distributor-owned (NO organisationId):
+//   model Category { id, name, ... }
+//   model Product  { id, categoryId, name, ... }
+//
+// Organisation-owned:
+//   model Order {
+//     id, organisationId, createdByUserId, ...
+//     organisation Organisation @relation(...)
+//     createdBy    User         @relation(...)
+//     orderItems   OrderItem[]
+//   }
+//   model OrderItem {
+//     id, orderId, productId (→ distributor Product), quantity, ...
+//   }
+// ============================================================
