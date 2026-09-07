@@ -46,10 +46,19 @@ module.exports = {
   ],
   overrides: [
     {
-      // Allow console in config and server entry files
-      files: ['**/server.ts', '**/config/**/*.ts'],
+      // Allow console and relaxed checks in scripts, seeders, and tests
+      files: [
+        '**/server.ts',
+        '**/config/**/*.ts',
+        '**/prisma/seed.ts',
+        '**/tests/**/*.ts',
+        '**/*.test.ts',
+      ],
       rules: {
         'no-console': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
       },
     },
   ],

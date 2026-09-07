@@ -1,13 +1,40 @@
 import { Router } from 'express';
-import { healthCheck } from '../../controllers/health.controller';
+import { healthRoutes } from '../../modules/health';
+import { authRoutes } from '../../modules/auth';
+import { usersRoutes } from '../../modules/users';
+import { organisationsRoutes } from '../../modules/organisations';
+import { productsRoutes } from '../../modules/products';
 
 const router = Router();
 
 /**
- * @route  GET /api/v1/health
- * @desc   Health check — confirms the API is running
- * @access Public
+ * @route  /api/v1/health
+ * @desc   Health check endpoint
  */
-router.get('/health', healthCheck);
+router.use('/health', healthRoutes);
+
+/**
+ * @route  /api/v1/auth
+ * @desc   Authentication & session management endpoints
+ */
+router.use('/auth', authRoutes);
+
+/**
+ * @route  /api/v1/users
+ * @desc   Users & profile management endpoints
+ */
+router.use('/users', usersRoutes);
+
+/**
+ * @route  /api/v1/organisations
+ * @desc   Retailer organisation management endpoints
+ */
+router.use('/organisations', organisationsRoutes);
+
+/**
+ * @route  /api/v1/products
+ * @desc   Catalog & product management endpoints
+ */
+router.use('/products', productsRoutes);
 
 export default router;

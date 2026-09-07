@@ -19,13 +19,13 @@ DISTRIBUTOR / PLATFORM OWNER
 
 ### Key Architectural Rules
 
-| Rule | Description |
-|---|---|
-| Distributor creates orgs | Only `DISTRIBUTOR_ADMIN` can onboard retailer organisations |
-| Org Admin invites staff | `ORGANISATION_ADMIN` can invite staff to their own org only |
-| Staff cannot invite | `ORGANISATION_STAFF` has no invitation permissions |
-| Org cannot create orgs | Retailer organisations cannot create other organisations |
-| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity |
+| Rule                       | Description                                                 |
+| -------------------------- | ----------------------------------------------------------- |
+| Distributor creates orgs   | Only `DISTRIBUTOR_ADMIN` can onboard retailer organisations |
+| Org Admin invites staff    | `ORGANISATION_ADMIN` can invite staff to their own org only |
+| Staff cannot invite        | `ORGANISATION_STAFF` has no invitation permissions          |
+| Org cannot create orgs     | Retailer organisations cannot create other organisations    |
+| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity   |
 
 ---
 
@@ -126,11 +126,11 @@ Data isolation is enforced **exclusively at the backend layer**. The frontend is
 
 ### Isolation Matrix
 
-| Actor | Own Org Data | Other Org Data | Distributor Products | All Org Data |
-|---|---|---|---|---|
-| `DISTRIBUTOR_ADMIN` | ✅ | ✅ | ✅ | ✅ |
-| `ORGANISATION_ADMIN` | ✅ | ❌ | ✅ (read) | ❌ |
-| `ORGANISATION_STAFF` | ✅ (limited) | ❌ | ✅ (read) | ❌ |
+| Actor                | Own Org Data | Other Org Data | Distributor Products | All Org Data |
+| -------------------- | ------------ | -------------- | -------------------- | ------------ |
+| `DISTRIBUTOR_ADMIN`  | ✅           | ✅             | ✅                   | ✅           |
+| `ORGANISATION_ADMIN` | ✅           | ❌             | ✅ (read)            | ❌           |
+| `ORGANISATION_STAFF` | ✅ (limited) | ❌             | ✅ (read)            | ❌           |
 
 ---
 

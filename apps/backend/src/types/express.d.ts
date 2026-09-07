@@ -1,14 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { AuthContext } from '@ontime/shared';
+import { errorResponse } from '../utils/response';
 
 /**
- * Extends the Express Request interface to include authenticated user context.
+ * Extends the Express Request interface to include authenticated user context
+ * and verified organisation scope.
  *
  * IMPORTANT: For organisation-scoped operations, always use `req.user.organisationId`
- * from this context — NEVER read organisationId from req.body, req.params, or req.query.
- * This is the primary mechanism for enforcing data isolation.
- *
- * Future authentication middleware will populate req.user after validating the JWT.
+ * or `req.scopedOrganisationId` — NEVER read organisationId from req.body, req.params,
+ * or req.query directly. This is the primary mechanism for enforcing multi-tenant data isolation.
  */
 declare global {
   namespace Express {
@@ -18,6 +18,12 @@ declare global {
        * Undefined on unauthenticated routes.
        */
       user?: AuthContext;
+
+      /**
+       * Verified organisation ID injected by `scopeToOrganisation` middleware.
+       * Guaranteed to match the user's authentic organisation context.
+       */
+      scopedOrganisationId?: string;
     }
   }
 }
@@ -28,7 +34,7 @@ declare global {
  */
 export function assertAuthenticated(req: Request, res: Response, next: NextFunction): void {
   if (!req.user) {
-    res.status(401).json({ success: false, message: 'Unauthorised' });
+    errorResponse(res, 'Authentication required.', 401);
     return;
   }
   next();
