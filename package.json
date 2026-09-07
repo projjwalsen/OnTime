@@ -2,14 +2,16 @@
   "name": "ontime",
   "version": "1.0.0",
   "private": true,
-  "description": "OnTime – Distributor Order Management Platform (Monorepo)",
+  "description": "OnTime – Distributor Order Management Platform (Backend + Admin monorepo)",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:admin": "npm run dev --workspace=apps/admin",
     "build:backend": "npm run build --workspace=apps/backend",
+    "build:admin": "npm run build --workspace=apps/admin",
     "build:shared": "npm run build --workspace=packages/shared",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

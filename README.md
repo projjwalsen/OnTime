@@ -36,7 +36,6 @@ DISTRIBUTOR / PLATFORM OWNER
 /
 ├── apps/
 │   ├── backend/          # Node.js + Express + TypeScript API
-│   ├── mobile/           # React Native mobile app (iOS & Android)
 │   └── admin/            # React.js admin dashboard
 ├── packages/
 │   └── shared/           # Shared TypeScript types, enums, constants
@@ -57,7 +56,6 @@ DISTRIBUTOR / PLATFORM OWNER
 
 | Layer | Technology |
 |---|---|
-| Mobile | React Native, TypeScript |
 | Admin | React.js, TypeScript |
 | Backend | Node.js, Express.js, TypeScript |
 | Database | PostgreSQL + Prisma ORM |
@@ -116,6 +114,7 @@ The API will be available at `http://localhost:4000`.
 | Script | Description |
 |---|---|
 | `npm run dev:backend` | Start backend in dev mode |
+| `npm run dev:admin` | Start admin dashboard in dev mode |
 | `npm run build` | Build all workspaces |
 | `npm run lint` | Run ESLint across all workspaces |
 | `npm run format` | Format all files with Prettier |
