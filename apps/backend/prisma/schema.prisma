@@ -3,11 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================================
@@ -93,19 +93,21 @@ model Organisation {
 // ============================================================
 
 model User {
-  id             String    @id @default(uuid())
-  email          String    @unique
+  id             String         @id @default(uuid())
+  email          String         @unique
+  passwordHash   String
   name           String
   mobile         String?
   role           UserRole
   // null for DISTRIBUTOR_ADMIN; always set for organisation users
   organisationId String?
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   // Relations
-  organisation Organisation? @relation(fields: [organisationId], references: [id])
+  organisation   Organisation?  @relation(fields: [organisationId], references: [id])
+  refreshTokens  RefreshToken[]
 
   // Future relations (not yet implemented):
   // createdOrders Order[]
@@ -113,6 +115,27 @@ model User {
   @@index([organisationId])
   @@index([role])
   @@map("users")
+}
+
+// ============================================================
+// REFRESH TOKEN
+// Tracks active and revoked JWT refresh tokens for secure session management.
+// ============================================================
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }
 
 // ============================================================

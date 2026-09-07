@@ -1,4 +1,5 @@
 import { UserRole } from '../enums/roles';
+import type { Organisation } from './organisation';
 
 /**
  * Shared User interface.
@@ -15,6 +16,7 @@ export interface User {
   /** null for DISTRIBUTOR_ADMIN users; required for organisation users */
   organisationId: string | null;
   isActive: boolean;
+  organisation?: Organisation | null;
   createdAt: Date;
   updatedAt: Date;
 }

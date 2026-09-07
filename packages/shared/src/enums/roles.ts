@@ -30,9 +30,7 @@ export const ORGANISATION_ROLES: readonly UserRole[] = [
  * Roles that are allowed to invite new staff members.
  * Only ORGANISATION_ADMIN can send invitations — staff cannot.
  */
-export const INVITATION_ALLOWED_ROLES: readonly UserRole[] = [
-  UserRole.ORGANISATION_ADMIN,
-] as const;
+export const INVITATION_ALLOWED_ROLES: readonly UserRole[] = [UserRole.ORGANISATION_ADMIN] as const;
 
 /**
  * Roles that can be assigned via an invitation.
@@ -42,3 +40,22 @@ export const INVITABLE_ROLES: readonly UserRole[] = [
   UserRole.ORGANISATION_ADMIN,
   UserRole.ORGANISATION_STAFF,
 ] as const;
+
+/**
+ * Helper predicates for role checking.
+ */
+export function isDistributorAdmin(role: UserRole): boolean {
+  return role === UserRole.DISTRIBUTOR_ADMIN;
+}
+
+export function isOrganisationAdmin(role: UserRole): boolean {
+  return role === UserRole.ORGANISATION_ADMIN;
+}
+
+export function isOrganisationStaff(role: UserRole): boolean {
+  return role === UserRole.ORGANISATION_STAFF;
+}
+
+export function isOrganisationUser(role: UserRole): boolean {
+  return role === UserRole.ORGANISATION_ADMIN || role === UserRole.ORGANISATION_STAFF;
+}

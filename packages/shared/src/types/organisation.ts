@@ -38,6 +38,4 @@ export interface CreateOrganisationDto {
  * DTO for updating an organisation.
  * Status changes are handled separately (distributor-only).
  */
-export type UpdateOrganisationDto = Partial<
-  Omit<CreateOrganisationDto, 'email'>
->;
+export type UpdateOrganisationDto = Partial<Omit<CreateOrganisationDto, 'email'>>;

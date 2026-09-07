@@ -1,33 +1,56 @@
 import type { Request, Response, NextFunction } from 'express';
+import { isDistributorAdmin } from '@ontime/shared';
+import { errorResponse } from '../utils/response';
 
 /**
- * Organisation Scoping Middleware (STUB)
+ * Organisation Scoping Middleware
  *
- * This is a placeholder for future organisation-level access control.
- * When implemented, this middleware will:
- *   1. Derive the user's organisationId from req.user (populated by authMiddleware).
- *   2. Ensure that all data operations are scoped to that organisation.
- *   3. Reject requests that attempt to access data of a different organisation.
+ * Enforces multi-organisation data isolation at the backend layer.
  *
  * CRITICAL SECURITY RULE:
  *   The organisationId used for database queries must ALWAYS come from the
- *   authenticated user's context (req.user.organisationId), NEVER from the
+ *   authenticated user's context (req.user.organisationId), NEVER trusted from
  *   request body, query parameters, or URL parameters.
  *
  *   This prevents a retailer from accessing another retailer's data by
  *   simply passing a different organisationId in their request.
  *
- * Example (future implementation):
- *   export function scopeToOrganisation(req: Request, res: Response, next: NextFunction) {
- *     if (!req.user?.organisationId) {
- *       return res.status(403).json({ success: false, message: 'No organisation context' });
- *     }
- *     // req.user.organisationId is now safe to use in service/repository layer
- *     next();
- *   }
+ * Behavior:
+ *   - For ORGANISATION_ADMIN / ORGANISATION_STAFF:
+ *     Injects req.scopedOrganisationId = req.user.organisationId.
+ *     Rejects requests with 403 if the user has no organisationId.
+ *
+ *   - For DISTRIBUTOR_ADMIN:
+ *     Allows access across all organisations. If an organisationId is explicitly
+ *     specified in params or query (e.g., /organisations/:orgId/orders), sets
+ *     req.scopedOrganisationId to that target organisation.
  */
-export function scopeToOrganisation(_req: Request, _res: Response, next: NextFunction): void {
-  // TODO: Implement organisation scoping in the access control task.
-  // Placeholder: proceed without scoping for now.
+export function scopeToOrganisation(req: Request, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    errorResponse(res, 'Authentication required before scoping organisation context.', 401);
+    return;
+  }
+
+  // Distributor Admin has cross-organisation platform access
+  if (isDistributorAdmin(req.user.role)) {
+    const targetOrgId =
+      req.params.organisationId ||
+      req.params.orgId ||
+      (req.query.organisationId as string | undefined);
+
+    if (targetOrgId) {
+      req.scopedOrganisationId = targetOrgId;
+    }
+    next();
+    return;
+  }
+
+  // Organisation users are strictly restricted to their own organisation
+  if (!req.user.organisationId) {
+    errorResponse(res, 'Forbidden: No organisation context associated with your account.', 403);
+    return;
+  }
+
+  req.scopedOrganisationId = req.user.organisationId;
   next();
 }

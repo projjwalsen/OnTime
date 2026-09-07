@@ -34,6 +34,7 @@ pnpm-debug.log*
 # ------ Prisma ------
 # Keep migrations in source control; exclude generated client
 apps/backend/node_modules/
+apps/backend/src/generated/
 
 # ------ Testing ------
 coverage/

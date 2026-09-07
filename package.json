@@ -22,15 +22,21 @@
     "prisma:generate": "npm run prisma:generate --workspace=apps/backend",
     "prisma:migrate:dev": "npm run prisma:migrate:dev --workspace=apps/backend",
     "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=apps/backend",
-    "prisma:studio": "npm run prisma:studio --workspace=apps/backend"
+    "prisma:studio": "npm run prisma:studio --workspace=apps/backend",
+    "prisma:seed": "npm run prisma:seed --workspace=apps/backend",
+    "seed": "npm run seed --workspace=apps/backend",
+    "test:auth": "npm run test:auth --workspace=apps/backend",
+    "test": "npm run test:auth --workspace=apps/backend"
   },
   "devDependencies": {
+    "@prisma/client": "^7.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.3.3",
+    "prisma": "^7.10.0",
     "typescript": "^5.5.4"
   },
   "engines": {

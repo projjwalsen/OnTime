@@ -46,4 +46,19 @@ export const config = {
   corsOrigin: optionalEnv('CORS_ORIGIN', 'http://localhost:3000')
     .split(',')
     .map((o) => o.trim()),
+
+  /**
+   * JWT Authentication configuration
+   */
+  jwtSecret: optionalEnv(
+    'JWT_SECRET',
+    'ontime_dev_secret_key_change_in_production_min_32_chars_long',
+  ),
+  jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '15m'),
+  jwtRefreshSecret: optionalEnv(
+    'JWT_REFRESH_SECRET',
+    'ontime_dev_refresh_secret_key_change_in_production_min_32_chars_long',
+  ),
+  jwtRefreshExpiresIn: optionalEnv('JWT_REFRESH_EXPIRES_IN', '7d'),
+  bcryptSaltRounds: parseInt(optionalEnv('BCRYPT_SALT_ROUNDS', '10'), 10),
 } as const;
