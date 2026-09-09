@@ -175,21 +175,45 @@ model OrganisationInvitation {
 }
 
 // ============================================================
-// FUTURE ENTITIES (not yet implemented — deferred to later tasks)
-// The schema is intentionally designed to accommodate these naturally.
-//
-// Distributor-owned (NO organisationId):
-//   model Category { id, name, ... }
-//   model Product  { id, categoryId, name, ... }
-//
-// Organisation-owned:
-//   model Order {
-//     id, organisationId, createdByUserId, ...
-//     organisation Organisation @relation(...)
-//     createdBy    User         @relation(...)
-//     orderItems   OrderItem[]
-//   }
-//   model OrderItem {
-//     id, orderId, productId (→ distributor Product), quantity, ...
-//   }
+// CATEGORY
+// Product categories managed exclusively by the distributor.
+// DATA OWNERSHIP: DISTRIBUTOR-LEVEL entity (no organisationId).
 // ============================================================
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+// ============================================================
+// PRODUCT
+// Distributor product catalog.
+// DATA OWNERSHIP: DISTRIBUTOR-LEVEL entity (no organisationId).
+// ============================================================
+
+model Product {
+  id          String    @id @default(uuid())
+  name        String
+  sku         String    @unique
+  description String?
+  price       Decimal   @db.Decimal(10, 2)
+  categoryId  String?
+  unit        String    @default("piece")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([sku])
+  @@map("products")
+}
+
