@@ -1,6 +1,26 @@
-import { type User, type Organisation, UserRole } from '@ontime/shared';
+import crypto from 'crypto';
+import {
+  type User,
+  type Organisation,
+  type AuthContext,
+  type InvitationResponse,
+  UserRole,
+  InvitationStatus,
+  INVITATION_EXPIRY_DAYS,
+  isDistributorAdmin,
+} from '@ontime/shared';
 import { prisma } from '../../lib/prisma';
-import { type UpdateUserProfileInput } from './validator';
+import { type UpdateUserProfileInput, type InviteUserInput } from './validator';
+
+export class UserError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number = 400,
+  ) {
+    super(message);
+    this.name = 'UserError';
+  }
+}
 
 export class UsersService {
   /**
@@ -80,6 +100,91 @@ export class UsersService {
       updatedAt: updated.updatedAt,
     };
   }
+
+  /**
+   * Create an organisation invitation for an Org Admin or Staff user.
+   */
+  async inviteUser(caller: AuthContext, data: InviteUserInput): Promise<InvitationResponse> {
+    let targetOrgId: string;
+
+    if (isDistributorAdmin(caller.role)) {
+      if (!data.organisationId) {
+        throw new UserError('organisationId is required for distributor admin when inviting users.', 400);
+      }
+      targetOrgId = data.organisationId;
+    } else {
+      if (!caller.organisationId) {
+        throw new UserError('Organisation context missing for caller.', 400);
+      }
+      targetOrgId = caller.organisationId;
+    }
+
+    // Verify target organisation exists and is active
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: targetOrgId },
+    });
+
+    if (!organisation) {
+      throw new UserError('Organisation not found.', 404);
+    }
+
+    if (organisation.status === 'SUSPENDED') {
+      throw new UserError('Cannot invite users to a suspended organisation.', 403);
+    }
+
+    const email = data.email.toLowerCase().trim();
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new UserError('A user with this email address already exists.', 409);
+    }
+
+    // Revoke previous pending invitation for same email & org if any
+    await prisma.organisationInvitation.updateMany({
+      where: {
+        email,
+        organisationId: targetOrgId,
+        status: InvitationStatus.PENDING,
+      },
+      data: {
+        status: InvitationStatus.REVOKED,
+      },
+    });
+
+    // Generate unique crypto token & expiry
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+    const invitation = await prisma.organisationInvitation.create({
+      data: {
+        email,
+        role: data.role,
+        organisationId: targetOrgId,
+        token,
+        expiresAt,
+        status: InvitationStatus.PENDING,
+      },
+      include: {
+        organisation: true,
+      },
+    });
+
+    return {
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role as UserRole,
+      organisationId: invitation.organisationId,
+      organisationName: invitation.organisation.name,
+      token: invitation.token,
+      expiresAt: invitation.expiresAt,
+      status: invitation.status as InvitationStatus,
+    };
+  }
 }
 
 export const usersService = new UsersService();
+

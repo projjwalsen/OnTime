@@ -114,7 +114,12 @@ async function runTests() {
 
   try {
     // Ensure clean state for invitation test
-    await prisma.user.deleteMany({ where: { email: 'newstaff@apexretailers.com' } });
+    await prisma.user.deleteMany({
+      where: { email: { in: ['newstaff@apexretailers.com', 'dynamicorgadmin@apexretailers.com'] } },
+    });
+    await prisma.organisationInvitation.deleteMany({
+      where: { email: 'dynamicorgadmin@apexretailers.com' },
+    });
     await prisma.organisationInvitation.updateMany({
       where: { token: 'invite-test-token-apex-staff-2026' },
       data: { status: InvitationStatus.PENDING, acceptedAt: null },
@@ -377,8 +382,71 @@ async function runTests() {
     assert(revertPass.status === 200, 'Reverted password back to default');
     console.log('  ✔ Change password flow verified\n');
 
+    // ── Test 13: Dynamic Invitation Creation & Onboarding ───
+    console.log('Test 13: Dynamic Invitation Creation (POST /api/v1/users/invite)');
+
+    // Staff cannot invite
+    const staffInvite = await request('/api/v1/users/invite', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${orgStaffAccessToken}` },
+      body: {
+        email: 'stafftryingtoinvite@apexretailers.com',
+        role: UserRole.ORGANISATION_STAFF,
+      },
+    });
+    assert(staffInvite.status === 403, 'Staff user should be forbidden (403) from inviting');
+
+    // Distributor admin invites a new Org Admin for an organisation
+    const apexOrg = await prisma.organisation.findFirst({ where: { name: 'Apex Retailers Ltd' } });
+    assert(!!apexOrg, 'Apex organisation exists in DB');
+
+    const distDynamicInvite = await request('/api/v1/users/invite', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${distAccessToken}` },
+      body: {
+        email: 'dynamicorgadmin@apexretailers.com',
+        role: UserRole.ORGANISATION_ADMIN,
+        organisationId: apexOrg!.id,
+      },
+    });
+    assert(distDynamicInvite.status === 201, `Distributor invite status 201, got ${distDynamicInvite.status}`);
+    const generatedToken = distDynamicInvite.body.data.invitation.token;
+    assert(typeof generatedToken === 'string' && generatedToken.length > 20, 'Generated crypto token exists');
+    assert(distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN, 'Role is ORGANISATION_ADMIN');
+    assert(distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id, 'Organisation ID matches');
+
+    // Verify the dynamically created invitation token
+    const verifyDynamic = await request(`/api/v1/auth/invite/verify?token=${generatedToken}`);
+    assert(verifyDynamic.status === 200, 'Dynamic invite verification succeeded');
+    assert(verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com', 'Invite email verified');
+    assert(verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd', 'Organisation name matches');
+
+    // Accept the dynamic invitation
+    const acceptDynamic = await request('/api/v1/auth/invite/accept', {
+      method: 'POST',
+      body: {
+        token: generatedToken,
+        name: 'Dynamic Org Admin',
+        password: 'Password123!',
+        mobile: '+91 9123456780',
+      },
+    });
+    assert(acceptDynamic.status === 201, `Accept dynamic invite status 201, got ${acceptDynamic.status}`);
+    assert(acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com', 'Created user email matches');
+    assert(acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN, 'Created user role is ORGANISATION_ADMIN');
+    assert(!!acceptDynamic.body.data.tokens.accessToken, 'Access token returned on dynamic onboarding');
+
+    // Login with the newly registered dynamic org admin
+    const dynamicAdminLogin = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'dynamicorgadmin@apexretailers.com', password: 'Password123!' },
+    });
+    assert(dynamicAdminLogin.status === 200, 'Login with dynamic org admin succeeded');
+
+    console.log('  ✔ Dynamic invitation creation, verification, acceptance & login passed\n');
+
     console.log('===========================================================');
-    console.log('🎉 ALL 12 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
+    console.log('🎉 ALL 13 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
     console.log('===========================================================\n');
   } finally {
     await stopServer();
@@ -390,3 +458,4 @@ runTests().catch((err) => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);
 });
+

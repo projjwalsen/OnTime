@@ -25,7 +25,7 @@ export type {
   CreateOrganisationDto,
   UpdateOrganisationDto,
 } from './types/organisation';
-export type { User, AuthContext } from './types/user';
+export type { User, AuthContext, InviteUserDto, InvitationResponse } from './types/user';
 export type {
   LoginCredentialsDto,
   AuthTokens,

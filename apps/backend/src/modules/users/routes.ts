@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { listUsers, getUserById, updateProfile } from './controller';
+import { listUsers, getUserById, updateProfile, inviteUser } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireOrganisationAdmin } from '../../middleware/rbac.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
-import { updateUserProfileSchema } from './validator';
+import { updateUserProfileSchema, inviteUserSchema } from './validator';
 
 const router = Router();
 
@@ -16,6 +16,13 @@ router.use(authMiddleware);
  * @access  Protected (Admin only)
  */
 router.get('/', requireOrganisationAdmin, listUsers);
+
+/**
+ * @route   POST /api/v1/users/invite
+ * @desc    Invite a new user (Org Admin or Staff) to an organisation
+ * @access  Protected (Distributor Admin or Org Admin)
+ */
+router.post('/invite', requireOrganisationAdmin, validateBody(inviteUserSchema), inviteUser);
 
 /**
  * @route   PATCH /api/v1/users/profile
