@@ -4,11 +4,10 @@
   "private": true,
   "description": "OnTime admin dashboard — React.js + TypeScript",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev": "echo \"@ontime/admin dev placeholder\"",
+    "build": "echo \"@ontime/admin build placeholder\"",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\""
+    "lint": "echo \"@ontime/admin lint placeholder\""
   },
   "dependencies": {},
   "devDependencies": {

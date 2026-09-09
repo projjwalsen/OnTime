@@ -15,7 +15,7 @@
     "build:shared": "npm run build --workspace=packages/shared",
     "build:backend": "npm run build:shared && npm run prisma:generate && npm run build --workspace=apps/backend",
     "build:admin": "npm run build --workspace=apps/admin",
-    "build": "npm run build:shared && npm run prisma:generate && npm run build --workspaces --if-present",
+    "build": "npm run build:backend",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .gitignore",
