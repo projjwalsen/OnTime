@@ -382,32 +382,38 @@ export class AuthService {
     const passwordHash = await hashPassword(dto.password);
 
     // Create user and update invitation in a transaction
-    const newUser = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: invitation.email.toLowerCase(),
-          name: dto.name.trim(),
-          mobile: dto.mobile?.trim() || null,
-          passwordHash,
-          role: invitation.role,
-          organisationId: invitation.organisationId,
-          isActive: true,
-        },
-        include: {
-          organisation: true,
-        },
-      });
+    const newUser = await prisma.$transaction(
+      async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: invitation.email.toLowerCase(),
+            name: dto.name.trim(),
+            mobile: dto.mobile?.trim() || null,
+            passwordHash,
+            role: invitation.role,
+            organisationId: invitation.organisationId,
+            isActive: true,
+          },
+          include: {
+            organisation: true,
+          },
+        });
 
-      await tx.organisationInvitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: InvitationStatus.ACCEPTED,
-          acceptedAt: new Date(),
-        },
-      });
+        await tx.organisationInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: InvitationStatus.ACCEPTED,
+            acceptedAt: new Date(),
+          },
+        });
 
-      return user;
-    });
+        return user;
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      },
+    );
 
     const userRole = newUser.role as unknown as UserRole;
 
