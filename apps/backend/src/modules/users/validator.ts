@@ -6,7 +6,7 @@ export const updateUserProfileSchema = z.object({
   mobile: z.string().trim().optional(),
 });
 
-export const inviteStaffSchema = z.object({
+export const inviteUserSchema = z.object({
   email: z
     .string({ message: 'Email is required' })
     .email('Invalid email address')
@@ -15,7 +15,12 @@ export const inviteStaffSchema = z.object({
   role: z.enum([UserRole.ORGANISATION_ADMIN, UserRole.ORGANISATION_STAFF], {
     message: 'Role must be either ORGANISATION_ADMIN or ORGANISATION_STAFF',
   }),
+  organisationId: z.string().optional(),
 });
 
+// Alias for backwards compatibility
+export const inviteStaffSchema = inviteUserSchema;
+
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
-export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
+export type InviteUserInput = z.infer<typeof inviteUserSchema>;
+export type InviteStaffInput = InviteUserInput;

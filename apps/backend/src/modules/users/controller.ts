@@ -1,8 +1,18 @@
 import type { Request, Response, RequestHandler } from 'express';
-import { usersService } from './service';
+import { usersService, UserError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type UpdateUserProfileInput } from './validator';
+import { type UpdateUserProfileInput, type InviteUserInput } from './validator';
+
+function handleUserError(res: Response, error: unknown): void {
+  if (error instanceof UserError) {
+    errorResponse(res, error.message, error.statusCode);
+    return;
+  }
+  const err = error as Error;
+  console.error('[Users Controller Error]', err.message, err.stack);
+  errorResponse(res, 'An unexpected error occurred in user operations.', 500);
+}
 
 /**
  * @route   GET /api/v1/users
@@ -57,5 +67,26 @@ export const updateProfile: RequestHandler = asyncHandler(
     const dto = req.body as UpdateUserProfileInput;
     const updated = await usersService.updateUserProfile(req.user.userId, dto);
     successResponse(res, 'Profile updated successfully', { user: updated });
+  },
+);
+
+/**
+ * @route   POST /api/v1/users/invite
+ * @desc    Invite a new user (Org Admin or Staff) to an organisation
+ * @access  Protected (Distributor Admin or Org Admin)
+ */
+export const inviteUser: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const dto = req.body as InviteUserInput;
+      const invitation = await usersService.inviteUser(req.user, dto);
+      successResponse(res, 'Invitation created successfully', { invitation }, 201);
+    } catch (error) {
+      handleUserError(res, error);
+    }
   },
 );

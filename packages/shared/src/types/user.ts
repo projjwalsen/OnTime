@@ -1,4 +1,5 @@
 import { UserRole } from '../enums/roles';
+import { InvitationStatus } from '../enums/invitation-status';
 import type { Organisation } from './organisation';
 
 /**
@@ -34,4 +35,28 @@ export interface AuthContext {
   role: UserRole;
   /** Always present for organisation users; null for distributor admins */
   organisationId: string | null;
+}
+
+/**
+ * Request payload for inviting a new staff or admin user to an organisation.
+ */
+export interface InviteUserDto {
+  email: string;
+  role: UserRole.ORGANISATION_ADMIN | UserRole.ORGANISATION_STAFF;
+  /** Required when called by DISTRIBUTOR_ADMIN; ignored / automatically derived for ORGANISATION_ADMIN */
+  organisationId?: string;
+}
+
+/**
+ * Response payload returned when an invitation is successfully created.
+ */
+export interface InvitationResponse {
+  id: string;
+  email: string;
+  role: UserRole;
+  organisationId: string;
+  organisationName: string;
+  token: string;
+  expiresAt: Date;
+  status: InvitationStatus;
 }
