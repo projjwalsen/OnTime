@@ -1,4 +1,4 @@
-import { UserRole, OrganisationStatus, InvitationStatus } from '../src/generated/client';
+import { UserRole, OrganisationStatus, InvitationStatus } from '@prisma/client';
 import { prisma } from '../src/lib/prisma';
 import bcrypt from 'bcryptjs';
 
