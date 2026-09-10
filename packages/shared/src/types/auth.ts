@@ -79,3 +79,34 @@ export interface JwtPayload {
   iat?: number;
   exp?: number;
 }
+
+/**
+ * Request payload for requesting a password reset token.
+ */
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+/**
+ * Request payload for resetting password with token.
+ */
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
+}
+
+/**
+ * Request payload for retailer self-registration.
+ * Registers both the new retailer organisation and initial admin user account.
+ */
+export interface RegisterRetailerDto {
+  name: string;
+  email: string;
+  mobile?: string;
+  businessName: string;
+  address?: string;
+  area?: string;
+  city?: string;
+  taxNumber?: string;
+  password: string;
+}

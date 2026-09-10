@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import {
   type LoginCredentialsDto,
   type AuthTokens,
@@ -5,10 +6,13 @@ import {
   type ChangePasswordDto,
   type AcceptInvitationDto,
   type VerifyInvitationResponse,
+  type ResetPasswordDto,
+  type RegisterRetailerDto,
   type User,
   type Organisation,
   UserRole,
   InvitationStatus,
+  OrganisationStatus,
 } from '@ontime/shared';
 import { prisma } from '../../lib/prisma';
 import { hashPassword, comparePassword } from '../../utils/password';
@@ -447,6 +451,210 @@ export class AuthService {
         tokenType: 'Bearer',
       },
       organisation: (newUser.organisation as unknown as Organisation) ?? null,
+    };
+  }
+
+  /**
+   * Request password reset token for unauthenticated user.
+   */
+  async forgotPassword(emailStr: string): Promise<{ message: string; resetToken?: string }> {
+    const email = emailStr.toLowerCase().trim();
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    // To prevent email enumeration, return standard success message if not found/inactive
+    if (!user || !user.isActive) {
+      return {
+        message: 'If an account exists with this email, a password reset link has been sent.',
+      };
+    }
+
+    // Invalidate previous unused reset tokens for this user
+    await prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    // Generate 32-byte hex crypto token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt,
+      },
+    });
+
+    return {
+      message: 'If an account exists with this email, a password reset link has been sent.',
+      ...(config.isDevelopment && { resetToken: token }),
+    };
+  }
+
+  /**
+   * Reset user password using valid token.
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const resetRecord = await prisma.passwordResetToken.findUnique({
+      where: { token: dto.token },
+      include: { user: true },
+    });
+
+    if (!resetRecord) {
+      throw new AuthError('Invalid or expired password reset token.', 400);
+    }
+
+    if (resetRecord.usedAt) {
+      throw new AuthError('This password reset token has already been used.', 400);
+    }
+
+    if (resetRecord.expiresAt < new Date()) {
+      throw new AuthError('This password reset token has expired. Please request a new one.', 400);
+    }
+
+    const user = resetRecord.user;
+    if (!user || !user.isActive) {
+      throw new AuthError('User account is no longer active.', 400);
+    }
+
+    const newPasswordHash = await hashPassword(dto.newPassword);
+
+    await prisma.$transaction(
+      async (tx) => {
+        // Update user password
+        await tx.user.update({
+          where: { id: user.id },
+          data: { passwordHash: newPasswordHash },
+        });
+
+        // Mark reset token as used
+        await tx.passwordResetToken.update({
+          where: { id: resetRecord.id },
+          data: { usedAt: new Date() },
+        });
+
+        // Revoke all active refresh tokens for the user
+        await tx.refreshToken.updateMany({
+          where: { userId: user.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      },
+    );
+  }
+
+  /**
+   * Register a new retailer organisation and initial admin user account.
+   */
+  async registerRetailer(dto: RegisterRetailerDto): Promise<AuthResponse> {
+    const email = dto.email.toLowerCase().trim();
+
+    // Check if user with this email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new AuthError('An account with this email address already exists.', 409);
+    }
+
+    // Check if organisation with this email already exists
+    const existingOrg = await prisma.organisation.findUnique({
+      where: { email },
+    });
+
+    if (existingOrg) {
+      throw new AuthError('An organisation with this email address already exists.', 409);
+    }
+
+    const passwordHash = await hashPassword(dto.password);
+
+    // Create organisation and user inside transaction
+    const { newUser, newOrg } = await prisma.$transaction(
+      async (tx) => {
+        const org = await tx.organisation.create({
+          data: {
+            name: dto.businessName.trim(),
+            email,
+            mobile: dto.mobile?.trim() || null,
+            address: dto.address?.trim() || null,
+            area: dto.area?.trim() || null,
+            city: dto.city?.trim() || null,
+            taxNumber: dto.taxNumber?.trim() || null,
+            status: OrganisationStatus.ACTIVE,
+          },
+        });
+
+        const user = await tx.user.create({
+          data: {
+            email,
+            name: dto.name.trim(),
+            mobile: dto.mobile?.trim() || null,
+            passwordHash,
+            role: UserRole.ORGANISATION_ADMIN,
+            organisationId: org.id,
+            isActive: true,
+          },
+          include: {
+            organisation: true,
+          },
+        });
+
+        return { newUser: user, newOrg: org };
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      },
+    );
+
+    const userRole = newUser.role as unknown as UserRole;
+
+    // Generate tokens for immediate login
+    const accessToken = signAccessToken({
+      userId: newUser.id,
+      email: newUser.email,
+      role: userRole,
+      organisationId: newUser.organisationId,
+    });
+
+    const refreshToken = signRefreshToken({ userId: newUser.id });
+    const refreshExpiresAt = calculateExpiryDate(config.jwtRefreshExpiresIn);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: newUser.id,
+        expiresAt: refreshExpiresAt,
+      },
+    });
+
+    const expiresInSeconds = parseDurationToSeconds(config.jwtExpiresIn);
+
+    const tokens: AuthTokens = {
+      accessToken,
+      refreshToken,
+      expiresIn: expiresInSeconds,
+      tokenType: 'Bearer',
+    };
+
+    return {
+      user: sanitizeUser(newUser),
+      tokens,
+      organisation:
+        (newUser.organisation as unknown as Organisation) ?? (newOrg as unknown as Organisation),
     };
   }
 }

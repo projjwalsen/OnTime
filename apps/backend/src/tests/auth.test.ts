@@ -12,6 +12,7 @@ import {
 import { scopeToOrganisation } from '../middleware/organisation.middleware';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { hashPassword } from '../utils/password';
 
 // Construct test Express app with test routes before 404 handler
 const app = express();
@@ -113,9 +114,20 @@ async function runTests() {
   await startServer();
 
   try {
-    // Ensure clean state for invitation test
+    // Ensure clean state for invitation, password reset & self-registration tests
     await prisma.user.deleteMany({
-      where: { email: { in: ['newstaff@apexretailers.com', 'dynamicorgadmin@apexretailers.com'] } },
+      where: {
+        email: {
+          in: [
+            'newstaff@apexretailers.com',
+            'dynamicorgadmin@apexretailers.com',
+            'selfregistered@zenithstore.com',
+          ],
+        },
+      },
+    });
+    await prisma.organisation.deleteMany({
+      where: { email: 'selfregistered@zenithstore.com' },
     });
     await prisma.organisationInvitation.deleteMany({
       where: { email: 'dynamicorgadmin@apexretailers.com' },
@@ -123,6 +135,17 @@ async function runTests() {
     await prisma.organisationInvitation.updateMany({
       where: { token: 'invite-test-token-apex-staff-2026' },
       data: { status: InvitationStatus.PENDING, acceptedAt: null },
+    });
+
+    // Reset default seed account passwords to ensure test suite idempotency
+    const defaultPasswordHash = await hashPassword('Password123!');
+    await prisma.user.updateMany({
+      where: {
+        email: {
+          in: ['admin@ontime.com', 'admin@apexretailers.com', 'staff@apexretailers.com'],
+        },
+      },
+      data: { passwordHash: defaultPasswordHash },
     });
 
     // ── Test 1: Health Check ───────────────────────────────
@@ -409,17 +432,35 @@ async function runTests() {
         organisationId: apexOrg!.id,
       },
     });
-    assert(distDynamicInvite.status === 201, `Distributor invite status 201, got ${distDynamicInvite.status}`);
+    assert(
+      distDynamicInvite.status === 201,
+      `Distributor invite status 201, got ${distDynamicInvite.status}`,
+    );
     const generatedToken = distDynamicInvite.body.data.invitation.token;
-    assert(typeof generatedToken === 'string' && generatedToken.length > 20, 'Generated crypto token exists');
-    assert(distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN, 'Role is ORGANISATION_ADMIN');
-    assert(distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id, 'Organisation ID matches');
+    assert(
+      typeof generatedToken === 'string' && generatedToken.length > 20,
+      'Generated crypto token exists',
+    );
+    assert(
+      distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN,
+      'Role is ORGANISATION_ADMIN',
+    );
+    assert(
+      distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id,
+      'Organisation ID matches',
+    );
 
     // Verify the dynamically created invitation token
     const verifyDynamic = await request(`/api/v1/auth/invite/verify?token=${generatedToken}`);
     assert(verifyDynamic.status === 200, 'Dynamic invite verification succeeded');
-    assert(verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com', 'Invite email verified');
-    assert(verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd', 'Organisation name matches');
+    assert(
+      verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com',
+      'Invite email verified',
+    );
+    assert(
+      verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd',
+      'Organisation name matches',
+    );
 
     // Accept the dynamic invitation
     const acceptDynamic = await request('/api/v1/auth/invite/accept', {
@@ -431,10 +472,22 @@ async function runTests() {
         mobile: '+91 9123456780',
       },
     });
-    assert(acceptDynamic.status === 201, `Accept dynamic invite status 201, got ${acceptDynamic.status}`);
-    assert(acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com', 'Created user email matches');
-    assert(acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN, 'Created user role is ORGANISATION_ADMIN');
-    assert(!!acceptDynamic.body.data.tokens.accessToken, 'Access token returned on dynamic onboarding');
+    assert(
+      acceptDynamic.status === 201,
+      `Accept dynamic invite status 201, got ${acceptDynamic.status}`,
+    );
+    assert(
+      acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com',
+      'Created user email matches',
+    );
+    assert(
+      acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN,
+      'Created user role is ORGANISATION_ADMIN',
+    );
+    assert(
+      !!acceptDynamic.body.data.tokens.accessToken,
+      'Access token returned on dynamic onboarding',
+    );
 
     // Login with the newly registered dynamic org admin
     const dynamicAdminLogin = await request('/api/v1/auth/login', {
@@ -443,14 +496,136 @@ async function runTests() {
     });
     assert(dynamicAdminLogin.status === 200, 'Login with dynamic org admin succeeded');
 
-    console.log('  ✔ Dynamic invitation creation, verification, acceptance & login passed\n');
+    // ── Test 14: Forgot Password & Reset Password Flow ───────
+    console.log('Test 14: Forgot Password & Reset Password Flow');
+
+    // 14a. Request forgot password for existing user
+    const forgotRes = await request('/api/v1/auth/forgot-password', {
+      method: 'POST',
+      body: { email: 'admin@apexretailers.com' },
+    });
+    assert(forgotRes.status === 200, `Forgot password status 200, got ${forgotRes.status}`);
+    assert(!!forgotRes.body.data.resetToken, 'Development reset token returned');
+    const resetToken = forgotRes.body.data.resetToken;
+
+    // 14b. Request forgot password for non-existing user (enumeration prevention - still returns 200)
+    const forgotNonExistent = await request('/api/v1/auth/forgot-password', {
+      method: 'POST',
+      body: { email: 'nonexistent@example.com' },
+    });
+    assert(forgotNonExistent.status === 200, 'Non-existent email also returns 200 for security');
+
+    // 14c. Reset password using valid token
+    const resetRes = await request('/api/v1/auth/reset-password', {
+      method: 'POST',
+      body: {
+        token: resetToken,
+        newPassword: 'ResetPassword123!',
+      },
+    });
+    assert(resetRes.status === 200, `Reset password status 200, got ${resetRes.status}`);
+
+    // 14d. Attempt to reuse the same reset token (should fail 400)
+    const reuseResetRes = await request('/api/v1/auth/reset-password', {
+      method: 'POST',
+      body: {
+        token: resetToken,
+        newPassword: 'AnotherPassword123!',
+      },
+    });
+    assert(reuseResetRes.status === 400, 'Reused reset token should be rejected (400)');
+
+    // 14e. Log in with the new password
+    const resetLoginRes = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'admin@apexretailers.com', password: 'ResetPassword123!' },
+    });
+    assert(resetLoginRes.status === 200, 'Login with new reset password succeeded');
+
+    // 14f. Revert password back to original 'Password123!'
+    const revertResetPass = await request('/api/v1/auth/change-password', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resetLoginRes.body.data.tokens.accessToken}` },
+      body: {
+        currentPassword: 'ResetPassword123!',
+        newPassword: 'Password123!',
+      },
+    });
+    assert(revertResetPass.status === 200, 'Reverted password back to default');
+
+    console.log('  ✔ Forgot password, single-use token validation, reset & login passed\n');
+
+    // ── Test 15: Retailer Self-Registration Flow ─────────────
+    console.log('Test 15: Retailer Self-Registration Flow (POST /api/v1/auth/register)');
+
+    // 15a. Register a new retailer with full business & personal details
+    const registerRes = await request('/api/v1/auth/register', {
+      method: 'POST',
+      body: {
+        name: 'Alex Retailer',
+        email: 'selfregistered@zenithstore.com',
+        mobile: '+91 9123498765',
+        businessName: 'Zenith Retail Stores',
+        address: '45 Market Avenue, High Street',
+        taxNumber: 'GSTIN27ZENITH1234Z9',
+        password: 'SecurePassword123!',
+      },
+    });
+    assert(registerRes.status === 201, `Register status 201, got ${registerRes.status}`);
+    assert(
+      registerRes.body.data.user.role === UserRole.ORGANISATION_ADMIN,
+      'Self-registered role is ORGANISATION_ADMIN',
+    );
+    assert(
+      registerRes.body.data.organisation.name === 'Zenith Retail Stores',
+      'Organisation name matches',
+    );
+    assert(
+      registerRes.body.data.organisation.taxNumber === 'GSTIN27ZENITH1234Z9',
+      'Tax number matches',
+    );
+    assert(
+      typeof registerRes.body.data.user.organisationId === 'string',
+      'Organisation ID assigned',
+    );
+    assert(!!registerRes.body.data.tokens.accessToken, 'Access token returned on registration');
+    assert(!!registerRes.body.data.tokens.refreshToken, 'Refresh token returned on registration');
+
+    // 15b. Attempt duplicate registration with same email (should fail 409)
+    const duplicateRegisterRes = await request('/api/v1/auth/register', {
+      method: 'POST',
+      body: {
+        name: 'Another User',
+        email: 'selfregistered@zenithstore.com',
+        businessName: 'Duplicate Store',
+        password: 'AnotherPassword123!',
+      },
+    });
+    assert(
+      duplicateRegisterRes.status === 409,
+      `Duplicate registration should return 409, got ${duplicateRegisterRes.status}`,
+    );
+
+    // 15c. Log in with the newly self-registered account
+    const selfRegLogin = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'selfregistered@zenithstore.com', password: 'SecurePassword123!' },
+    });
+    assert(selfRegLogin.status === 200, 'Login with self-registered account succeeded');
+    assert(
+      selfRegLogin.body.data.organisation.name === 'Zenith Retail Stores',
+      'Logged-in organisation details match',
+    );
+
+    console.log('  ✔ Retailer self-registration, conflict prevention & login passed\n');
 
     console.log('===========================================================');
-    console.log('🎉 ALL 13 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
+    console.log('🎉 ALL 15 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
     console.log('===========================================================\n');
   } finally {
     await stopServer();
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 
@@ -458,4 +633,3 @@ runTests().catch((err) => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);
 });
-

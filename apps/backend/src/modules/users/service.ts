@@ -109,7 +109,10 @@ export class UsersService {
 
     if (isDistributorAdmin(caller.role)) {
       if (!data.organisationId) {
-        throw new UserError('organisationId is required for distributor admin when inviting users.', 400);
+        throw new UserError(
+          'organisationId is required for distributor admin when inviting users.',
+          400,
+        );
       }
       targetOrgId = data.organisationId;
     } else {
@@ -187,4 +190,3 @@ export class UsersService {
 }
 
 export const usersService = new UsersService();
-

@@ -29,4 +29,3 @@ export const prisma =
 if (config.isDevelopment) {
   globalForPrisma.prisma = prisma;
 }
-

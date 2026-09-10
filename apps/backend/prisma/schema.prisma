@@ -105,8 +105,9 @@ model User {
   updatedAt      DateTime       @updatedAt
 
   // Relations
-  organisation   Organisation?  @relation(fields: [organisationId], references: [id])
-  refreshTokens  RefreshToken[]
+  organisation        Organisation?         @relation(fields: [organisationId], references: [id])
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   // Future relations (not yet implemented):
   // createdOrders Order[]
@@ -135,6 +136,27 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+// ============================================================
+// PASSWORD RESET TOKEN
+// Tracks temporary tokens for forgotten password resets.
+// ============================================================
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
 }
 
 // ============================================================

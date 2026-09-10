@@ -45,4 +45,3 @@ router.use('/products', productsRoutes);
 router.use('/categories', categoriesRoutes);
 
 export default router;
-
