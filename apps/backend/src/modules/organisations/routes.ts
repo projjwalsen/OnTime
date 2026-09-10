@@ -6,7 +6,10 @@ import {
   updateOrganisation,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
-import { requireDistributorAdmin, requireOrganisationAdmin } from '../../middleware/rbac.middleware';
+import {
+  requireDistributorAdmin,
+  requireOrganisationAdmin,
+} from '../../middleware/rbac.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
 import { createOrganisationSchema, updateOrganisationSchema } from './validator';
 
@@ -26,7 +29,12 @@ router.get('/', requireDistributorAdmin, listOrganisations);
  * @desc    Create a new retailer organisation
  * @access  Protected (Distributor Admin)
  */
-router.post('/', requireDistributorAdmin, validateBody(createOrganisationSchema), createOrganisation);
+router.post(
+  '/',
+  requireDistributorAdmin,
+  validateBody(createOrganisationSchema),
+  createOrganisation,
+);
 
 /**
  * @route   GET /api/v1/organisations/:id
@@ -40,6 +48,11 @@ router.get('/:id', getOrganisationById);
  * @desc    Update organisation details
  * @access  Protected (Distributor Admin or Org Admin)
  */
-router.patch('/:id', requireOrganisationAdmin, validateBody(updateOrganisationSchema), updateOrganisation);
+router.patch(
+  '/:id',
+  requireOrganisationAdmin,
+  validateBody(updateOrganisationSchema),
+  updateOrganisation,
+);
 
 export default router;

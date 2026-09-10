@@ -2,8 +2,15 @@ import { z } from 'zod';
 import { OrganisationStatus } from '@ontime/shared';
 
 export const createOrganisationSchema = z.object({
-  name: z.string({ message: 'Name is required' }).min(2, 'Name must be at least 2 characters').trim(),
-  email: z.string({ message: 'Email is required' }).email('Invalid email address').toLowerCase().trim(),
+  name: z
+    .string({ message: 'Name is required' })
+    .min(2, 'Name must be at least 2 characters')
+    .trim(),
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
   mobile: z.string().optional(),
   address: z.string().optional(),
   area: z.string().optional(),
@@ -18,7 +25,9 @@ export const updateOrganisationSchema = z.object({
   area: z.string().optional(),
   city: z.string().optional(),
   taxNumber: z.string().optional(),
-  status: z.enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED]).optional(),
+  status: z
+    .enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED])
+    .optional(),
 });
 
 export type CreateOrganisationInput = z.infer<typeof createOrganisationSchema>;

@@ -110,5 +110,3 @@ export interface RegisterRetailerDto {
   taxNumber?: string;
   password: string;
 }
-
-

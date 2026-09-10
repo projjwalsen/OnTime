@@ -40,6 +40,7 @@ module.exports = {
     'build/',
     '.next/',
     'coverage/',
+    '**/generated/',
     '*.js',
     '*.cjs',
     '*.mjs',

@@ -654,11 +654,9 @@ export class AuthService {
       user: sanitizeUser(newUser),
       tokens,
       organisation:
-        (newUser.organisation as unknown as Organisation) ??
-        (newOrg as unknown as Organisation),
+        (newUser.organisation as unknown as Organisation) ?? (newOrg as unknown as Organisation),
     };
   }
 }
 
 export const authService = new AuthService();
-

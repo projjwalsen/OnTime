@@ -1,10 +1,5 @@
 import { Router } from 'express';
-import {
-  listProducts,
-  createProduct,
-  getProductById,
-  updateProduct,
-} from './controller';
+import { listProducts, createProduct, getProductById, updateProduct } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody } from '../../middleware/validate.middleware';

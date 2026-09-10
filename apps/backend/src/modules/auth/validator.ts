@@ -53,9 +53,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  token: z
-    .string({ message: 'Reset token is required' })
-    .min(1, 'Reset token is required'),
+  token: z.string({ message: 'Reset token is required' }).min(1, 'Reset token is required'),
   newPassword: z
     .string({ message: 'New password is required' })
     .min(8, 'New password must be at least 8 characters long'),
@@ -92,5 +90,3 @@ export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type RegisterRetailerInput = z.infer<typeof registerRetailerSchema>;
-
-

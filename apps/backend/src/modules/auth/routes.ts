@@ -36,7 +36,6 @@ const router = Router();
 router.post('/register', validateBody(registerRetailerSchema), registerRetailer);
 router.post('/register-retailer', validateBody(registerRetailerSchema), registerRetailer);
 
-
 /**
  * @route   POST /api/v1/auth/login
  * @desc    Authenticate user & issue tokens

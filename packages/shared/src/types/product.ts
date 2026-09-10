@@ -17,7 +17,6 @@ export interface CreateCategoryDto {
 
 export type UpdateCategoryDto = Partial<CreateCategoryDto>;
 
-
 export interface Product {
   id: string;
   name: string;

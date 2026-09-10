@@ -208,5 +208,3 @@ export const registerRetailer: RequestHandler = asyncHandler(
     }
   },
 );
-
-

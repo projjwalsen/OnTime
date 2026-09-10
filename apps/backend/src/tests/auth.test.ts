@@ -432,17 +432,35 @@ async function runTests() {
         organisationId: apexOrg!.id,
       },
     });
-    assert(distDynamicInvite.status === 201, `Distributor invite status 201, got ${distDynamicInvite.status}`);
+    assert(
+      distDynamicInvite.status === 201,
+      `Distributor invite status 201, got ${distDynamicInvite.status}`,
+    );
     const generatedToken = distDynamicInvite.body.data.invitation.token;
-    assert(typeof generatedToken === 'string' && generatedToken.length > 20, 'Generated crypto token exists');
-    assert(distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN, 'Role is ORGANISATION_ADMIN');
-    assert(distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id, 'Organisation ID matches');
+    assert(
+      typeof generatedToken === 'string' && generatedToken.length > 20,
+      'Generated crypto token exists',
+    );
+    assert(
+      distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN,
+      'Role is ORGANISATION_ADMIN',
+    );
+    assert(
+      distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id,
+      'Organisation ID matches',
+    );
 
     // Verify the dynamically created invitation token
     const verifyDynamic = await request(`/api/v1/auth/invite/verify?token=${generatedToken}`);
     assert(verifyDynamic.status === 200, 'Dynamic invite verification succeeded');
-    assert(verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com', 'Invite email verified');
-    assert(verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd', 'Organisation name matches');
+    assert(
+      verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com',
+      'Invite email verified',
+    );
+    assert(
+      verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd',
+      'Organisation name matches',
+    );
 
     // Accept the dynamic invitation
     const acceptDynamic = await request('/api/v1/auth/invite/accept', {
@@ -454,10 +472,22 @@ async function runTests() {
         mobile: '+91 9123456780',
       },
     });
-    assert(acceptDynamic.status === 201, `Accept dynamic invite status 201, got ${acceptDynamic.status}`);
-    assert(acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com', 'Created user email matches');
-    assert(acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN, 'Created user role is ORGANISATION_ADMIN');
-    assert(!!acceptDynamic.body.data.tokens.accessToken, 'Access token returned on dynamic onboarding');
+    assert(
+      acceptDynamic.status === 201,
+      `Accept dynamic invite status 201, got ${acceptDynamic.status}`,
+    );
+    assert(
+      acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com',
+      'Created user email matches',
+    );
+    assert(
+      acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN,
+      'Created user role is ORGANISATION_ADMIN',
+    );
+    assert(
+      !!acceptDynamic.body.data.tokens.accessToken,
+      'Access token returned on dynamic onboarding',
+    );
 
     // Login with the newly registered dynamic org admin
     const dynamicAdminLogin = await request('/api/v1/auth/login', {
@@ -603,4 +633,3 @@ runTests().catch((err) => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);
 });
-
