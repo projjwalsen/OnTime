@@ -24,7 +24,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install --include=dev && npm run build:admin
-    startCommand: npm run start --workspace=apps/admin
+    startCommand: npm run start:admin
     envVars:
       - key: NODE_ENV
         value: production
