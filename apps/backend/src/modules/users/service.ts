@@ -7,8 +7,9 @@ import {
   UserRole,
   InvitationStatus,
   INVITATION_EXPIRY_DAYS,
-  isDistributorAdmin,
+  isSuperAdmin,
 } from '@ontime/shared';
+
 import { prisma } from '../../lib/prisma';
 import { type UpdateUserProfileInput, type InviteUserInput } from './validator';
 
@@ -107,13 +108,14 @@ export class UsersService {
   async inviteUser(caller: AuthContext, data: InviteUserInput): Promise<InvitationResponse> {
     let targetOrgId: string;
 
-    if (isDistributorAdmin(caller.role)) {
+    if (isSuperAdmin(caller.role)) {
       if (!data.organisationId) {
         throw new UserError(
-          'organisationId is required for distributor admin when inviting users.',
+          'organisationId is required for super admin when inviting users.',
           400,
         );
       }
+
       targetOrgId = data.organisationId;
     } else {
       if (!caller.organisationId) {

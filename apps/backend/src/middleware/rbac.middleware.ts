@@ -9,9 +9,9 @@ import { errorResponse } from '../utils/response';
  * has one of the specified roles before allowing access to the route.
  *
  * CRITICAL RULES:
- *   - ORGANISATION_STAFF must NEVER be granted invitation or org-management permissions.
- *   - Only DISTRIBUTOR_ADMIN can create/manage retailer organisations and products.
- *   - Only ORGANISATION_ADMIN can invite staff to their own organisation.
+ *   - STAFF must NEVER be granted invitation or org-management permissions.
+ *   - Only SUPER_ADMIN can create/manage retailer organisations and global catalog.
+ *   - Only ADMIN can invite staff to their own organisation.
  */
 export function requireRoles(allowedRoles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -34,25 +34,29 @@ export function requireRoles(allowedRoles: UserRole[]) {
 }
 
 /**
- * Distributor-only access guard.
- * Allows only DISTRIBUTOR_ADMIN.
+ * Super Admin (Platform Owner) only access guard.
+ * Allows only SUPER_ADMIN.
  */
-export function requireDistributorAdmin(req: Request, res: Response, next: NextFunction): void {
-  return requireRoles([UserRole.DISTRIBUTOR_ADMIN])(req, res, next);
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  return requireRoles([UserRole.SUPER_ADMIN])(req, res, next);
 }
 
 /**
- * Organisation Admin or Platform Admin access guard.
- * Allows DISTRIBUTOR_ADMIN and ORGANISATION_ADMIN.
+ * Organisation Admin or Super Admin access guard.
+ * Allows SUPER_ADMIN and ADMIN.
  */
-export function requireOrganisationAdmin(req: Request, res: Response, next: NextFunction): void {
-  return requireRoles([UserRole.DISTRIBUTOR_ADMIN, UserRole.ORGANISATION_ADMIN])(req, res, next);
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  return requireRoles([UserRole.SUPER_ADMIN, UserRole.ADMIN])(req, res, next);
 }
 
 /**
  * Organisation member access guard.
- * Allows any authenticated user belonging to an organisation (ORGANISATION_ADMIN or ORGANISATION_STAFF).
+ * Allows any authenticated user belonging to an organisation (ADMIN or STAFF).
  */
 export function requireOrganisationUser(req: Request, res: Response, next: NextFunction): void {
-  return requireRoles([UserRole.ORGANISATION_ADMIN, UserRole.ORGANISATION_STAFF])(req, res, next);
+  return requireRoles([UserRole.ADMIN, UserRole.STAFF])(req, res, next);
 }
+
+// Backward-compatibility aliases
+export const requireDistributorAdmin = requireSuperAdmin;
+export const requireOrganisationAdmin = requireAdmin;

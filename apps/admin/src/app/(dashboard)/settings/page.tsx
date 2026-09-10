@@ -173,7 +173,7 @@ export default function SettingsPage() {
               >
                 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Access Role</span>
                 <Badge variant="primary" showDot={false}>
-                  DISTRIBUTOR_ADMIN
+                  SUPER_ADMIN
                 </Badge>
               </div>
 

@@ -10,6 +10,11 @@ import {
   forgotPassword,
   resetPassword,
   registerRetailer,
+  sendLoginOtp,
+  verifyLoginOtp,
+  sendForgotPasswordOtp,
+  verifyForgotPasswordOtp,
+  resetPasswordWithOtp,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
@@ -22,6 +27,11 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   registerRetailerSchema,
+  sendLoginOtpSchema,
+  verifyLoginOtpSchema,
+  sendForgotPasswordOtpSchema,
+  verifyForgotPasswordOtpSchema,
+  resetPasswordWithOtpSchema,
 } from './validator';
 
 const router = Router();
@@ -78,7 +88,45 @@ router.get('/invite/verify', validateRequest({ query: verifyInvitationQuerySchem
  */
 router.post('/invite/accept', validateBody(acceptInvitationSchema), acceptInvite);
 
+// ── OTP Authentication Routes ────────────────────────────────
+
+/**
+ * @route   POST /api/v1/auth/otp/login/send
+ * @desc    Send verification code for login via email
+ * @access  Public
+ */
+router.post('/otp/login/send', validateBody(sendLoginOtpSchema), sendLoginOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/login/verify
+ * @desc    Verify login OTP and issue access & refresh tokens
+ * @access  Public
+ */
+router.post('/otp/login/verify', validateBody(verifyLoginOtpSchema), verifyLoginOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/forgot-password/send
+ * @desc    Send password reset OTP code via email
+ * @access  Public
+ */
+router.post('/otp/forgot-password/send', validateBody(sendForgotPasswordOtpSchema), sendForgotPasswordOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/forgot-password/verify
+ * @desc    Verify password reset OTP code
+ * @access  Public
+ */
+router.post('/otp/forgot-password/verify', validateBody(verifyForgotPasswordOtpSchema), verifyForgotPasswordOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/forgot-password/reset
+ * @desc    Reset password using verified OTP code
+ * @access  Public
+ */
+router.post('/otp/forgot-password/reset', validateBody(resetPasswordWithOtpSchema), resetPasswordWithOtp);
+
 // ── Protected Routes ───────────────────────────────────────
+
 
 /**
  * @route   GET /api/v1/auth/me

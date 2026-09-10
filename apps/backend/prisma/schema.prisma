@@ -15,19 +15,20 @@ datasource db {
 
 // Platform-wide user role hierarchy.
 //
-// DISTRIBUTOR_ADMIN  — Platform owner. Has no organisationId.
-//                      Manages all retailer organisations, products, categories, orders.
+// SUPER_ADMIN — Platform administrator / owner. Has no organisationId.
+//               Manages all retailer organisations, products, categories, orders.
 //
-// ORGANISATION_ADMIN — Primary user of a single retailer organisation.
-//                      Can invite staff to their own organisation.
+// ADMIN       — Primary administrator of a single retailer organisation.
+//               Can invite staff to their own organisation.
 //
-// ORGANISATION_STAFF — Standard staff of a single retailer organisation.
-//                      Cannot invite users or create/manage organisations.
+// STAFF       — Standard staff member of a single retailer organisation.
+//               Cannot invite users or create/manage organisations.
 enum UserRole {
-  DISTRIBUTOR_ADMIN
-  ORGANISATION_ADMIN
-  ORGANISATION_STAFF
+  SUPER_ADMIN
+  ADMIN
+  STAFF
 }
+
 
 // Lifecycle states of an organisation invitation.
 enum InvitationStatus {
@@ -45,14 +46,21 @@ enum OrganisationStatus {
   SUSPENDED
 }
 
+// Purpose of a generated One-Time Password (OTP)
+enum OtpPurpose {
+  LOGIN
+  PASSWORD_RESET
+}
+
 // ============================================================
 // ORGANISATION
-// Represents a retailer/customer company onboarded by the distributor.
+// Represents a retailer/customer company onboarded by the platform.
 //
 // DATA OWNERSHIP: This is a RETAILER-LEVEL entity.
-// The distributor is NOT modelled as an Organisation.
-// Distributor users are identified by UserRole.DISTRIBUTOR_ADMIN.
+// The platform owner is NOT modelled as an Organisation.
+// Platform owner users are identified by UserRole.SUPER_ADMIN.
 // ============================================================
+
 
 model Organisation {
   id        String             @id @default(uuid())
@@ -79,16 +87,16 @@ model Organisation {
 
 // ============================================================
 // USER
-// Represents both distributor-side and retailer-side users.
+// Represents both platform-side and retailer-side users.
 //
-// IMPORTANT: organisationId is NULL for DISTRIBUTOR_ADMIN users.
-//            organisationId is REQUIRED for ORGANISATION_ADMIN and ORGANISATION_STAFF.
+// IMPORTANT: organisationId is NULL for SUPER_ADMIN users.
+//            organisationId is REQUIRED for ADMIN and STAFF.
 //
 // The email is globally unique as it serves as the platform login identity.
 //
 // DATA OWNERSHIP:
-//   - DISTRIBUTOR_ADMIN: Platform-level (no org)
-//   - ORGANISATION_ADMIN / ORGANISATION_STAFF: Retailer organisation-level
+//   - SUPER_ADMIN: Platform-level (no org)
+//   - ADMIN / STAFF: Retailer organisation-level
 // ============================================================
 
 model User {
@@ -98,8 +106,9 @@ model User {
   name           String
   mobile         String?
   role           UserRole
-  // null for DISTRIBUTOR_ADMIN; always set for organisation users
+  // null for SUPER_ADMIN; always set for organisation users
   organisationId String?
+
   isActive       Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -160,14 +169,33 @@ model PasswordResetToken {
 }
 
 // ============================================================
+// OTP CODE
+// Tracks one-time passwords for email verification (login, password reset).
+// ============================================================
+
+model OtpCode {
+  id        String     @id @default(uuid())
+  email     String
+  codeHash  String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  attempts  Int        @default(0)
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([email, purpose])
+  @@map("otp_codes")
+}
+
+// ============================================================
 // ORGANISATION INVITATION
-// Tracks invitations sent by an ORGANISATION_ADMIN to join their organisation.
+// Tracks invitations sent by an ADMIN to join their organisation.
 //
 // RULES:
-//   - Only ORGANISATION_ADMIN can create invitations.
-//   - ORGANISATION_STAFF can NEVER create invitations.
-//   - Invitable roles: ORGANISATION_ADMIN, ORGANISATION_STAFF only.
-//   - DISTRIBUTOR_ADMIN is never created via invitations.
+//   - Only ADMIN can create invitations.
+//   - STAFF can NEVER create invitations.
+//   - Invitable roles: ADMIN, STAFF only.
+//   - SUPER_ADMIN is never created via invitations.
 //
 // DATA OWNERSHIP: Retailer organisation-level.
 // ============================================================
@@ -176,9 +204,10 @@ model OrganisationInvitation {
   id             String           @id @default(uuid())
   organisationId String
   email          String
-  // Only ORGANISATION_ADMIN or ORGANISATION_STAFF are valid here.
-  // DISTRIBUTOR_ADMIN must never appear as an invitation role.
+  // Only ADMIN or STAFF are valid here.
+  // SUPER_ADMIN must never appear as an invitation role.
   role           UserRole
+
   token          String           @unique
   status         InvitationStatus @default(PENDING)
   expiresAt      DateTime

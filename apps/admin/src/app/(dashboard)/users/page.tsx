@@ -39,12 +39,12 @@ export default function UsersPage() {
 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
-      case UserRole.DISTRIBUTOR_ADMIN:
-        return <Badge variant="primary">DISTRIBUTOR_ADMIN</Badge>;
-      case UserRole.ORGANISATION_ADMIN:
-        return <Badge variant="warning">ORGANISATION_ADMIN</Badge>;
-      case UserRole.ORGANISATION_STAFF:
-        return <Badge variant="success">ORGANISATION_STAFF</Badge>;
+      case UserRole.SUPER_ADMIN:
+        return <Badge variant="primary">SUPER_ADMIN</Badge>;
+      case UserRole.ADMIN:
+        return <Badge variant="warning">ADMIN</Badge>;
+      case UserRole.STAFF:
+        return <Badge variant="success">STAFF</Badge>;
       default:
         return <Badge>{role}</Badge>;
     }
@@ -56,7 +56,7 @@ export default function UsersPage() {
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>Platform Users</h1>
         <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '2px' }}>
-          Overview of platform distributor admins, retailer admins, and staff
+          Overview of platform super admins, organisation admins, and staff
         </p>
       </div>
 
@@ -132,9 +132,8 @@ export default function UsersPage() {
                           width: '36px',
                           height: '36px',
                           borderRadius: '50%',
-                          backgroundColor:
-                            u.role === UserRole.DISTRIBUTOR_ADMIN ? '#eff6ff' : '#f1f5f9',
-                          color: u.role === UserRole.DISTRIBUTOR_ADMIN ? '#2563eb' : '#475569',
+                          backgroundColor: u.role === UserRole.SUPER_ADMIN ? '#eff6ff' : '#f1f5f9',
+                          color: u.role === UserRole.SUPER_ADMIN ? '#2563eb' : '#475569',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

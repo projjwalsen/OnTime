@@ -17,24 +17,24 @@ async function main() {
     where: { email: 'newstaff@apexretailers.com' },
   });
 
-  // 1. Seed Distributor Admin (no organisationId)
-  const distributorAdmin = await prisma.user.upsert({
+  // 1. Seed Super Admin (Platform Owner - no organisationId)
+  const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@ontime.com' },
     update: {
       passwordHash: defaultPasswordHash,
-      role: UserRole.DISTRIBUTOR_ADMIN,
+      role: UserRole.SUPER_ADMIN,
       isActive: true,
     },
     create: {
       email: 'admin@ontime.com',
-      name: 'Distributor Platform Admin',
+      name: 'Platform Super Admin',
       passwordHash: defaultPasswordHash,
-      role: UserRole.DISTRIBUTOR_ADMIN,
+      role: UserRole.SUPER_ADMIN,
       organisationId: null,
       isActive: true,
     },
   });
-  console.log('✔ Distributor Admin seeded:', distributorAdmin.email);
+  console.log('✔ Super Admin seeded:', superAdmin.email);
 
   // 2. Seed Retailer Organisation (Customer Tenant)
   const organisation = await prisma.organisation.upsert({
@@ -56,12 +56,12 @@ async function main() {
   });
   console.log('✔ Retailer Organisation seeded:', organisation.name);
 
-  // 3. Seed Organisation Admin (Customer Primary User)
+  // 3. Seed Organisation Admin (Customer Primary Admin)
   const orgAdmin = await prisma.user.upsert({
     where: { email: 'admin@apexretailers.com' },
     update: {
       passwordHash: defaultPasswordHash,
-      role: UserRole.ORGANISATION_ADMIN,
+      role: UserRole.ADMIN,
       organisationId: organisation.id,
       isActive: true,
     },
@@ -69,7 +69,7 @@ async function main() {
       email: 'admin@apexretailers.com',
       name: 'Sarah Admin (Apex)',
       passwordHash: defaultPasswordHash,
-      role: UserRole.ORGANISATION_ADMIN,
+      role: UserRole.ADMIN,
       organisationId: organisation.id,
       isActive: true,
     },
@@ -81,7 +81,7 @@ async function main() {
     where: { email: 'staff@apexretailers.com' },
     update: {
       passwordHash: defaultPasswordHash,
-      role: UserRole.ORGANISATION_STAFF,
+      role: UserRole.STAFF,
       organisationId: organisation.id,
       isActive: true,
     },
@@ -89,7 +89,7 @@ async function main() {
       email: 'staff@apexretailers.com',
       name: 'John Staff (Apex)',
       passwordHash: defaultPasswordHash,
-      role: UserRole.ORGANISATION_STAFF,
+      role: UserRole.STAFF,
       organisationId: organisation.id,
       isActive: true,
     },
@@ -103,13 +103,14 @@ async function main() {
   const invitation = await prisma.organisationInvitation.upsert({
     where: { token: inviteToken },
     update: {
+      role: UserRole.STAFF,
       status: InvitationStatus.PENDING,
       expiresAt,
     },
     create: {
       email: 'newstaff@apexretailers.com',
       token: inviteToken,
-      role: UserRole.ORGANISATION_STAFF,
+      role: UserRole.STAFF,
       organisationId: organisation.id,
       status: InvitationStatus.PENDING,
       expiresAt,
@@ -120,9 +121,9 @@ async function main() {
   console.log('\n=============================================');
   console.log('Initial Auth Seed Completed Successfully!');
   console.log('Default Seed Credentials:');
-  console.log('  1. DISTRIBUTOR_ADMIN : admin@ontime.com / Password123!');
-  console.log('  2. ORGANISATION_ADMIN: admin@apexretailers.com / Password123!');
-  console.log('  3. ORGANISATION_STAFF: staff@apexretailers.com / Password123!');
+  console.log('  1. SUPER_ADMIN: admin@ontime.com / Password123!');
+  console.log('  2. ADMIN      : admin@apexretailers.com / Password123!');
+  console.log('  3. STAFF      : staff@apexretailers.com / Password123!');
   console.log('  4. INVITATION TOKEN  : ' + inviteToken);
   console.log('=============================================\n');
 }

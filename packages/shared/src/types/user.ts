@@ -5,8 +5,8 @@ import type { Organisation } from './organisation';
 /**
  * Shared User interface.
  *
- * DISTRIBUTOR_ADMIN users have organisationId = null.
- * ORGANISATION_ADMIN and ORGANISATION_STAFF users always have an organisationId.
+ * SUPER_ADMIN users have organisationId = null.
+ * ADMIN and STAFF users always have an organisationId.
  */
 export interface User {
   id: string;
@@ -14,7 +14,7 @@ export interface User {
   name: string;
   mobile?: string | null;
   role: UserRole;
-  /** null for DISTRIBUTOR_ADMIN users; required for organisation users */
+  /** null for SUPER_ADMIN users; required for organisation users */
   organisationId: string | null;
   isActive: boolean;
   organisation?: Organisation | null;
@@ -33,7 +33,7 @@ export interface AuthContext {
   userId: string;
   email: string;
   role: UserRole;
-  /** Always present for organisation users; null for distributor admins */
+  /** Always present for organisation users; null for super admins */
   organisationId: string | null;
 }
 
@@ -42,10 +42,11 @@ export interface AuthContext {
  */
 export interface InviteUserDto {
   email: string;
-  role: UserRole.ORGANISATION_ADMIN | UserRole.ORGANISATION_STAFF;
-  /** Required when called by DISTRIBUTOR_ADMIN; ignored / automatically derived for ORGANISATION_ADMIN */
+  role: UserRole.ADMIN | UserRole.STAFF;
+  /** Required when called by SUPER_ADMIN; ignored / automatically derived for ADMIN */
   organisationId?: string;
 }
+
 
 /**
  * Response payload returned when an invitation is successfully created.

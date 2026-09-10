@@ -83,6 +83,66 @@ export const registerRetailerSchema = z.object({
     .min(8, 'Password must be at least 8 characters long'),
 });
 
+// ── OTP Authentication Schemas ───────────────────────────────
+
+export const sendLoginOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+});
+
+export const verifyLoginOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+  otp: z
+    .string({ message: 'OTP code is required' })
+    .trim()
+    .min(4, 'OTP code must be at least 4 characters')
+    .max(10, 'OTP code must be at most 10 characters'),
+});
+
+export const sendForgotPasswordOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+});
+
+export const verifyForgotPasswordOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+  otp: z
+    .string({ message: 'OTP code is required' })
+    .trim()
+    .min(4, 'OTP code must be at least 4 characters')
+    .max(10, 'OTP code must be at most 10 characters'),
+});
+
+export const resetPasswordWithOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+  otp: z
+    .string({ message: 'OTP code is required' })
+    .trim()
+    .min(4, 'OTP code must be at least 4 characters')
+    .max(10, 'OTP code must be at most 10 characters'),
+  newPassword: z
+    .string({ message: 'New password is required' })
+    .min(8, 'New password must be at least 8 characters long'),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -90,3 +150,9 @@ export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type RegisterRetailerInput = z.infer<typeof registerRetailerSchema>;
+export type SendLoginOtpInput = z.infer<typeof sendLoginOtpSchema>;
+export type VerifyLoginOtpInput = z.infer<typeof verifyLoginOtpSchema>;
+export type SendForgotPasswordOtpInput = z.infer<typeof sendForgotPasswordOtpSchema>;
+export type VerifyForgotPasswordOtpInput = z.infer<typeof verifyForgotPasswordOtpSchema>;
+export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchema>;
+

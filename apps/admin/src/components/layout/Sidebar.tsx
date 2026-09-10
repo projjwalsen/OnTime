@@ -60,9 +60,7 @@ export function Sidebar() {
           <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
             OnTime
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>
-            Distributor Admin
-          </p>
+          <p style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>Super Admin</p>
         </div>
       </div>
 
@@ -145,12 +143,12 @@ export function Sidebar() {
                 overflow: 'hidden',
               }}
             >
-              {user?.name || 'Distributor Admin'}
+              {user?.name || 'Super Admin'}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
               <ShieldCheck size={12} color="#2563eb" />
               <span style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 600 }}>
-                DISTRIBUTOR_ADMIN
+                SUPER_ADMIN
               </span>
             </div>
           </div>

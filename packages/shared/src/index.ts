@@ -11,13 +11,18 @@ export {
   ORGANISATION_ROLES,
   INVITATION_ALLOWED_ROLES,
   INVITABLE_ROLES,
+  isSuperAdmin,
+  isAdmin,
+  isStaff,
+  isOrganisationUser,
   isDistributorAdmin,
   isOrganisationAdmin,
   isOrganisationStaff,
-  isOrganisationUser,
 } from './enums/roles';
+
 export { InvitationStatus } from './enums/invitation-status';
 export { OrganisationStatus } from './enums/organisation-status';
+export { OtpPurpose } from './enums/otp';
 
 // Types
 export type {
@@ -46,7 +51,14 @@ export type {
   ForgotPasswordDto,
   ResetPasswordDto,
   RegisterRetailerDto,
+  SendOtpResponse,
+  SendLoginOtpDto,
+  VerifyLoginOtpDto,
+  SendForgotPasswordOtpDto,
+  VerifyForgotPasswordOtpDto,
+  ResetPasswordWithOtpDto,
 } from './types/auth';
+
 
 // Constants
 export {

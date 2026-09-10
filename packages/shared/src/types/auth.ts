@@ -1,4 +1,5 @@
 import { UserRole } from '../enums/roles';
+import { OtpPurpose } from '../enums/otp';
 import { User } from './user';
 import { Organisation } from './organisation';
 
@@ -27,7 +28,7 @@ export interface AuthTokens {
 export interface AuthResponse {
   user: User;
   tokens: AuthTokens;
-  /** Populated for organisation users, null for distributor admins */
+  /** Populated for organisation users, null for super admins */
   organisation?: Organisation | null;
 }
 
@@ -74,11 +75,12 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: UserRole;
-  /** null for DISTRIBUTOR_ADMIN; set to string for ORGANISATION_ADMIN and ORGANISATION_STAFF */
+  /** null for SUPER_ADMIN; set to string for ADMIN and STAFF */
   organisationId: string | null;
   iat?: number;
   exp?: number;
 }
+
 
 /**
  * Request payload for requesting a password reset token.
@@ -110,3 +112,55 @@ export interface RegisterRetailerDto {
   taxNumber?: string;
   password: string;
 }
+
+// ── OTP Authentication DTOs ─────────────────────────────────
+
+/**
+ * Response payload returned after an OTP is generated and sent.
+ */
+export interface SendOtpResponse {
+  message: string;
+  expiresInSeconds: number;
+  /** Populated only in development/test environment */
+  otp?: string;
+}
+
+/**
+ * Request payload for sending login OTP.
+ */
+export interface SendLoginOtpDto {
+  email: string;
+}
+
+/**
+ * Request payload for verifying login OTP and obtaining auth tokens.
+ */
+export interface VerifyLoginOtpDto {
+  email: string;
+  otp: string;
+}
+
+/**
+ * Request payload for sending forgot password OTP.
+ */
+export interface SendForgotPasswordOtpDto {
+  email: string;
+}
+
+/**
+ * Request payload for verifying forgot password OTP.
+ */
+export interface VerifyForgotPasswordOtpDto {
+  email: string;
+  otp: string;
+}
+
+/**
+ * Request payload for resetting password with verified OTP.
+ */
+export interface ResetPasswordWithOtpDto {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+

@@ -4,9 +4,10 @@ import { OrganisationStatus } from '../enums/organisation-status';
  * Shared Organisation interface.
  * Represents a retailer/customer company onboarded by the distributor.
  *
- * Note: The distributor is NOT modelled as an Organisation.
- *       Distributor users are identified by UserRole.DISTRIBUTOR_ADMIN.
+ * Note: The platform owner is NOT modelled as an Organisation.
+ *       Super admin users are identified by UserRole.SUPER_ADMIN.
  */
+
 export interface Organisation {
   id: string;
   name: string;

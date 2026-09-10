@@ -136,6 +136,7 @@ async function runTests() {
       where: { token: 'invite-test-token-apex-staff-2026' },
       data: { status: InvitationStatus.PENDING, acceptedAt: null },
     });
+    await prisma.otpCode.deleteMany({});
 
     // Reset default seed account passwords to ensure test suite idempotency
     const defaultPasswordHash = await hashPassword('Password123!');
@@ -143,6 +144,7 @@ async function runTests() {
       where: {
         email: {
           in: ['admin@ontime.com', 'admin@apexretailers.com', 'staff@apexretailers.com'],
+
         },
       },
       data: { passwordHash: defaultPasswordHash },
@@ -155,23 +157,23 @@ async function runTests() {
     assert(health.body.success === true, 'Health body success');
     console.log('  ✔ Health check passed\n');
 
-    // ── Test 2: Distributor Admin Login ────────────────────
-    console.log('Test 2: Distributor Admin Login');
+    // ── Test 2: Super Admin Login ──────────────────────────
+    console.log('Test 2: Super Admin Login');
     const distLogin = await request('/api/v1/auth/login', {
       method: 'POST',
       body: { email: 'admin@ontime.com', password: 'Password123!' },
     });
     assert(distLogin.status === 200, `Login status 200, got ${distLogin.status}`);
     assert(
-      distLogin.body.data.user.role === UserRole.DISTRIBUTOR_ADMIN,
-      'Role is DISTRIBUTOR_ADMIN',
+      distLogin.body.data.user.role === UserRole.SUPER_ADMIN,
+      'Role is SUPER_ADMIN',
     );
-    assert(distLogin.body.data.user.organisationId === null, 'Distributor organisationId is null');
+    assert(distLogin.body.data.user.organisationId === null, 'Super admin organisationId is null');
     assert(!!distLogin.body.data.tokens.accessToken, 'Access token is present');
     assert(!!distLogin.body.data.tokens.refreshToken, 'Refresh token is present');
     const distAccessToken = distLogin.body.data.tokens.accessToken;
     const distRefreshToken = distLogin.body.data.tokens.refreshToken;
-    console.log('  ✔ Distributor Admin login passed\n');
+    console.log('  ✔ Super Admin login passed\n');
 
     // ── Test 3: Organisation Admin Login ───────────────────
     console.log('Test 3: Organisation Admin Login (Customer Admin)');
@@ -181,8 +183,8 @@ async function runTests() {
     });
     assert(orgAdminLogin.status === 200, `Login status 200, got ${orgAdminLogin.status}`);
     assert(
-      orgAdminLogin.body.data.user.role === UserRole.ORGANISATION_ADMIN,
-      'Role is ORGANISATION_ADMIN',
+      orgAdminLogin.body.data.user.role === UserRole.ADMIN,
+      'Role is ADMIN',
     );
     assert(
       typeof orgAdminLogin.body.data.user.organisationId === 'string',
@@ -203,8 +205,8 @@ async function runTests() {
     });
     assert(orgStaffLogin.status === 200, `Login status 200, got ${orgStaffLogin.status}`);
     assert(
-      orgStaffLogin.body.data.user.role === UserRole.ORGANISATION_STAFF,
-      'Role is ORGANISATION_STAFF',
+      orgStaffLogin.body.data.user.role === UserRole.STAFF,
+      'Role is STAFF',
     );
     assert(
       typeof orgStaffLogin.body.data.user.organisationId === 'string',
@@ -212,6 +214,7 @@ async function runTests() {
     );
     const orgStaffAccessToken = orgStaffLogin.body.data.tokens.accessToken;
     console.log('  ✔ Organisation Staff login passed\n');
+
 
     // ── Test 5: GET /auth/me with Bearer Token ──────────────
     console.log('Test 5: GET /api/v1/auth/me Profile verification');
@@ -361,8 +364,8 @@ async function runTests() {
       'New user email matches',
     );
     assert(
-      inviteAccept.body.data.user.role === UserRole.ORGANISATION_STAFF,
-      'New user role is ORGANISATION_STAFF',
+      inviteAccept.body.data.user.role === UserRole.STAFF,
+      'New user role is STAFF',
     );
     assert(!!inviteAccept.body.data.tokens.accessToken, 'Immediate access token issued');
 
@@ -414,12 +417,12 @@ async function runTests() {
       headers: { Authorization: `Bearer ${orgStaffAccessToken}` },
       body: {
         email: 'stafftryingtoinvite@apexretailers.com',
-        role: UserRole.ORGANISATION_STAFF,
+        role: UserRole.STAFF,
       },
     });
     assert(staffInvite.status === 403, 'Staff user should be forbidden (403) from inviting');
 
-    // Distributor admin invites a new Org Admin for an organisation
+    // Super admin invites a new Org Admin for an organisation
     const apexOrg = await prisma.organisation.findFirst({ where: { name: 'Apex Retailers Ltd' } });
     assert(!!apexOrg, 'Apex organisation exists in DB');
 
@@ -428,13 +431,13 @@ async function runTests() {
       headers: { Authorization: `Bearer ${distAccessToken}` },
       body: {
         email: 'dynamicorgadmin@apexretailers.com',
-        role: UserRole.ORGANISATION_ADMIN,
+        role: UserRole.ADMIN,
         organisationId: apexOrg!.id,
       },
     });
     assert(
       distDynamicInvite.status === 201,
-      `Distributor invite status 201, got ${distDynamicInvite.status}`,
+      `Super admin invite status 201, got ${distDynamicInvite.status}`,
     );
     const generatedToken = distDynamicInvite.body.data.invitation.token;
     assert(
@@ -442,8 +445,8 @@ async function runTests() {
       'Generated crypto token exists',
     );
     assert(
-      distDynamicInvite.body.data.invitation.role === UserRole.ORGANISATION_ADMIN,
-      'Role is ORGANISATION_ADMIN',
+      distDynamicInvite.body.data.invitation.role === UserRole.ADMIN,
+      'Role is ADMIN',
     );
     assert(
       distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id,
@@ -481,8 +484,8 @@ async function runTests() {
       'Created user email matches',
     );
     assert(
-      acceptDynamic.body.data.user.role === UserRole.ORGANISATION_ADMIN,
-      'Created user role is ORGANISATION_ADMIN',
+      acceptDynamic.body.data.user.role === UserRole.ADMIN,
+      'Created user role is ADMIN',
     );
     assert(
       !!acceptDynamic.body.data.tokens.accessToken,
@@ -573,9 +576,10 @@ async function runTests() {
     });
     assert(registerRes.status === 201, `Register status 201, got ${registerRes.status}`);
     assert(
-      registerRes.body.data.user.role === UserRole.ORGANISATION_ADMIN,
-      'Self-registered role is ORGANISATION_ADMIN',
+      registerRes.body.data.user.role === UserRole.ADMIN,
+      'Self-registered role is ADMIN',
     );
+
     assert(
       registerRes.body.data.organisation.name === 'Zenith Retail Stores',
       'Organisation name matches',
@@ -619,8 +623,166 @@ async function runTests() {
 
     console.log('  ✔ Retailer self-registration, conflict prevention & login passed\n');
 
+    // ============================================================
+    // 16. OTP-BASED LOGIN FLOW
+    // ============================================================
+    console.log('16. Testing OTP-based login flow...');
+
+    // 16a. Request OTP for existing active user
+    const sendLoginOtpRes = await request('/api/v1/auth/otp/login/send', {
+      method: 'POST',
+      body: { email: 'admin@ontime.com' },
+    });
+    assert(sendLoginOtpRes.status === 200, `Expected 200, got ${sendLoginOtpRes.status}`);
+    assert(!!sendLoginOtpRes.body.data.expiresInSeconds, 'expiresInSeconds is returned');
+    const loginOtp = sendLoginOtpRes.body.data.otp;
+    assert(typeof loginOtp === 'string' && loginOtp.length === 6, '6-digit OTP returned in test mode');
+
+    // 16b. Rapid resend should trigger cooldown 429
+    const rapidResendOtpRes = await request('/api/v1/auth/otp/login/send', {
+      method: 'POST',
+      body: { email: 'admin@ontime.com' },
+    });
+    assert(
+      rapidResendOtpRes.status === 429,
+      `Rapid resend should trigger 429 cooldown, got ${rapidResendOtpRes.status}`,
+    );
+
+    // 16c. Request OTP for non-existent user should return 404
+    const nonexistentLoginOtpRes = await request('/api/v1/auth/otp/login/send', {
+      method: 'POST',
+      body: { email: 'nosuchuser@example.com' },
+    });
+    assert(
+      nonexistentLoginOtpRes.status === 404,
+      `Nonexistent user login OTP request should return 404, got ${nonexistentLoginOtpRes.status}`,
+    );
+
+    // 16d. Attempt verification with incorrect OTP code
+    const invalidVerifyRes = await request('/api/v1/auth/otp/login/verify', {
+      method: 'POST',
+      body: { email: 'admin@ontime.com', otp: '000000' },
+    });
+    assert(
+      invalidVerifyRes.status === 400,
+      `Invalid OTP verification should return 400, got ${invalidVerifyRes.status}`,
+    );
+
+    // 16e. Verify with correct OTP code
+    const validVerifyRes = await request('/api/v1/auth/otp/login/verify', {
+      method: 'POST',
+      body: { email: 'admin@ontime.com', otp: loginOtp },
+    });
+    assert(
+      validVerifyRes.status === 200,
+      `Valid OTP login verification should return 200, got ${validVerifyRes.status}`,
+    );
+    assert(validVerifyRes.body.data.user.email === 'admin@ontime.com', 'User email matches');
+    assert(!!validVerifyRes.body.data.tokens.accessToken, 'Access token issued');
+    assert(!!validVerifyRes.body.data.tokens.refreshToken, 'Refresh token issued');
+
+    // 16f. Attempt reuse of consumed OTP code
+    const replayVerifyRes = await request('/api/v1/auth/otp/login/verify', {
+      method: 'POST',
+      body: { email: 'admin@ontime.com', otp: loginOtp },
+    });
+    assert(
+      replayVerifyRes.status === 400,
+      `Reusing already-consumed OTP should return 400, got ${replayVerifyRes.status}`,
+    );
+
+    console.log('  ✔ OTP login generation, cooldown, invalid rejection & login passed\n');
+
+    // ============================================================
+    // 17. OTP-BASED FORGOT PASSWORD & RESET FLOW
+    // ============================================================
+    console.log('17. Testing OTP-based forgot password & password reset flow...');
+
+    // 17a. Request password reset OTP for existing user
+    const forgotOtpRes = await request('/api/v1/auth/otp/forgot-password/send', {
+      method: 'POST',
+      body: { email: 'staff@apexretailers.com' },
+    });
+    assert(forgotOtpRes.status === 200, `Expected 200, got ${forgotOtpRes.status}`);
+    const resetOtp = forgotOtpRes.body.data.otp;
+    assert(typeof resetOtp === 'string' && resetOtp.length === 6, '6-digit Reset OTP returned in test mode');
+
+    // 17b. Anti-enumeration check for non-existent email (returns 200 with generic message and no OTP)
+    const nonexistentForgotRes = await request('/api/v1/auth/otp/forgot-password/send', {
+      method: 'POST',
+      body: { email: 'nonexistent@nowhere.com' },
+    });
+    assert(
+      nonexistentForgotRes.status === 200,
+      `Nonexistent forgot password should return 200, got ${nonexistentForgotRes.status}`,
+    );
+    assert(!nonexistentForgotRes.body.data?.otp, 'No OTP generated/returned for nonexistent user');
+
+    // 17c. Verify password reset OTP code endpoint
+    const verifyResetOtpRes = await request('/api/v1/auth/otp/forgot-password/verify', {
+      method: 'POST',
+      body: { email: 'staff@apexretailers.com', otp: resetOtp },
+    });
+    assert(
+      verifyResetOtpRes.status === 200,
+      `Verify reset OTP should return 200, got ${verifyResetOtpRes.status}`,
+    );
+    assert(verifyResetOtpRes.body.data.valid === true, 'OTP code is valid');
+
+    // 17d. Reset password with valid OTP and new password
+    const resetWithOtpRes = await request('/api/v1/auth/otp/forgot-password/reset', {
+      method: 'POST',
+      body: {
+        email: 'staff@apexretailers.com',
+        otp: resetOtp,
+        newPassword: 'NewStaffPassword456!',
+      },
+    });
+    assert(
+      resetWithOtpRes.status === 200,
+      `Reset password with OTP should return 200, got ${resetWithOtpRes.status}`,
+    );
+
+    // 17e. Log in with the newly reset password
+    const otpNewPassLogin = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'staff@apexretailers.com', password: 'NewStaffPassword456!' },
+    });
+    assert(otpNewPassLogin.status === 200, 'Login with new password succeeded');
+
+    // 17f. Old password should fail
+    const otpOldPassLogin = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'staff@apexretailers.com', password: 'Password123!' },
+    });
+    assert(otpOldPassLogin.status === 401, 'Login with old password fails');
+
+
+    // 17g. Attempt to reset again with already used OTP (should fail 400)
+    const reuseResetOtpRes = await request('/api/v1/auth/otp/forgot-password/reset', {
+      method: 'POST',
+      body: {
+        email: 'staff@apexretailers.com',
+        otp: resetOtp,
+        newPassword: 'AnotherPassword789!',
+      },
+    });
+    assert(
+      reuseResetOtpRes.status === 400,
+      `Reusing reset OTP should return 400, got ${reuseResetOtpRes.status}`,
+    );
+
+    // Restore staff password to default Password123! for test suite idempotency
+    const resetBackHash = await hashPassword('Password123!');
+    await prisma.user.update({
+      where: { email: 'staff@apexretailers.com' },
+      data: { passwordHash: resetBackHash },
+    });
+
+    console.log('  ✔ OTP forgot password, anti-enumeration, verification & reset passed\n');
+
     console.log('===========================================================');
-    console.log('🎉 ALL 15 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
+    console.log('🎉 ALL 17 AUTHENTICATION & AUTHORIZATION TESTS PASSED! 🎉');
     console.log('===========================================================\n');
   } finally {
     await stopServer();
@@ -633,3 +795,4 @@ runTests().catch((err) => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);
 });
+

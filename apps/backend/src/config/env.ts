@@ -61,4 +61,22 @@ export const config = {
   ),
   jwtRefreshExpiresIn: optionalEnv('JWT_REFRESH_EXPIRES_IN', '7d'),
   bcryptSaltRounds: parseInt(optionalEnv('BCRYPT_SALT_ROUNDS', '10'), 10),
+
+  /**
+   * Email / SMTP configuration
+   */
+  smtpHost: optionalEnv('SMTP_HOST', ''),
+  smtpPort: parseInt(optionalEnv('SMTP_PORT', '587'), 10),
+  smtpSecure: optionalEnv('SMTP_SECURE', 'false') === 'true',
+  smtpUser: optionalEnv('SMTP_USER', ''),
+  smtpPass: optionalEnv('SMTP_PASS', ''),
+  emailFrom: optionalEnv('EMAIL_FROM', 'OnTime Platform <noreply@ontime.com>'),
+
+  /**
+   * OTP Configuration
+   */
+  otpExpiryMinutes: parseInt(optionalEnv('OTP_EXPIRY_MINUTES', '10'), 10),
+  otpMaxAttempts: parseInt(optionalEnv('OTP_MAX_ATTEMPTS', '5'), 10),
+  otpCooldownSeconds: parseInt(optionalEnv('OTP_COOLDOWN_SECONDS', '60'), 10),
 } as const;
+

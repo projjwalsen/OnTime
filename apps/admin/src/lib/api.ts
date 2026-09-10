@@ -5,6 +5,12 @@ import {
   type ChangePasswordDto,
   type ForgotPasswordDto,
   type ResetPasswordDto,
+  type SendLoginOtpDto,
+  type VerifyLoginOtpDto,
+  type SendForgotPasswordOtpDto,
+  type VerifyForgotPasswordOtpDto,
+  type ResetPasswordWithOtpDto,
+  type SendOtpResponse,
   type User,
   type Organisation,
   type CreateOrganisationDto,
@@ -200,6 +206,85 @@ class ApiClient {
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     return this.request(
       '/auth/reset-password',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
+  // ── OTP Authentication ──────────────────────────────────────
+
+  async sendLoginOtp(
+    dto: SendLoginOtpDto,
+  ): Promise<{ success: boolean; message?: string; data?: SendOtpResponse; error?: string }> {
+    return this.request<SendOtpResponse>(
+      '/auth/otp/login/send',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
+  async verifyLoginOtp(
+    dto: VerifyLoginOtpDto,
+  ): Promise<{ success: boolean; data?: AuthResponse; error?: string }> {
+    const res = await this.request<AuthResponse>(
+      '/auth/otp/login/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+
+    if (res.success && res.data?.tokens) {
+      this.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(res.data.user));
+      }
+    }
+
+    return res;
+  }
+
+  async sendForgotPasswordOtp(
+    dto: SendForgotPasswordOtpDto,
+  ): Promise<{ success: boolean; message?: string; data?: SendOtpResponse; error?: string }> {
+    return this.request<SendOtpResponse>(
+      '/auth/otp/forgot-password/send',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
+  async verifyForgotPasswordOtp(dto: VerifyForgotPasswordOtpDto): Promise<{
+    success: boolean;
+    message?: string;
+    data?: { valid: boolean; message: string };
+    error?: string;
+  }> {
+    return this.request<{ valid: boolean; message: string }>(
+      '/auth/otp/forgot-password/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
+  async resetPasswordWithOtp(
+    dto: ResetPasswordWithOtpDto,
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    return this.request(
+      '/auth/otp/forgot-password/reset',
       {
         method: 'POST',
         body: JSON.stringify(dto),

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { isDistributorAdmin } from '@ontime/shared';
+import { isSuperAdmin } from '@ontime/shared';
 import { errorResponse } from '../utils/response';
 
 /**
@@ -16,11 +16,11 @@ import { errorResponse } from '../utils/response';
  *   simply passing a different organisationId in their request.
  *
  * Behavior:
- *   - For ORGANISATION_ADMIN / ORGANISATION_STAFF:
+ *   - For ADMIN / STAFF:
  *     Injects req.scopedOrganisationId = req.user.organisationId.
  *     Rejects requests with 403 if the user has no organisationId.
  *
- *   - For DISTRIBUTOR_ADMIN:
+ *   - For SUPER_ADMIN:
  *     Allows access across all organisations. If an organisationId is explicitly
  *     specified in params or query (e.g., /organisations/:orgId/orders), sets
  *     req.scopedOrganisationId to that target organisation.
@@ -31,8 +31,9 @@ export function scopeToOrganisation(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  // Distributor Admin has cross-organisation platform access
-  if (isDistributorAdmin(req.user.role)) {
+  // Super Admin has cross-organisation platform access
+  if (isSuperAdmin(req.user.role)) {
+
     const targetOrgId =
       req.params.organisationId ||
       req.params.orgId ||

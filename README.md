@@ -147,25 +147,32 @@ Base URL: `http://localhost:4000/api/v1`
 
 ### Authentication & Authorization
 
-| Method | Path                           | Access    | Description                                             |
-| ------ | ------------------------------ | --------- | ------------------------------------------------------- |
-| POST   | `/api/v1/auth/login`           | Public    | Authenticate user and issue JWT access & refresh tokens |
-| POST   | `/api/v1/auth/refresh`         | Public    | Refresh JWT access token with token rotation            |
-| GET    | `/api/v1/auth/invite/verify`   | Public    | Verify organisation invitation token                    |
-| POST   | `/api/v1/auth/invite/accept`   | Public    | Accept invitation and register account                  |
-| GET    | `/api/v1/auth/me`              | Protected | Get authenticated user profile and organisation details |
-| POST   | `/api/v1/auth/logout`          | Protected | Revoke refresh token and log out                        |
-| POST   | `/api/v1/auth/change-password` | Protected | Change authenticated user password                      |
+| Method | Path                                      | Access    | Description                                             |
+| ------ | ----------------------------------------- | --------- | ------------------------------------------------------- |
+| POST   | `/api/v1/auth/login`                      | Public    | Authenticate user and issue JWT access & refresh tokens |
+| POST   | `/api/v1/auth/otp/login/send`             | Public    | Send OTP code to user's email for passwordless login    |
+| POST   | `/api/v1/auth/otp/login/verify`           | Public    | Verify OTP and issue JWT access & refresh tokens        |
+| POST   | `/api/v1/auth/forgot-password`            | Public    | Initiate token-based forgot password email flow         |
+| POST   | `/api/v1/auth/reset-password`             | Public    | Reset password using token sent via email               |
+| POST   | `/api/v1/auth/otp/forgot-password/send`   | Public    | Send OTP code for password reset                        |
+| POST   | `/api/v1/auth/otp/forgot-password/verify` | Public    | Verify OTP and issue temporary reset token              |
+| POST   | `/api/v1/auth/otp/forgot-password/reset`  | Public    | Reset password with verified OTP or reset token         |
+| POST   | `/api/v1/auth/refresh`                    | Public    | Refresh JWT access token with token rotation            |
+| GET    | `/api/v1/auth/invite/verify`              | Public    | Verify organisation invitation token                    |
+| POST   | `/api/v1/auth/invite/accept`              | Public    | Accept invitation and register account                  |
+| GET    | `/api/v1/auth/me`                         | Protected | Get authenticated user profile and organisation details |
+| POST   | `/api/v1/auth/logout`                     | Protected | Revoke refresh token and log out                        |
+| POST   | `/api/v1/auth/change-password`            | Protected | Change authenticated user password                      |
 
 ---
 
 ## User Roles
 
-| Role                 | Scope            | Capabilities                                       |
-| -------------------- | ---------------- | -------------------------------------------------- |
-| `DISTRIBUTOR_ADMIN`  | Platform-wide    | Manage orgs, products, categories, orders, reports |
-| `ORGANISATION_ADMIN` | Own organisation | Manage profile, invite staff, create orders        |
-| `ORGANISATION_STAFF` | Own organisation | Create/manage orders per permissions               |
+| Role          | Scope            | Capabilities                                       |
+| ------------- | ---------------- | -------------------------------------------------- |
+| `SUPER_ADMIN` | Platform-wide    | Manage orgs, products, categories, orders, reports |
+| `ADMIN`       | Own organisation | Manage profile, invite staff, create orders        |
+| `STAFF`       | Own organisation | Create/manage orders per permissions               |
 
 ---
 

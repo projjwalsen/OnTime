@@ -8,7 +8,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { User, isDistributorAdmin } from '@ontime/shared';
+import { User, isSuperAdmin } from '@ontime/shared';
 import { api } from '../lib/api';
 import { STORAGE_KEYS } from '../lib/config';
 
@@ -39,9 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const res = await api.getMe();
         if (res.success && res.data?.user) {
-          // Strictly verify role is DISTRIBUTOR_ADMIN
-          if (!isDistributorAdmin(res.data.user.role)) {
-            console.warn('[Auth] Non-distributor user detected in admin portal. Logging out.');
+          // Strictly verify role is SUPER_ADMIN
+          if (!isSuperAdmin(res.data.user.role)) {
+            console.warn('[Auth] Non-super-admin user detected in admin portal. Logging out.');
             await api.logout();
             setUser(null);
           } else {
@@ -77,13 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const loggedInUser = res.data.user;
 
-        // Strictly enforce DISTRIBUTOR_ADMIN only
-        if (!isDistributorAdmin(loggedInUser.role)) {
+        // Strictly enforce SUPER_ADMIN only
+        if (!isSuperAdmin(loggedInUser.role)) {
           await api.logout();
           return {
             success: false,
             error:
-              'Access restricted: This admin panel is exclusively for Distributor Administrators. Retailer users cannot sign in here.',
+              'Access restricted: This admin panel is exclusively for Platform Super Administrators. Retailer users cannot sign in here.',
           };
         }
 
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.getMe();
       if (res.success && res.data?.user) {
-        if (isDistributorAdmin(res.data.user.role)) {
+        if (isSuperAdmin(res.data.user.role)) {
           setUser(res.data.user);
         }
       }
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user && isDistributorAdmin(user.role),
+        isAuthenticated: !!user && isSuperAdmin(user.role),
         isLoading,
         login,
         logout,

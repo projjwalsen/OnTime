@@ -19,20 +19,20 @@ DISTRIBUTOR / PLATFORM OWNER
 
 ### Key Architectural Rules
 
-| Rule                       | Description                                                 |
-| -------------------------- | ----------------------------------------------------------- |
-| Distributor creates orgs   | Only `DISTRIBUTOR_ADMIN` can onboard retailer organisations |
-| Org Admin invites staff    | `ORGANISATION_ADMIN` can invite staff to their own org only |
-| Staff cannot invite        | `ORGANISATION_STAFF` has no invitation permissions          |
-| Org cannot create orgs     | Retailer organisations cannot create other organisations    |
-| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity   |
+| Rule                       | Description                                           |
+| -------------------------- | ----------------------------------------------------- |
+| Distributor creates orgs   | Only `SUPER_ADMIN` can onboard retailer organisations |
+| Org Admin invites staff    | `ADMIN` can invite staff to their own org only        |
+| Staff cannot invite        | `STAFF` has no invitation permissions                 |
+| Org cannot create orgs     | Retailer organisations cannot create other organisations |
+| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity |
 
 ---
 
 ## User Role Hierarchy
 
 ```
-DISTRIBUTOR_ADMIN
+SUPER_ADMIN
   ↕ Full platform access
   ├── Manage Organisations
   ├── Manage Products & Categories
@@ -40,14 +40,14 @@ DISTRIBUTOR_ADMIN
   ├── Manage all Users
   └── View all Reports
 
-ORGANISATION_ADMIN
+ADMIN
   ↕ Own organisation access only
   ├── Manage organisation profile
-  ├── Invite ORGANISATION_STAFF
+  ├── Invite STAFF
   ├── Create/manage orders
   └── View organisation reports
 
-ORGANISATION_STAFF
+STAFF
   ↕ Own organisation access only (limited)
   ├── Create/manage orders
   └── View own orders
@@ -67,7 +67,7 @@ DISTRIBUTOR-LEVEL ENTITIES (no organisationId)
 
 RETAILER ORGANISATION-LEVEL ENTITIES (have organisationId)
   Organisation          — is the org itself
-  User                  — organisationId = null for DISTRIBUTOR_ADMIN
+  User                  — organisationId = null for SUPER_ADMIN
   OrganisationInvitation
 
 ORDER-LEVEL ENTITIES (scoped through Order)
@@ -86,12 +86,12 @@ Distributor
   │                   └── Product
   │
   └── [Onboards] → Organisation A
-                       ├── User (ORGANISATION_ADMIN)
-                       ├── User (ORGANISATION_STAFF)
+                       ├── User (ADMIN)
+                       ├── User (STAFF)
                        ├── OrganisationInvitation
                        └── Order #1001
-                               ├── OrderItem → Product X (distributor-owned)
-                               └── OrderItem → Product Y (distributor-owned)
+                                ├── OrderItem → Product X (distributor-owned)
+                                └── OrderItem → Product Y (distributor-owned)
 ```
 
 ---
@@ -126,11 +126,11 @@ Data isolation is enforced **exclusively at the backend layer**. The frontend is
 
 ### Isolation Matrix
 
-| Actor                | Own Org Data | Other Org Data | Distributor Products | All Org Data |
-| -------------------- | ------------ | -------------- | -------------------- | ------------ |
-| `DISTRIBUTOR_ADMIN`  | ✅           | ✅             | ✅                   | ✅           |
-| `ORGANISATION_ADMIN` | ✅           | ❌             | ✅ (read)            | ❌           |
-| `ORGANISATION_STAFF` | ✅ (limited) | ❌             | ✅ (read)            | ❌           |
+| Actor         | Own Org Data | Other Org Data | Distributor Products | All Org Data |
+| ------------- | ------------ | -------------- | -------------------- | ------------ |
+| `SUPER_ADMIN` | ✅           | ✅             | ✅                   | ✅           |
+| `ADMIN`       | ✅           | ❌             | ✅ (read)            | ❌           |
+| `STAFF`       | ✅ (limited) | ❌             | ✅ (read)            | ❌           |
 
 ---
 

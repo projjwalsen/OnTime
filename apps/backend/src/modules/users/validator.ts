@@ -12,11 +12,12 @@ export const inviteUserSchema = z.object({
     .email('Invalid email address')
     .toLowerCase()
     .trim(),
-  role: z.enum([UserRole.ORGANISATION_ADMIN, UserRole.ORGANISATION_STAFF], {
-    message: 'Role must be either ORGANISATION_ADMIN or ORGANISATION_STAFF',
+  role: z.enum([UserRole.ADMIN, UserRole.STAFF], {
+    message: 'Role must be either ADMIN or STAFF',
   }),
   organisationId: z.string().optional(),
 });
+
 
 // Alias for backwards compatibility
 export const inviteStaffSchema = inviteUserSchema;
