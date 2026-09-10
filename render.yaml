@@ -1,0 +1,36 @@
+services:
+  # ── 1. Backend Express API ─────────────────────────────────
+  - type: web
+    name: ontime-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build:backend
+    startCommand: npm run start:backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: '*'
+
+  # ── 2. Next.js Distributor Admin Portal ─────────────────────
+  - type: web
+    name: ontime-admin
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build:admin
+    startCommand: npm run start --workspace=apps/admin
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: ontime-backend
+          property: url
+          path: /api/v1
