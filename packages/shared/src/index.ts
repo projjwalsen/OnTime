@@ -43,6 +43,9 @@ export type {
   AcceptInvitationDto,
   VerifyInvitationResponse,
   JwtPayload,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  RegisterRetailerDto,
 } from './types/auth';
 
 // Constants

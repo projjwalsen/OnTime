@@ -4,6 +4,9 @@ import {
   type RefreshTokenDto,
   type ChangePasswordDto,
   type AcceptInvitationDto,
+  type ForgotPasswordDto,
+  type ResetPasswordDto,
+  type RegisterRetailerDto,
 } from '@ontime/shared';
 import { authService, AuthError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
@@ -151,3 +154,59 @@ export const acceptInvite: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request password reset token/link
+ * @access  Public
+ */
+export const forgotPassword: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as ForgotPasswordDto;
+      const result = await authService.forgotPassword(dto.email);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Reset password using token
+ * @access  Public
+ */
+export const resetPassword: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as ResetPasswordDto;
+      await authService.resetPassword(dto);
+      successResponse(
+        res,
+        'Password has been reset successfully. You can now log in with your new password.',
+      );
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/register
+ * @desc    Self-register retailer organisation and admin user account
+ * @access  Public
+ */
+export const registerRetailer: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as RegisterRetailerDto;
+      const result = await authService.registerRetailer(dto);
+      successResponse(res, 'Retailer account registered successfully', result, 201);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+

@@ -7,6 +7,9 @@ import {
   changePassword,
   verifyInvite,
   acceptInvite,
+  forgotPassword,
+  resetPassword,
+  registerRetailer,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
@@ -16,11 +19,23 @@ import {
   changePasswordSchema,
   acceptInvitationSchema,
   verifyInvitationQuerySchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  registerRetailerSchema,
 } from './validator';
 
 const router = Router();
 
 // ── Public Routes ──────────────────────────────────────────
+
+/**
+ * @route   POST /api/v1/auth/register
+ * @desc    Self-register a new retailer organisation and admin account
+ * @access  Public
+ */
+router.post('/register', validateBody(registerRetailerSchema), registerRetailer);
+router.post('/register-retailer', validateBody(registerRetailerSchema), registerRetailer);
+
 
 /**
  * @route   POST /api/v1/auth/login
@@ -35,6 +50,20 @@ router.post('/login', validateBody(loginSchema), login);
  * @access  Public
  */
 router.post('/refresh', validateBody(refreshTokenSchema), refresh);
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request password reset link/token
+ * @access  Public
+ */
+router.post('/forgot-password', validateBody(forgotPasswordSchema), forgotPassword);
+
+/**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Reset password using reset token
+ * @access  Public
+ */
+router.post('/reset-password', validateBody(resetPasswordSchema), resetPassword);
 
 /**
  * @route   GET /api/v1/auth/invite/verify
