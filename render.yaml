@@ -32,5 +32,4 @@ services:
         fromService:
           type: web
           name: ontime-backend
-          property: url
-          path: /api/v1
+          property: host
