@@ -10,7 +10,13 @@ import {
   type SendForgotPasswordOtpDto,
   type VerifyForgotPasswordOtpDto,
   type ResetPasswordWithOtpDto,
+  type SendRegistrationOtpDto,
+  type VerifyRegistrationOtpDto,
+  type RegisterRetailerDto,
   type SendOtpResponse,
+  type OnboardUserDto,
+  type OnboardUserResponse,
+  type InviteUserDto,
   type User,
   type Organisation,
   type CreateOrganisationDto,
@@ -293,6 +299,57 @@ class ApiClient {
     );
   }
 
+  async registerRetailer(
+    dto: RegisterRetailerDto,
+  ): Promise<{ success: boolean; message?: string; data?: AuthResponse; error?: string }> {
+    const res = await this.request<AuthResponse>(
+      '/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+
+    if (res.success && res.data?.tokens) {
+      this.setTokens(res.data.tokens.accessToken, res.data.tokens.refreshToken);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(res.data.user));
+      }
+    }
+
+    return res;
+  }
+
+  async sendRegistrationOtp(
+    dto: SendRegistrationOtpDto,
+  ): Promise<{ success: boolean; message?: string; data?: SendOtpResponse; error?: string }> {
+    return this.request<SendOtpResponse>(
+      '/auth/otp/register/send',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
+  async verifyRegistrationOtp(dto: VerifyRegistrationOtpDto): Promise<{
+    success: boolean;
+    message?: string;
+    data?: { valid: boolean; message: string; user?: User };
+    error?: string;
+  }> {
+    return this.request<{ valid: boolean; message: string; user?: User }>(
+      '/auth/otp/register/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      false,
+    );
+  }
+
   // ── Health Endpoint ─────────────────────────────────────────
 
   async checkHealth(): Promise<{
@@ -485,6 +542,25 @@ class ApiClient {
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return this.request(`/users${queryString}`);
+  }
+
+  async onboardUser(
+    dto: OnboardUserDto,
+  ): Promise<{ success: boolean; message?: string; data?: OnboardUserResponse; error?: string }> {
+    return this.request<OnboardUserResponse>(
+      '/users/onboard',
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+      true,
+    );
+  }
+
+  async inviteUser(
+    dto: InviteUserDto,
+  ): Promise<{ success: boolean; message?: string; data?: OnboardUserResponse; error?: string }> {
+    return this.onboardUser(dto);
   }
 }
 

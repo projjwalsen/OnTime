@@ -30,7 +30,14 @@ export type {
   CreateOrganisationDto,
   UpdateOrganisationDto,
 } from './types/organisation';
-export type { User, AuthContext, InviteUserDto, InvitationResponse } from './types/user';
+export type {
+  User,
+  AuthContext,
+  InviteUserDto,
+  OnboardUserDto,
+  OnboardUserResponse,
+  InvitationResponse,
+} from './types/user';
 export type {
   Product,
   Category,
@@ -57,6 +64,8 @@ export type {
   SendForgotPasswordOtpDto,
   VerifyForgotPasswordOtpDto,
   ResetPasswordWithOtpDto,
+  SendRegistrationOtpDto,
+  VerifyRegistrationOtpDto,
 } from './types/auth';
 
 

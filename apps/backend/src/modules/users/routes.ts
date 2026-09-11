@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { listUsers, getUserById, updateProfile, inviteUser } from './controller';
+import { listUsers, getUserById, updateProfile, inviteUser, onboardUser } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireOrganisationAdmin } from '../../middleware/rbac.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
-import { updateUserProfileSchema, inviteUserSchema } from './validator';
+import { updateUserProfileSchema, inviteUserSchema, onboardUserSchema } from './validator';
 
 const router = Router();
 
@@ -18,9 +18,16 @@ router.use(authMiddleware);
 router.get('/', requireOrganisationAdmin, listUsers);
 
 /**
+ * @route   POST /api/v1/users/onboard
+ * @desc    Onboard a new user (Staff or Admin) with auto-generated credentials
+ * @access  Protected (Super Admin or Admin)
+ */
+router.post('/onboard', requireOrganisationAdmin, validateBody(onboardUserSchema), onboardUser);
+
+/**
  * @route   POST /api/v1/users/invite
- * @desc    Invite a new user (Org Admin or Staff) to an organisation
- * @access  Protected (Distributor Admin or Org Admin)
+ * @desc    Onboard / invite a user (Staff or Admin) to an organisation
+ * @access  Protected (Super Admin or Admin)
  */
 router.post('/invite', requireOrganisationAdmin, validateBody(inviteUserSchema), inviteUser);
 

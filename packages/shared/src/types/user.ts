@@ -17,6 +17,7 @@ export interface User {
   /** null for SUPER_ADMIN users; required for organisation users */
   organisationId: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
   organisation?: Organisation | null;
   createdAt: Date;
   updatedAt: Date;
@@ -38,18 +39,34 @@ export interface AuthContext {
 }
 
 /**
- * Request payload for inviting a new staff or admin user to an organisation.
+ * Request payload for onboarding a new staff or admin user to an organisation.
+ * An auto-generated temporary password will be created and emailed to the user.
  */
-export interface InviteUserDto {
+export interface OnboardUserDto {
+  name: string;
   email: string;
   role: UserRole.ADMIN | UserRole.STAFF;
+  mobile?: string;
   /** Required when called by SUPER_ADMIN; ignored / automatically derived for ADMIN */
   organisationId?: string;
 }
 
+/**
+ * Backward-compatible alias for OnboardUserDto.
+ */
+export type InviteUserDto = OnboardUserDto;
 
 /**
- * Response payload returned when an invitation is successfully created.
+ * Response payload returned when a staff or admin user is onboarded.
+ */
+export interface OnboardUserResponse {
+  user: User;
+  /** Auto-generated temporary password (populated only in development/test environment) */
+  temporaryPassword?: string | undefined;
+}
+
+/**
+ * Backward-compatible response payload interface.
  */
 export interface InvitationResponse {
   id: string;
@@ -57,7 +74,10 @@ export interface InvitationResponse {
   role: UserRole;
   organisationId: string;
   organisationName: string;
-  token: string;
-  expiresAt: Date;
-  status: InvitationStatus;
+  token?: string;
+  expiresAt?: Date;
+  status?: InvitationStatus;
+  user?: User;
+  temporaryPassword?: string | undefined;
 }
+

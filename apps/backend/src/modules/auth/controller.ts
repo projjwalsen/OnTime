@@ -12,6 +12,8 @@ import {
   type SendForgotPasswordOtpDto,
   type VerifyForgotPasswordOtpDto,
   type ResetPasswordWithOtpDto,
+  type SendRegistrationOtpDto,
+  type VerifyRegistrationOtpDto,
 } from '@ontime/shared';
 import { authService, AuthError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
@@ -303,4 +305,39 @@ export const resetPasswordWithOtp: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * @route   POST /api/v1/auth/otp/register/send
+ * @desc    Resend / send verification code for retailer registration
+ * @access  Public
+ */
+export const sendRegistrationOtp: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as SendRegistrationOtpDto;
+      const result = await authService.sendRegistrationOtp(dto.email);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/otp/register/verify
+ * @desc    Verify retailer registration OTP
+ * @access  Public
+ */
+export const verifyRegistrationOtp: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as VerifyRegistrationOtpDto;
+      const result = await authService.verifyRegistrationOtp(dto);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
 

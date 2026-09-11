@@ -2,7 +2,7 @@ import type { Request, Response, RequestHandler } from 'express';
 import { usersService, UserError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type UpdateUserProfileInput, type InviteUserInput } from './validator';
+import { type UpdateUserProfileInput, type OnboardUserInput } from './validator';
 
 function handleUserError(res: Response, error: unknown): void {
   if (error instanceof UserError) {
@@ -71,22 +71,35 @@ export const updateProfile: RequestHandler = asyncHandler(
 );
 
 /**
- * @route   POST /api/v1/users/invite
- * @desc    Invite a new user (Org Admin or Staff) to an organisation
- * @access  Protected (Distributor Admin or Org Admin)
+ * @route   POST /api/v1/users/onboard
+ * @desc    Onboard a new user with auto-generated credentials
+ * @access  Protected (Super Admin or Admin)
  */
-export const inviteUser: RequestHandler = asyncHandler(
+export const onboardUser: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.user) {
         errorResponse(res, 'Unauthorised', 401);
         return;
       }
-      const dto = req.body as InviteUserInput;
-      const invitation = await usersService.inviteUser(req.user, dto);
-      successResponse(res, 'Invitation created successfully', { invitation }, 201);
+      const dto = req.body as OnboardUserInput;
+      const result = await usersService.onboardUser(req.user, dto);
+      successResponse(
+        res,
+        'Staff member onboarded successfully. Credentials have been sent to their email.',
+        result,
+        201,
+      );
     } catch (error) {
       handleUserError(res, error);
     }
   },
 );
+
+/**
+ * @route   POST /api/v1/users/invite
+ * @desc    Invite / onboard a new user (Org Admin or Staff) to an organisation
+ * @access  Protected (Super Admin or Admin)
+ */
+export const inviteUser: RequestHandler = onboardUser;
+

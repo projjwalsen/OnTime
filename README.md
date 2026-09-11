@@ -149,6 +149,9 @@ Base URL: `http://localhost:4000/api/v1`
 
 | Method | Path                                      | Access    | Description                                             |
 | ------ | ----------------------------------------- | --------- | ------------------------------------------------------- |
+| POST   | `/api/v1/auth/register`                   | Public    | Self-register retailer account & send verification OTP  |
+| POST   | `/api/v1/auth/otp/register/send`          | Public    | Resend / send registration OTP verification code        |
+| POST   | `/api/v1/auth/otp/register/verify`        | Public    | Verify retailer registration OTP code                   |
 | POST   | `/api/v1/auth/login`                      | Public    | Authenticate user and issue JWT access & refresh tokens |
 | POST   | `/api/v1/auth/otp/login/send`             | Public    | Send OTP code to user's email for passwordless login    |
 | POST   | `/api/v1/auth/otp/login/verify`           | Public    | Verify OTP and issue JWT access & refresh tokens        |

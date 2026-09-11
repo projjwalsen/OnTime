@@ -15,6 +15,8 @@ import {
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
   resetPasswordWithOtp,
+  sendRegistrationOtp,
+  verifyRegistrationOtp,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
@@ -32,6 +34,8 @@ import {
   sendForgotPasswordOtpSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
+  sendRegistrationOtpSchema,
+  verifyRegistrationOtpSchema,
 } from './validator';
 
 const router = Router();
@@ -124,6 +128,20 @@ router.post('/otp/forgot-password/verify', validateBody(verifyForgotPasswordOtpS
  * @access  Public
  */
 router.post('/otp/forgot-password/reset', validateBody(resetPasswordWithOtpSchema), resetPasswordWithOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/register/send
+ * @desc    Resend / send verification code for retailer registration via email
+ * @access  Public
+ */
+router.post('/otp/register/send', validateBody(sendRegistrationOtpSchema), sendRegistrationOtp);
+
+/**
+ * @route   POST /api/v1/auth/otp/register/verify
+ * @desc    Verify retailer registration OTP code
+ * @access  Public
+ */
+router.post('/otp/register/verify', validateBody(verifyRegistrationOtpSchema), verifyRegistrationOtp);
 
 // ── Protected Routes ───────────────────────────────────────
 

@@ -4,6 +4,7 @@ import {
   type Organisation,
   type AuthContext,
   type InvitationResponse,
+  type OnboardUserResponse,
   UserRole,
   InvitationStatus,
   INVITATION_EXPIRY_DAYS,
@@ -11,7 +12,10 @@ import {
 } from '@ontime/shared';
 
 import { prisma } from '../../lib/prisma';
-import { type UpdateUserProfileInput, type InviteUserInput } from './validator';
+import { emailService } from '../../lib/email.service';
+import { hashPassword } from '../../utils/password';
+import { config } from '../../config/env';
+import { type UpdateUserProfileInput, type OnboardUserInput } from './validator';
 
 export class UserError extends Error {
   constructor(
@@ -44,6 +48,7 @@ export class UsersService {
       role: u.role as UserRole,
       organisationId: u.organisationId,
       isActive: u.isActive,
+      mustChangePassword: u.mustChangePassword,
       organisation: (u.organisation as unknown as Organisation) ?? null,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
@@ -69,6 +74,7 @@ export class UsersService {
       role: user.role as UserRole,
       organisationId: user.organisationId,
       isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
       organisation: (user.organisation as unknown as Organisation) ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -96,6 +102,7 @@ export class UsersService {
       role: updated.role as UserRole,
       organisationId: updated.organisationId,
       isActive: updated.isActive,
+      mustChangePassword: updated.mustChangePassword,
       organisation: (updated.organisation as unknown as Organisation) ?? null,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
@@ -103,15 +110,43 @@ export class UsersService {
   }
 
   /**
-   * Create an organisation invitation for an Org Admin or Staff user.
+   * Generate a random, high-entropy temporary password.
+   * Format: 12 characters including uppercase, lowercase, numbers, and symbols.
    */
-  async inviteUser(caller: AuthContext, data: InviteUserInput): Promise<InvitationResponse> {
+  private generateTemporaryPassword(): string {
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lowercase = 'abcdefghjkmnpqrstuvwxyz';
+    const numbers = '23456789';
+    const symbols = '!@#$%^&*';
+
+    let password = '';
+    password += uppercase[crypto.randomInt(0, uppercase.length)];
+    password += lowercase[crypto.randomInt(0, lowercase.length)];
+    password += numbers[crypto.randomInt(0, numbers.length)];
+    password += symbols[crypto.randomInt(0, symbols.length)];
+
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      password += allChars[crypto.randomInt(0, allChars.length)];
+    }
+
+    // Shuffle characters
+    return password
+      .split('')
+      .sort(() => 0.5 - Math.random())
+      .join('');
+  }
+
+  /**
+   * Directly onboard a new staff or admin user to an organisation with auto-generated credentials.
+   */
+  async onboardUser(caller: AuthContext, data: OnboardUserInput): Promise<OnboardUserResponse> {
     let targetOrgId: string;
 
     if (isSuperAdmin(caller.role)) {
       if (!data.organisationId) {
         throw new UserError(
-          'organisationId is required for super admin when inviting users.',
+          'organisationId is required for super admin when onboarding users.',
           400,
         );
       }
@@ -134,7 +169,7 @@ export class UsersService {
     }
 
     if (organisation.status === 'SUSPENDED') {
-      throw new UserError('Cannot invite users to a suspended organisation.', 403);
+      throw new UserError('Cannot onboard users to a suspended organisation.', 403);
     }
 
     const email = data.email.toLowerCase().trim();
@@ -148,45 +183,71 @@ export class UsersService {
       throw new UserError('A user with this email address already exists.', 409);
     }
 
-    // Revoke previous pending invitation for same email & org if any
-    await prisma.organisationInvitation.updateMany({
-      where: {
-        email,
-        organisationId: targetOrgId,
-        status: InvitationStatus.PENDING,
-      },
-      data: {
-        status: InvitationStatus.REVOKED,
-      },
-    });
+    // Auto-generate secure temporary password and hash it
+    const temporaryPassword = this.generateTemporaryPassword();
+    const passwordHash = await hashPassword(temporaryPassword);
 
-    // Generate unique crypto token & expiry
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-
-    const invitation = await prisma.organisationInvitation.create({
+    // Create user in PostgreSQL
+    const newUser = await prisma.user.create({
       data: {
         email,
+        name: data.name.trim(),
+        mobile: data.mobile?.trim() || null,
+        passwordHash,
         role: data.role,
         organisationId: targetOrgId,
-        token,
-        expiresAt,
-        status: InvitationStatus.PENDING,
+        isActive: true,
+        mustChangePassword: true,
       },
       include: {
         organisation: true,
       },
     });
 
+    // Send credentials welcome email with temporary password
+    await emailService.sendStaffCredentialsEmail(email, {
+      name: newUser.name,
+      username: email,
+      temporaryPassword,
+      organisationName: organisation.name,
+    });
+
+    const userContract: User = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      mobile: newUser.mobile,
+      role: newUser.role as UserRole,
+      organisationId: newUser.organisationId,
+      isActive: newUser.isActive,
+      mustChangePassword: newUser.mustChangePassword,
+      organisation: (newUser.organisation as unknown as Organisation) ?? null,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
+    };
+
     return {
-      id: invitation.id,
-      email: invitation.email,
-      role: invitation.role as UserRole,
-      organisationId: invitation.organisationId,
-      organisationName: invitation.organisation.name,
-      token: invitation.token,
-      expiresAt: invitation.expiresAt,
-      status: invitation.status as InvitationStatus,
+      user: userContract,
+      ...(config.isDevelopment || config.isTest || !config.isProduction
+        ? { temporaryPassword }
+        : {}),
+    };
+  }
+
+  /**
+   * Alias for backward compatibility with inviteUser.
+   */
+  async inviteUser(caller: AuthContext, data: OnboardUserInput): Promise<InvitationResponse> {
+    const result = await this.onboardUser(caller, data);
+    return {
+      id: result.user.id,
+      email: result.user.email,
+      role: result.user.role,
+      organisationId: result.user.organisationId ?? '',
+      organisationName: result.user.organisation?.name ?? '',
+      status: InvitationStatus.ACCEPTED,
+      user: result.user,
+      temporaryPassword: result.temporaryPassword,
     };
   }
 }

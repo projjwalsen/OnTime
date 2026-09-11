@@ -22,8 +22,8 @@ DISTRIBUTOR / PLATFORM OWNER
 | Rule                       | Description                                           |
 | -------------------------- | ----------------------------------------------------- |
 | Distributor creates orgs   | Only `SUPER_ADMIN` can onboard retailer organisations |
-| Org Admin invites staff    | `ADMIN` can invite staff to their own org only        |
-| Staff cannot invite        | `STAFF` has no invitation permissions                 |
+| Org Admin onboards staff   | `ADMIN` can onboard staff to their own org with auto-generated credentials |
+| Staff cannot onboard users | `STAFF` has no onboarding permissions                 |
 | Org cannot create orgs     | Retailer organisations cannot create other organisations |
 | Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity |
 
@@ -37,13 +37,13 @@ SUPER_ADMIN
   ├── Manage Organisations
   ├── Manage Products & Categories
   ├── Manage all Orders
-  ├── Manage all Users
+  ├── Manage all Users (Onboard Admin & Staff)
   └── View all Reports
 
 ADMIN
   ↕ Own organisation access only
   ├── Manage organisation profile
-  ├── Invite STAFF
+  ├── Onboard STAFF (auto-credentials & first-login reset)
   ├── Create/manage orders
   └── View organisation reports
 
@@ -51,7 +51,7 @@ STAFF
   ↕ Own organisation access only (limited)
   ├── Create/manage orders
   └── View own orders
-  ✗ Cannot invite users
+  ✗ Cannot onboard users
   ✗ Cannot manage organisation
   ✗ Cannot create organisations
 ```

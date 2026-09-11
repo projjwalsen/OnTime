@@ -10,8 +10,11 @@ import {
   type RegisterRetailerDto,
   type SendOtpResponse,
   type VerifyLoginOtpDto,
+  type SendForgotPasswordOtpDto,
   type VerifyForgotPasswordOtpDto,
   type ResetPasswordWithOtpDto,
+  type SendRegistrationOtpDto,
+  type VerifyRegistrationOtpDto,
   type User,
   type Organisation,
   UserRole,
@@ -52,6 +55,7 @@ function sanitizeUser(user: {
   role: unknown;
   organisationId: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
   createdAt: Date;
   updatedAt: Date;
   organisation?: unknown;
@@ -64,6 +68,7 @@ function sanitizeUser(user: {
     role: user.role as UserRole,
     organisationId: user.organisationId,
     isActive: user.isActive,
+    mustChangePassword: user.mustChangePassword ?? false,
     organisation: (user.organisation as Organisation) ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -149,6 +154,7 @@ export class AuthService {
       user: sanitizeUser(user),
       tokens,
       organisation: (user.organisation as unknown as Organisation) ?? null,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 
@@ -303,7 +309,7 @@ export class AuthService {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },
-        data: { passwordHash: newPasswordHash },
+        data: { passwordHash: newPasswordHash, mustChangePassword: false },
       }),
       // Revoke all active refresh tokens on password change
       prisma.refreshToken.updateMany({
@@ -541,7 +547,7 @@ export class AuthService {
         // Update user password
         await tx.user.update({
           where: { id: user.id },
-          data: { passwordHash: newPasswordHash },
+          data: { passwordHash: newPasswordHash, mustChangePassword: false },
         });
 
         // Mark reset token as used
@@ -659,11 +665,46 @@ export class AuthService {
       tokenType: 'Bearer',
     };
 
+    // Invalidate any previous unused registration OTPs for this email
+    await prisma.otpCode.updateMany({
+      where: {
+        email,
+        purpose: OtpPurpose.REGISTRATION,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    // Generate 6-digit registration verification OTP and save record
+    const otp = this.generateOtp();
+    const codeHash = this.hashOtp(otp);
+    const expiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
+
+    await prisma.otpCode.create({
+      data: {
+        email,
+        codeHash,
+        purpose: OtpPurpose.REGISTRATION,
+        expiresAt,
+      },
+    });
+
+    // Send registration verification OTP email
+    await emailService.sendRegistrationOtpEmail(
+      email,
+      otp,
+      config.otpExpiryMinutes,
+      dto.businessName,
+    );
+
     return {
       user: sanitizeUser(newUser),
       tokens,
       organisation:
         (newUser.organisation as unknown as Organisation) ?? (newOrg as unknown as Organisation),
+      ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp } : {}),
     };
   }
 
@@ -895,6 +936,7 @@ export class AuthService {
         tokenType: 'Bearer',
       },
       organisation: (user.organisation as unknown as Organisation) ?? null,
+      mustChangePassword: user.mustChangePassword,
     };
   }
 
@@ -1121,7 +1163,7 @@ export class AuthService {
         // Update user password
         await tx.user.update({
           where: { id: user.id },
-          data: { passwordHash: newPasswordHash },
+          data: { passwordHash: newPasswordHash, mustChangePassword: false },
         });
 
         // Mark OTP as used
@@ -1141,6 +1183,171 @@ export class AuthService {
         timeout: 20000,
       },
     );
+  }
+
+  /**
+   * Resend / request an OTP for retailer registration verification.
+   */
+  async sendRegistrationOtp(emailStr: string): Promise<SendOtpResponse> {
+    const email = emailStr.toLowerCase().trim();
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { organisation: true },
+    });
+
+    if (!user) {
+      throw new AuthError('No account found with this email address.', 404);
+    }
+
+    // Rate limiting: cooldown check
+    const cooldownThreshold = new Date(Date.now() - config.otpCooldownSeconds * 1000);
+    const recentOtp = await prisma.otpCode.findFirst({
+      where: {
+        email,
+        purpose: OtpPurpose.REGISTRATION,
+        createdAt: { gt: cooldownThreshold },
+        usedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (recentOtp) {
+      const remainingSecs = Math.max(
+        1,
+        Math.ceil((recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000),
+      );
+      throw new AuthError(
+        `Please wait ${remainingSecs} seconds before requesting a new verification code.`,
+        429,
+      );
+    }
+
+    // Invalidate previous unused registration OTPs for this email
+    await prisma.otpCode.updateMany({
+      where: {
+        email,
+        purpose: OtpPurpose.REGISTRATION,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    // Generate 6-digit code and save hashed record
+    const otp = this.generateOtp();
+    const codeHash = this.hashOtp(otp);
+    const expiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
+
+    await prisma.otpCode.create({
+      data: {
+        email,
+        codeHash,
+        purpose: OtpPurpose.REGISTRATION,
+        expiresAt,
+      },
+    });
+
+    // Send email notification
+    await emailService.sendRegistrationOtpEmail(
+      email,
+      otp,
+      config.otpExpiryMinutes,
+      user.organisation?.name,
+    );
+
+    return {
+      message: 'A verification code has been sent to your email address.',
+      expiresInSeconds: config.otpExpiryMinutes * 60,
+      ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp } : {}),
+    };
+  }
+
+  /**
+   * Verify retailer registration OTP.
+   */
+  async verifyRegistrationOtp(
+    dto: VerifyRegistrationOtpDto,
+  ): Promise<{ message: string; valid: boolean; user: ReturnType<typeof sanitizeUser> }> {
+    const email = dto.email.toLowerCase().trim();
+    const submittedOtp = dto.otp.trim();
+
+    const latestOtp = await prisma.otpCode.findFirst({
+      where: {
+        email,
+        purpose: OtpPurpose.REGISTRATION,
+        usedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!latestOtp) {
+      throw new AuthError('Invalid or expired verification code. Please request a new code.', 400);
+    }
+
+    if (latestOtp.expiresAt < new Date()) {
+      await prisma.otpCode.update({
+        where: { id: latestOtp.id },
+        data: { usedAt: new Date() },
+      });
+      throw new AuthError('Verification code has expired. Please request a new code.', 400);
+    }
+
+    if (latestOtp.attempts >= config.otpMaxAttempts) {
+      await prisma.otpCode.update({
+        where: { id: latestOtp.id },
+        data: { usedAt: new Date() },
+      });
+      throw new AuthError(
+        'Maximum verification attempts exceeded. Please request a new code.',
+        400,
+      );
+    }
+
+    const expectedHash = this.hashOtp(submittedOtp);
+    if (latestOtp.codeHash !== expectedHash) {
+      const updatedOtp = await prisma.otpCode.update({
+        where: { id: latestOtp.id },
+        data: { attempts: { increment: 1 } },
+      });
+      const remainingAttempts = config.otpMaxAttempts - updatedOtp.attempts;
+      if (remainingAttempts <= 0) {
+        await prisma.otpCode.update({
+          where: { id: latestOtp.id },
+          data: { usedAt: new Date() },
+        });
+        throw new AuthError(
+          'Maximum verification attempts exceeded. Please request a new code.',
+          400,
+        );
+      }
+      throw new AuthError(
+        `Invalid verification code. ${remainingAttempts} attempt(s) remaining.`,
+        400,
+      );
+    }
+
+    // Mark OTP as used
+    await prisma.otpCode.update({
+      where: { id: latestOtp.id },
+      data: { usedAt: new Date() },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { organisation: true },
+    });
+
+    if (!user) {
+      throw new AuthError('User account not found.', 404);
+    }
+
+    return {
+      message: 'Retailer account email verified successfully.',
+      valid: true,
+      user: sanitizeUser(user),
+    };
   }
 }
 

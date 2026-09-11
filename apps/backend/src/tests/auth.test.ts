@@ -336,46 +336,77 @@ async function runTests() {
     );
     console.log('  ✔ Organisation scoping middleware verified\n');
 
-    // ── Test 11: Invitation Verification & Acceptance ───────
-    console.log('Test 11: Invitation Verification & Acceptance Flow');
-    const inviteVerify = await request(
-      '/api/v1/auth/invite/verify?token=invite-test-token-apex-staff-2026',
-    );
-    assert(inviteVerify.status === 200, `Invite verify status 200, got ${inviteVerify.status}`);
-    assert(inviteVerify.body.data.email === 'newstaff@apexretailers.com', 'Invite email verified');
-    assert(
-      inviteVerify.body.data.organisationName === 'Apex Retailers Ltd',
-      'Invite organisation name verified',
-    );
-
-    // Accept invitation
-    const inviteAccept = await request('/api/v1/auth/invite/accept', {
+    // ── Test 11: Staff Onboarding with Auto-Generated Credentials Flow ───────
+    console.log('Test 11: Staff Onboarding with Auto-Generated Credentials Flow');
+    const onboardStaffRes = await request('/api/v1/users/onboard', {
       method: 'POST',
+      headers: { Authorization: `Bearer ${orgAdminAccessToken}` },
       body: {
-        token: 'invite-test-token-apex-staff-2026',
         name: 'Emma New Staff',
-        password: 'Password123!',
+        email: 'newstaff@apexretailers.com',
+        role: UserRole.STAFF,
         mobile: '+91 9988776655',
       },
     });
-    assert(inviteAccept.status === 201, `Invite accept status 201, got ${inviteAccept.status}`);
+    assert(onboardStaffRes.status === 201, `Onboard staff status 201, got ${onboardStaffRes.status}`);
     assert(
-      inviteAccept.body.data.user.email === 'newstaff@apexretailers.com',
+      onboardStaffRes.body.data.user.email === 'newstaff@apexretailers.com',
       'New user email matches',
     );
     assert(
-      inviteAccept.body.data.user.role === UserRole.STAFF,
+      onboardStaffRes.body.data.user.role === UserRole.STAFF,
       'New user role is STAFF',
     );
-    assert(!!inviteAccept.body.data.tokens.accessToken, 'Immediate access token issued');
+    assert(
+      onboardStaffRes.body.data.user.mustChangePassword === true,
+      'mustChangePassword is true on initial onboard',
+    );
+    const staffTempPassword = onboardStaffRes.body.data.temporaryPassword;
+    assert(
+      typeof staffTempPassword === 'string' && staffTempPassword.length >= 8,
+      'Auto-generated temporary password returned in dev/test mode',
+    );
 
-    // Login with the newly registered user
-    const newStaffLogin = await request('/api/v1/auth/login', {
+    // Initial Login with temporary password
+    const newStaffFirstLogin = await request('/api/v1/auth/login', {
       method: 'POST',
-      body: { email: 'newstaff@apexretailers.com', password: 'Password123!' },
+      body: { email: 'newstaff@apexretailers.com', password: staffTempPassword },
     });
-    assert(newStaffLogin.status === 200, `New staff login status 200, got ${newStaffLogin.status}`);
-    console.log('  ✔ Invitation verification & acceptance onboarding passed\n');
+    assert(newStaffFirstLogin.status === 200, `First login status 200, got ${newStaffFirstLogin.status}`);
+    assert(
+      newStaffFirstLogin.body.data.mustChangePassword === true,
+      'mustChangePassword flag is true on first login',
+    );
+    const firstLoginAccessToken = newStaffFirstLogin.body.data.tokens.accessToken;
+
+    // Reset / Change Password on First Login
+    const firstLoginChangePass = await request('/api/v1/auth/change-password', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${firstLoginAccessToken}` },
+      body: {
+        currentPassword: staffTempPassword,
+        newPassword: 'EmmaNewSecurePassword123!',
+      },
+    });
+    assert(
+      firstLoginChangePass.status === 200,
+      `Change password on first login status 200, got ${firstLoginChangePass.status}`,
+    );
+
+    // Subsequent Login with new password
+    const newStaffSubsequentLogin = await request('/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'newstaff@apexretailers.com', password: 'EmmaNewSecurePassword123!' },
+    });
+    assert(
+      newStaffSubsequentLogin.status === 200,
+      `Subsequent login status 200, got ${newStaffSubsequentLogin.status}`,
+    );
+    assert(
+      newStaffSubsequentLogin.body.data.mustChangePassword === false,
+      'mustChangePassword flag is false after password change',
+    );
+    console.log('  ✔ Staff onboarding with credentials & first-login password reset passed\n');
 
     // ── Test 12: Change Password Flow ───────────────────────
     console.log('Test 12: Change Password Flow');
@@ -409,95 +440,55 @@ async function runTests() {
     console.log('  ✔ Change password flow verified\n');
 
     // ── Test 13: Dynamic Invitation Creation & Onboarding ───
-    console.log('Test 13: Dynamic Invitation Creation (POST /api/v1/users/invite)');
-
-    // Staff cannot invite
-    const staffInvite = await request('/api/v1/users/invite', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${orgStaffAccessToken}` },
-      body: {
-        email: 'stafftryingtoinvite@apexretailers.com',
-        role: UserRole.STAFF,
-      },
-    });
-    assert(staffInvite.status === 403, 'Staff user should be forbidden (403) from inviting');
-
-    // Super admin invites a new Org Admin for an organisation
+    // ── Test 13: Super Admin Dynamic User Onboarding ──────
+    console.log('Test 13: Super Admin Dynamic User Onboarding');
     const apexOrg = await prisma.organisation.findFirst({ where: { name: 'Apex Retailers Ltd' } });
     assert(!!apexOrg, 'Apex organisation exists in DB');
 
-    const distDynamicInvite = await request('/api/v1/users/invite', {
+    const distDynamicOnboard = await request('/api/v1/users/onboard', {
       method: 'POST',
       headers: { Authorization: `Bearer ${distAccessToken}` },
       body: {
+        name: 'Dynamic Org Admin',
         email: 'dynamicorgadmin@apexretailers.com',
         role: UserRole.ADMIN,
         organisationId: apexOrg!.id,
-      },
-    });
-    assert(
-      distDynamicInvite.status === 201,
-      `Super admin invite status 201, got ${distDynamicInvite.status}`,
-    );
-    const generatedToken = distDynamicInvite.body.data.invitation.token;
-    assert(
-      typeof generatedToken === 'string' && generatedToken.length > 20,
-      'Generated crypto token exists',
-    );
-    assert(
-      distDynamicInvite.body.data.invitation.role === UserRole.ADMIN,
-      'Role is ADMIN',
-    );
-    assert(
-      distDynamicInvite.body.data.invitation.organisationId === apexOrg!.id,
-      'Organisation ID matches',
-    );
-
-    // Verify the dynamically created invitation token
-    const verifyDynamic = await request(`/api/v1/auth/invite/verify?token=${generatedToken}`);
-    assert(verifyDynamic.status === 200, 'Dynamic invite verification succeeded');
-    assert(
-      verifyDynamic.body.data.email === 'dynamicorgadmin@apexretailers.com',
-      'Invite email verified',
-    );
-    assert(
-      verifyDynamic.body.data.organisationName === 'Apex Retailers Ltd',
-      'Organisation name matches',
-    );
-
-    // Accept the dynamic invitation
-    const acceptDynamic = await request('/api/v1/auth/invite/accept', {
-      method: 'POST',
-      body: {
-        token: generatedToken,
-        name: 'Dynamic Org Admin',
-        password: 'Password123!',
         mobile: '+91 9123456780',
       },
     });
     assert(
-      acceptDynamic.status === 201,
-      `Accept dynamic invite status 201, got ${acceptDynamic.status}`,
+      distDynamicOnboard.status === 201,
+      `Super admin onboard status 201, got ${distDynamicOnboard.status}`,
     );
     assert(
-      acceptDynamic.body.data.user.email === 'dynamicorgadmin@apexretailers.com',
+      distDynamicOnboard.body.data.user.email === 'dynamicorgadmin@apexretailers.com',
       'Created user email matches',
     );
     assert(
-      acceptDynamic.body.data.user.role === UserRole.ADMIN,
-      'Created user role is ADMIN',
+      distDynamicOnboard.body.data.user.role === UserRole.ADMIN,
+      'Role is ADMIN',
     );
     assert(
-      !!acceptDynamic.body.data.tokens.accessToken,
-      'Access token returned on dynamic onboarding',
+      distDynamicOnboard.body.data.user.mustChangePassword === true,
+      'mustChangePassword is true on onboard',
+    );
+    const dynamicTempPassword = distDynamicOnboard.body.data.temporaryPassword;
+    assert(
+      typeof dynamicTempPassword === 'string' && dynamicTempPassword.length >= 8,
+      'Auto-generated temporary password returned',
     );
 
     // Login with the newly registered dynamic org admin
     const dynamicAdminLogin = await request('/api/v1/auth/login', {
       method: 'POST',
-      body: { email: 'dynamicorgadmin@apexretailers.com', password: 'Password123!' },
+      body: { email: 'dynamicorgadmin@apexretailers.com', password: dynamicTempPassword },
     });
     assert(dynamicAdminLogin.status === 200, 'Login with dynamic org admin succeeded');
+    assert(
+      dynamicAdminLogin.body.data.mustChangePassword === true,
+      'mustChangePassword is true on dynamic admin first login',
+    );
+    console.log('  ✔ Super admin dynamic user onboarding & credentials login passed\n');
 
     // ── Test 14: Forgot Password & Reset Password Flow ───────
     console.log('Test 14: Forgot Password & Reset Password Flow');
@@ -594,8 +585,35 @@ async function runTests() {
     );
     assert(!!registerRes.body.data.tokens.accessToken, 'Access token returned on registration');
     assert(!!registerRes.body.data.tokens.refreshToken, 'Refresh token returned on registration');
+    assert(
+      typeof registerRes.body.data.otp === 'string' && registerRes.body.data.otp.length === 6,
+      'Registration OTP code returned in dev/test mode',
+    );
 
-    // 15b. Attempt duplicate registration with same email (should fail 409)
+    const registrationOtp = registerRes.body.data.otp;
+
+    // 15b. Verify the registration OTP code
+    const verifyRegOtpRes = await request('/api/v1/auth/otp/register/verify', {
+      method: 'POST',
+      body: {
+        email: 'selfregistered@zenithstore.com',
+        otp: registrationOtp,
+      },
+    });
+    assert(verifyRegOtpRes.status === 200, `Expected 200 on OTP verify, got ${verifyRegOtpRes.status}`);
+    assert(verifyRegOtpRes.body.data.valid === true, 'OTP verification succeeded');
+
+    // 15c. Resend registration OTP (cooldown check)
+    const resendRegOtpRes = await request('/api/v1/auth/otp/register/send', {
+      method: 'POST',
+      body: { email: 'selfregistered@zenithstore.com' },
+    });
+    assert(
+      resendRegOtpRes.status === 200 || resendRegOtpRes.status === 429,
+      `Resend OTP status is 200 or 429, got ${resendRegOtpRes.status}`,
+    );
+
+    // 15d. Attempt duplicate registration with same email (should fail 409)
     const duplicateRegisterRes = await request('/api/v1/auth/register', {
       method: 'POST',
       body: {
@@ -610,7 +628,7 @@ async function runTests() {
       `Duplicate registration should return 409, got ${duplicateRegisterRes.status}`,
     );
 
-    // 15c. Log in with the newly self-registered account
+    // 15e. Log in with the newly self-registered account
     const selfRegLogin = await request('/api/v1/auth/login', {
       method: 'POST',
       body: { email: 'selfregistered@zenithstore.com', password: 'SecurePassword123!' },
@@ -621,7 +639,7 @@ async function runTests() {
       'Logged-in organisation details match',
     );
 
-    console.log('  ✔ Retailer self-registration, conflict prevention & login passed\n');
+    console.log('  ✔ Retailer self-registration, OTP verification, conflict prevention & login passed\n');
 
     // ============================================================
     // 16. OTP-BASED LOGIN FLOW

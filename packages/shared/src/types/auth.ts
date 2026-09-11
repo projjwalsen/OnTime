@@ -30,6 +30,10 @@ export interface AuthResponse {
   tokens: AuthTokens;
   /** Populated for organisation users, null for super admins */
   organisation?: Organisation | null;
+  /** Populated with registration/login OTP in development/test environment */
+  otp?: string;
+  /** Flag indicating user must change their temporary password on first login */
+  mustChangePassword?: boolean;
 }
 
 /**
@@ -162,5 +166,20 @@ export interface ResetPasswordWithOtpDto {
   email: string;
   otp: string;
   newPassword: string;
+}
+
+/**
+ * Request payload for resending retailer registration verification OTP.
+ */
+export interface SendRegistrationOtpDto {
+  email: string;
+}
+
+/**
+ * Request payload for verifying retailer registration OTP.
+ */
+export interface VerifyRegistrationOtpDto {
+  email: string;
+  otp: string;
 }
 

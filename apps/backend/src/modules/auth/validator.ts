@@ -143,6 +143,27 @@ export const resetPasswordWithOtpSchema = z.object({
     .min(8, 'New password must be at least 8 characters long'),
 });
 
+export const sendRegistrationOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+});
+
+export const verifyRegistrationOtpSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+  otp: z
+    .string({ message: 'OTP code is required' })
+    .trim()
+    .min(4, 'OTP code must be at least 4 characters')
+    .max(10, 'OTP code must be at most 10 characters'),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -155,4 +176,6 @@ export type VerifyLoginOtpInput = z.infer<typeof verifyLoginOtpSchema>;
 export type SendForgotPasswordOtpInput = z.infer<typeof sendForgotPasswordOtpSchema>;
 export type VerifyForgotPasswordOtpInput = z.infer<typeof verifyForgotPasswordOtpSchema>;
 export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchema>;
+export type SendRegistrationOtpInput = z.infer<typeof sendRegistrationOtpSchema>;
+export type VerifyRegistrationOtpInput = z.infer<typeof verifyRegistrationOtpSchema>;
 
