@@ -263,10 +263,34 @@ model Product {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants    ProductVariant[]
 
   @@index([categoryId])
   @@index([sku])
   @@map("products")
 }
+
+// ============================================================
+// PRODUCT VARIANT
+// Specific package/size/weight/pricing variations for a product.
+// DATA OWNERSHIP: Inherits distributor-level ownership from Product.
+// ============================================================
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  productId   String
+  weight      String?
+  description String?
+  image       String?
+  price       Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
 

@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma';
-import { type Product } from '@ontime/shared';
+import { type Product, type ProductVariant } from '@ontime/shared';
 import { type CreateProductInput, type UpdateProductInput } from './validator';
 
 export class ProductError extends Error {
@@ -12,6 +12,70 @@ export class ProductError extends Error {
   }
 }
 
+function formatProduct(p: {
+  id: string;
+  name: string;
+  sku: string;
+  description: string | null;
+  price: any;
+  categoryId: string | null;
+  unit: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  category?: {
+    id: string;
+    name: string;
+    description: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  variants?: Array<{
+    id: string;
+    productId: string;
+    weight: string | null;
+    description: string | null;
+    image: string | null;
+    price: any;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+}): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    description: p.description,
+    price: Number(p.price),
+    categoryId: p.categoryId,
+    category: p.category
+      ? {
+          id: p.category.id,
+          name: p.category.name,
+          description: p.category.description,
+          createdAt: p.category.createdAt,
+          updatedAt: p.category.updatedAt,
+        }
+      : null,
+    unit: p.unit,
+    isActive: p.isActive,
+    variants: p.variants?.map(
+      (v): ProductVariant => ({
+        id: v.id,
+        productId: v.productId,
+        weight: v.weight,
+        description: v.description,
+        image: v.image,
+        price: Number(v.price),
+        createdAt: v.createdAt,
+        updatedAt: v.updatedAt,
+      }),
+    ) ?? [],
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  };
+}
+
 export class ProductsService {
   /**
    * List all products in catalog.
@@ -20,33 +84,16 @@ export class ProductsService {
     const products = await prisma.product.findMany({
       include: {
         category: true,
+        variants: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      description: p.description,
-      price: Number(p.price),
-      categoryId: p.categoryId,
-      category: p.category
-        ? {
-            id: p.category.id,
-            name: p.category.name,
-            description: p.category.description,
-            createdAt: p.category.createdAt,
-            updatedAt: p.category.updatedAt,
-          }
-        : null,
-      unit: p.unit,
-      isActive: p.isActive,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    }));
+    return products.map(formatProduct);
   }
 
   /**
@@ -57,32 +104,15 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
+        variants: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
     if (!p) return null;
 
-    return {
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      description: p.description,
-      price: Number(p.price),
-      categoryId: p.categoryId,
-      category: p.category
-        ? {
-            id: p.category.id,
-            name: p.category.name,
-            description: p.category.description,
-            createdAt: p.category.createdAt,
-            updatedAt: p.category.updatedAt,
-          }
-        : null,
-      unit: p.unit,
-      isActive: p.isActive,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    };
+    return formatProduct(p);
   }
 
   /**
@@ -110,6 +140,8 @@ export class ProductsService {
       }
     }
 
+    const rawVariants = data.variants ?? (data.variant ? [data.variant] : undefined);
+
     const p = await prisma.product.create({
       data: {
         name: data.name.trim(),
@@ -119,33 +151,28 @@ export class ProductsService {
         categoryId: data.categoryId || null,
         unit: data.unit || 'piece',
         isActive: data.isActive ?? true,
+        ...(rawVariants && rawVariants.length > 0
+          ? {
+              variants: {
+                create: rawVariants.map((v) => ({
+                  weight: v.weight?.trim() || null,
+                  description: v.description?.trim() || null,
+                  image: v.image?.trim() || null,
+                  price: v.price,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         category: true,
+        variants: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
-    return {
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      description: p.description,
-      price: Number(p.price),
-      categoryId: p.categoryId,
-      category: p.category
-        ? {
-            id: p.category.id,
-            name: p.category.name,
-            description: p.category.description,
-            createdAt: p.category.createdAt,
-            updatedAt: p.category.updatedAt,
-          }
-        : null,
-      unit: p.unit,
-      isActive: p.isActive,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    };
+    return formatProduct(p);
   }
 
   /**
@@ -178,44 +205,51 @@ export class ProductsService {
       }
     }
 
-    const p = await prisma.product.update({
-      where: { id },
-      data: {
-        ...(data.name && { name: data.name.trim() }),
-        ...(data.sku && { sku: data.sku.trim() }),
-        ...(data.description !== undefined && { description: data.description?.trim() || null }),
-        ...(data.price !== undefined && { price: data.price }),
-        ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
-        ...(data.unit && { unit: data.unit }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-      },
-      include: {
-        category: true,
-      },
+    const rawVariants = data.variants ?? (data.variant ? [data.variant] : undefined);
+
+    const p = await prisma.$transaction(async (tx) => {
+      if (rawVariants !== undefined) {
+        // Replace existing variants
+        await tx.productVariant.deleteMany({
+          where: { productId: id },
+        });
+
+        if (rawVariants.length > 0) {
+          await tx.productVariant.createMany({
+            data: rawVariants.map((v) => ({
+              productId: id,
+              weight: v.weight?.trim() || null,
+              description: v.description?.trim() || null,
+              image: v.image?.trim() || null,
+              price: v.price,
+            })),
+          });
+        }
+      }
+
+      return tx.product.update({
+        where: { id },
+        data: {
+          ...(data.name && { name: data.name.trim() }),
+          ...(data.sku && { sku: data.sku.trim() }),
+          ...(data.description !== undefined && { description: data.description?.trim() || null }),
+          ...(data.price !== undefined && { price: data.price }),
+          ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
+          ...(data.unit && { unit: data.unit }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+        },
+        include: {
+          category: true,
+          variants: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
     });
 
-    return {
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      description: p.description,
-      price: Number(p.price),
-      categoryId: p.categoryId,
-      category: p.category
-        ? {
-            id: p.category.id,
-            name: p.category.name,
-            description: p.category.description,
-            createdAt: p.category.createdAt,
-            updatedAt: p.category.updatedAt,
-          }
-        : null,
-      unit: p.unit,
-      isActive: p.isActive,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
-    };
+    return formatProduct(p);
   }
 }
 
 export const productsService = new ProductsService();
+

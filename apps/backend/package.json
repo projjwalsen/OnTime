@@ -18,7 +18,8 @@
     "prisma:format": "prisma format",
     "prisma:seed": "tsx prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
-    "test:auth": "tsx src/tests/auth.test.ts"
+    "test:auth": "tsx src/tests/auth.test.ts",
+    "test:products": "tsx src/tests/products.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

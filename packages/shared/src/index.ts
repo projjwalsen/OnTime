@@ -40,6 +40,8 @@ export type {
 } from './types/user';
 export type {
   Product,
+  ProductVariant,
+  ProductVariantDto,
   Category,
   CreateProductDto,
   UpdateProductDto,

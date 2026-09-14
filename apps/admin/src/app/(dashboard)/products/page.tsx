@@ -1,14 +1,20 @@
-'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Plus, Search, Edit2, Trash2, Loader2, Tag } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Loader2, Tag, Layers, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../../lib/api';
-import { Product, Category, CreateProductDto, UpdateProductDto } from '@ontime/shared';
+import { Product, Category, CreateProductDto, UpdateProductDto, ProductVariantDto } from '@ontime/shared';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
+
+interface VariantFormItem {
+  id?: string;
+  weight: string;
+  description: string;
+  image: string;
+  price: string;
+}
 
 export default function ProductsPage() {
   const { success, error: toastError } = useToast();
@@ -34,6 +40,7 @@ export default function ProductsPage() {
     price: '',
     unit: '1 kg',
     isActive: true,
+    variants: [] as VariantFormItem[],
   });
 
   const loadData = useCallback(async () => {
@@ -76,6 +83,7 @@ export default function ProductsPage() {
       price: '50.00',
       unit: '1 kg',
       isActive: true,
+      variants: [],
     });
     setIsCreateOpen(true);
   };
@@ -90,8 +98,46 @@ export default function ProductsPage() {
       price: product.price.toString(),
       unit: product.unit,
       isActive: product.isActive,
+      variants:
+        product.variants?.map((v) => ({
+          id: v.id,
+          weight: v.weight || '',
+          description: v.description || '',
+          image: v.image || '',
+          price: v.price.toString(),
+        })) || [],
     });
     setIsEditOpen(true);
+  };
+
+  const handleAddVariant = () => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        {
+          weight: '',
+          description: '',
+          image: '',
+          price: prev.price || '0.00',
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveVariant = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleVariantChange = (index: number, field: keyof VariantFormItem, value: string) => {
+    setFormData((prev) => {
+      const updated = [...prev.variants];
+      updated[index] = { ...updated[index]!, [field]: value };
+      return { ...prev, variants: updated };
+    });
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -111,6 +157,18 @@ export default function ProductsPage() {
         unit: formData.unit.trim(),
         isActive: formData.isActive,
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
+        ...(formData.variants.length > 0
+          ? {
+              variants: formData.variants.map(
+                (v): ProductVariantDto => ({
+                  weight: v.weight.trim() || undefined,
+                  description: v.description.trim() || undefined,
+                  image: v.image.trim() || undefined,
+                  price: parseFloat(v.price) || 0,
+                }),
+              ),
+            }
+          : {}),
       };
 
       const res = await api.createProduct(dto);
@@ -141,6 +199,14 @@ export default function ProductsPage() {
         unit: formData.unit.trim(),
         isActive: formData.isActive,
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
+        variants: formData.variants.map(
+          (v): ProductVariantDto => ({
+            weight: v.weight.trim() || undefined,
+            description: v.description.trim() || undefined,
+            image: v.image.trim() || undefined,
+            price: parseFloat(v.price) || 0,
+          }),
+        ),
       };
 
       const res = await api.updateProduct(selectedProduct.id, dto);
@@ -265,6 +331,7 @@ export default function ProductsPage() {
               <th>Category</th>
               <th>Unit Price</th>
               <th>Unit / Pack</th>
+              <th>Variants</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -272,7 +339,7 @@ export default function ProductsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -289,7 +356,7 @@ export default function ProductsPage() {
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                   <Package size={36} color="#cbd5e1" style={{ margin: '0 auto 8px' }} />
                   <p style={{ fontWeight: 600, color: '#1e293b' }}>No products found</p>
                   <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
@@ -359,6 +426,38 @@ export default function ProductsPage() {
                     <span style={{ fontSize: '0.825rem', color: '#475569' }}>{prod.unit}</span>
                   </td>
                   <td>
+                    {prod.variants && prod.variants.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.75rem',
+                            color: '#0369a1',
+                            backgroundColor: '#e0f2fe',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            width: 'fit-content',
+                          }}
+                        >
+                          <Layers size={11} />
+                          {prod.variants.length} {prod.variants.length === 1 ? 'Variant' : 'Variants'}
+                        </span>
+                        <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                          {prod.variants
+                            .map((v) => `${v.weight ? v.weight + ' ' : ''}$${Number(v.price).toFixed(2)}`)
+                            .slice(0, 2)
+                            .join(', ')}
+                          {prod.variants.length > 2 ? ` +${prod.variants.length - 2} more` : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>—</span>
+                    )}
+                  </td>
+                  <td>
                     <Badge variant={prod.isActive ? 'success' : 'danger'}>
                       {prod.isActive ? 'Active' : 'Inactive'}
                     </Badge>
@@ -407,7 +506,7 @@ export default function ProductsPage() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Add Product to Catalog"
-        maxWidth="600px"
+        maxWidth="700px"
         footer={
           <>
             <Button variant="secondary" onClick={() => setIsCreateOpen(false)} disabled={saving}>
@@ -466,7 +565,7 @@ export default function ProductsPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <Input
-              label="Price ($) *"
+              label="Default Base Price ($) *"
               type="number"
               step="0.01"
               placeholder="50.00"
@@ -493,6 +592,117 @@ export default function ProductsPage() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
+
+          {/* Variants Section */}
+          <div
+            style={{
+              marginTop: '0.5rem',
+              padding: '1rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
+                  Product Variants
+                </span>
+                <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Add weight, description, image, and price variations
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddVariant}
+                style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                <Plus size={14} />
+                <span>Add Variant</span>
+              </Button>
+            </div>
+
+            {formData.variants.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '1rem',
+                  fontSize: '0.8rem',
+                  color: '#94a3b8',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '6px',
+                }}
+              >
+                No variants added yet. Click &quot;Add Variant&quot; to configure weights and pricing.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {formData.variants.map((variant, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '8px', alignItems: 'center' }}>
+                      <Input
+                        placeholder="Weight (e.g. 500g)"
+                        value={variant.weight}
+                        onChange={(e) => handleVariantChange(index, 'weight', e.target.value)}
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Price ($)"
+                        value={variant.price}
+                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                        required
+                      />
+                      <Input
+                        placeholder="Image URL (optional)"
+                        value={variant.image}
+                        onChange={(e) => handleVariantChange(index, 'image', e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(index)}
+                        style={{
+                          padding: '6px',
+                          color: '#ef4444',
+                          borderRadius: '4px',
+                          backgroundColor: '#fef2f2',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Remove variant"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                    <Input
+                      placeholder="Variant description (e.g. Travel bottle pack)"
+                      value={variant.description}
+                      onChange={(e) => handleVariantChange(index, 'description', e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </form>
       </Modal>
 
@@ -501,7 +711,7 @@ export default function ProductsPage() {
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         title={`Edit Product: ${selectedProduct?.name}`}
-        maxWidth="600px"
+        maxWidth="700px"
         footer={
           <>
             <Button variant="secondary" onClick={() => setIsEditOpen(false)} disabled={saving}>
@@ -547,7 +757,7 @@ export default function ProductsPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <Input
-              label="Price ($) *"
+              label="Default Base Price ($) *"
               type="number"
               step="0.01"
               value={formData.price}
@@ -571,8 +781,120 @@ export default function ProductsPage() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
+
+          {/* Variants Section */}
+          <div
+            style={{
+              marginTop: '0.5rem',
+              padding: '1rem',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
+                  Product Variants
+                </span>
+                <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Add weight, description, image, and price variations
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAddVariant}
+                style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '0.8rem' }}
+              >
+                <Plus size={14} />
+                <span>Add Variant</span>
+              </Button>
+            </div>
+
+            {formData.variants.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '1rem',
+                  fontSize: '0.8rem',
+                  color: '#94a3b8',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '6px',
+                }}
+              >
+                No variants added yet. Click &quot;Add Variant&quot; to configure weights and pricing.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {formData.variants.map((variant, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '8px', alignItems: 'center' }}>
+                      <Input
+                        placeholder="Weight (e.g. 500g)"
+                        value={variant.weight}
+                        onChange={(e) => handleVariantChange(index, 'weight', e.target.value)}
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Price ($)"
+                        value={variant.price}
+                        onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                        required
+                      />
+                      <Input
+                        placeholder="Image URL (optional)"
+                        value={variant.image}
+                        onChange={(e) => handleVariantChange(index, 'image', e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(index)}
+                        style={{
+                          padding: '6px',
+                          color: '#ef4444',
+                          borderRadius: '4px',
+                          backgroundColor: '#fef2f2',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        title="Remove variant"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                    <Input
+                      placeholder="Variant description (e.g. Travel bottle pack)"
+                      value={variant.description}
+                      onChange={(e) => handleVariantChange(index, 'description', e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </form>
       </Modal>
     </div>
   );
 }
+

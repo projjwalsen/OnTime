@@ -22,6 +22,8 @@ import {
   type CreateOrganisationDto,
   type UpdateOrganisationDto,
   type Product,
+  type ProductVariant,
+  type ProductVariantDto,
   type CreateProductDto,
   type UpdateProductDto,
   type Category,

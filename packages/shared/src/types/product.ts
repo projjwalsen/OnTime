@@ -17,6 +17,31 @@ export interface CreateCategoryDto {
 
 export type UpdateCategoryDto = Partial<CreateCategoryDto>;
 
+/**
+ * Represents a variant of a product (e.g. weight, description, image, price).
+ */
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  weight?: string | null;
+  description?: string | null;
+  image?: string | null;
+  price: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * DTO for creating or updating a product variant.
+ */
+export interface ProductVariantDto {
+  id?: string | undefined;
+  weight?: string | undefined;
+  description?: string | undefined;
+  image?: string | undefined;
+  price: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -27,6 +52,7 @@ export interface Product {
   category?: Category | null;
   unit: string;
   isActive: boolean;
+  variants?: ProductVariant[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +65,12 @@ export interface CreateProductDto {
   categoryId?: string;
   unit?: string;
   isActive?: boolean;
+  variants?: ProductVariantDto[];
+  variant?: ProductVariantDto;
 }
 
-export type UpdateProductDto = Partial<CreateProductDto>;
+export interface UpdateProductDto extends Partial<CreateProductDto> {
+  variants?: ProductVariantDto[];
+  variant?: ProductVariantDto;
+}
+
