@@ -16,6 +16,8 @@ export const createProductSchema = z.object({
   categoryId: z.string().optional(),
   unit: z.string().default('piece'),
   isActive: z.boolean().default(true),
+  images: z.array(z.string().trim()).default([]),
+  packagingNote: z.string().trim().nullable().optional(),
   variants: z.array(productVariantSchema).optional(),
   variant: productVariantSchema.optional(),
 });

@@ -30,6 +30,8 @@ function formatProduct(p: {
   categoryId: string | null;
   unit: string;
   isActive: boolean;
+  images?: string[];
+  packagingNote?: string | null;
   createdAt: Date;
   updatedAt: Date;
   category?: {
@@ -68,6 +70,8 @@ function formatProduct(p: {
       : null,
     unit: p.unit,
     isActive: p.isActive,
+    images: p.images ?? [],
+    packagingNote: p.packagingNote ?? null,
     variants: p.variants?.map(
       (v): ProductVariant => ({
         id: v.id,
@@ -102,6 +106,7 @@ export class ProductsService {
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
+        { packagingNote: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -207,6 +212,8 @@ export class ProductsService {
         categoryId: data.categoryId || null,
         unit: data.unit || 'piece',
         isActive: data.isActive ?? true,
+        images: data.images ?? [],
+        packagingNote: data.packagingNote?.trim() || null,
         ...(rawVariants && rawVariants.length > 0
           ? {
               variants: {
@@ -293,6 +300,8 @@ export class ProductsService {
           ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
           ...(data.unit && { unit: data.unit }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.images !== undefined && { images: data.images }),
+          ...(data.packagingNote !== undefined && { packagingNote: data.packagingNote?.trim() || null }),
         },
         include: {
           category: true,

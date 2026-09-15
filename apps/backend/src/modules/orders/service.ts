@@ -69,6 +69,8 @@ function formatOrderItem(item: {
           categoryId: item.product.categoryId,
           unit: item.product.unit,
           isActive: item.product.isActive,
+          images: item.product.images ?? [],
+          packagingNote: item.product.packagingNote ?? null,
           createdAt: item.product.createdAt,
           updatedAt: item.product.updatedAt,
         }

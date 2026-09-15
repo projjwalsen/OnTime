@@ -119,8 +119,8 @@ async function runTests() {
   assert(catRes.status === 201, `Create category failed: ${JSON.stringify(catRes.body)}`);
   const categoryId = catRes.body.data.category.id;
 
-  // Test 1: Create Product with multiple variants (weight, description, image, price)
-  console.log('\n--- TEST 1: Create product with multiple variants ---');
+  // Test 1: Create Product with multiple variants (weight, description, image, price) + images + packagingNote
+  console.log('\n--- TEST 1: Create product with multiple variants, images list, and packaging note ---');
   const prodSku = `OIL-${Date.now()}`;
   const createRes = await makeRequest(
     'POST',
@@ -132,6 +132,12 @@ async function runTests() {
       price: 200.0,
       categoryId,
       unit: 'bottle',
+      images: [
+        'https://cdn.example.com/products/cno-front.jpg',
+        'https://cdn.example.com/products/cno-back.jpg',
+        'https://cdn.example.com/products/cno-box.jpg',
+      ],
+      packagingNote: 'Packed in corrugated 5-ply cartons with bubble wrap protection.',
       variants: [
         {
           weight: '250ml',
@@ -159,6 +165,10 @@ async function runTests() {
   assert(createRes.status === 201, `Create product failed: ${JSON.stringify(createRes.body)}`);
   const createdProd = createRes.body.data.product;
   assert(createdProd.name === 'Cold Pressed Virgin Coconut Oil', 'Product name mismatch');
+  assert(Array.isArray(createdProd.images), 'images should be an array');
+  assert(createdProd.images.length === 3, `Expected 3 product images, got ${createdProd.images.length}`);
+  assert(createdProd.images[0] === 'https://cdn.example.com/products/cno-front.jpg', 'Image 0 mismatch');
+  assert(createdProd.packagingNote === 'Packed in corrugated 5-ply cartons with bubble wrap protection.', 'packagingNote mismatch');
   assert(Array.isArray(createdProd.variants), 'variants should be an array');
   assert(createdProd.variants.length === 3, `Expected 3 variants, got ${createdProd.variants.length}`);
   assert(createdProd.variants[0].weight === '250ml', 'Variant 0 weight mismatch');
@@ -166,31 +176,40 @@ async function runTests() {
   assert(createdProd.variants[0].image === 'https://cdn.example.com/cno-250ml.jpg', 'Variant 0 image mismatch');
   assert(createdProd.variants[1].weight === '500ml', 'Variant 1 weight mismatch');
   assert(createdProd.variants[2].weight === '1 Litre', 'Variant 2 weight mismatch');
-  console.log('  ✔ Product created with 3 variants successfully');
+  console.log('  ✔ Product created with 3 images, packaging note, and 3 variants successfully');
 
   // Test 2: Get Product by ID
-  console.log('\n--- TEST 2: Fetch product by ID with variants ---');
+  console.log('\n--- TEST 2: Fetch product by ID with images, packaging note, and variants ---');
   const getRes = await makeRequest('GET', `/api/v1/products/${createdProd.id}`, undefined, token);
   assert(getRes.status === 200, `Get product failed: ${JSON.stringify(getRes.body)}`);
+  assert(getRes.body.data.product.images.length === 3, 'Fetched product images count mismatch');
+  assert(getRes.body.data.product.packagingNote === 'Packed in corrugated 5-ply cartons with bubble wrap protection.', 'Fetched packagingNote mismatch');
   assert(getRes.body.data.product.variants.length === 3, 'Fetched product variants count mismatch');
-  console.log('  ✔ Fetched product by ID includes all 3 variants');
+  console.log('  ✔ Fetched product by ID includes images list, packaging note, and all 3 variants');
 
   // Test 3: List Products
-  console.log('\n--- TEST 3: List products includes variants ---');
-  const listRes = await makeRequest('GET', '/api/v1/products', undefined, token);
+  console.log('\n--- TEST 3: List products includes images, packaging note, and search by packaging note ---');
+  const listRes = await makeRequest('GET', '/api/v1/products?search=corrugated', undefined, token);
   assert(listRes.status === 200, `List products failed: ${JSON.stringify(listRes.body)}`);
   const foundProd = listRes.body.data.products.find((p: any) => p.id === createdProd.id);
-  assert(!!foundProd, 'Created product not found in list');
+  assert(!!foundProd, 'Product not found in search by packaging note');
+  assert(foundProd.images.length === 3, 'Listed product images count mismatch');
+  assert(foundProd.packagingNote !== null, 'Listed product packagingNote should not be null');
   assert(foundProd.variants.length === 3, 'Listed product variants count mismatch');
-  console.log('  ✔ Product listing includes nested variants');
+  console.log('  ✔ Product listing and search by packagingNote verified');
 
-  // Test 4: Update Product Variants
-  console.log('\n--- TEST 4: Update product variants ---');
+  // Test 4: Update Product Images and Packaging Note
+  console.log('\n--- TEST 4: Update product images and packaging note ---');
   const updateRes = await makeRequest(
     'PATCH',
     `/api/v1/products/${createdProd.id}`,
     {
       price: 210.0,
+      images: [
+        'https://cdn.example.com/products/cno-front-v2.jpg',
+        'https://cdn.example.com/products/cno-detail-v2.jpg',
+      ],
+      packagingNote: 'Fragile: Shipped in reinforced insulated boxes.',
       variants: [
         {
           weight: '500ml',
@@ -210,12 +229,15 @@ async function runTests() {
   );
   assert(updateRes.status === 200, `Update product failed: ${JSON.stringify(updateRes.body)}`);
   const updatedProd = updateRes.body.data.product;
+  assert(updatedProd.images.length === 2, `Expected 2 images after update, got ${updatedProd.images.length}`);
+  assert(updatedProd.images[0] === 'https://cdn.example.com/products/cno-front-v2.jpg', 'Updated image 0 mismatch');
+  assert(updatedProd.packagingNote === 'Fragile: Shipped in reinforced insulated boxes.', 'Updated packagingNote mismatch');
   assert(updatedProd.variants.length === 2, `Expected 2 variants after update, got ${updatedProd.variants.length}`);
   assert(updatedProd.variants[0].weight === '500ml', 'Updated variant 0 weight mismatch');
   assert(updatedProd.variants[0].price === 230.0, 'Updated variant 0 price mismatch');
   assert(updatedProd.variants[1].weight === '5 Litre Can', 'Updated variant 1 weight mismatch');
   assert(updatedProd.variants[1].price === 1800.0, 'Updated variant 1 price mismatch');
-  console.log('  ✔ Product variants updated successfully');
+  console.log('  ✔ Product images, packaging note, and variants updated successfully');
 
   // Test 5: Single `variant` payload backward compatibility
   console.log('\n--- TEST 5: Create product with single variant object ---');

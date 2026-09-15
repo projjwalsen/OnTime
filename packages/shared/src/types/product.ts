@@ -52,6 +52,8 @@ export interface Product {
   category?: Category | null;
   unit: string;
   isActive: boolean;
+  images: string[];
+  packagingNote?: string | null;
   variants?: ProductVariant[];
   createdAt: Date;
   updatedAt: Date;
@@ -65,11 +67,15 @@ export interface CreateProductDto {
   categoryId?: string;
   unit?: string;
   isActive?: boolean;
+  images?: string[];
+  packagingNote?: string | null;
   variants?: ProductVariantDto[];
   variant?: ProductVariantDto;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {
+  images?: string[];
+  packagingNote?: string | null;
   variants?: ProductVariantDto[];
   variant?: ProductVariantDto;
 }
