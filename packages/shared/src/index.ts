@@ -23,6 +23,12 @@ export {
 export { InvitationStatus } from './enums/invitation-status';
 export { OrganisationStatus } from './enums/organisation-status';
 export { OtpPurpose } from './enums/otp';
+export {
+  OrderStatus,
+  isRetailerCancellable,
+  isDistributorCancellable,
+  ALLOWED_STATUS_TRANSITIONS,
+} from './enums/order-status';
 
 // Types
 export type {
@@ -48,6 +54,16 @@ export type {
   CreateCategoryDto,
   UpdateCategoryDto,
 } from './types/product';
+export type {
+  OrderItem,
+  Order,
+  CreateOrderItemDto,
+  CreateOrderDto,
+  UpdateOrderStatusDto,
+  CancelOrderDto,
+  OrderFilterParams,
+  OrderSummaryStats,
+} from './types/order';
 export type {
   LoginCredentialsDto,
   AuthTokens,

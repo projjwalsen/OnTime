@@ -5,6 +5,7 @@ import { usersRoutes } from '../../modules/users';
 import { organisationsRoutes } from '../../modules/organisations';
 import { productsRoutes } from '../../modules/products';
 import { categoriesRoutes } from '../../modules/categories';
+import { ordersRoutes } from '../../modules/orders';
 
 const router = Router();
 
@@ -44,4 +45,11 @@ router.use('/products', productsRoutes);
  */
 router.use('/categories', categoriesRoutes);
 
+/**
+ * @route  /api/v1/orders
+ * @desc   Order management & fulfillment endpoints
+ */
+router.use('/orders', ordersRoutes);
+
 export default router;
+

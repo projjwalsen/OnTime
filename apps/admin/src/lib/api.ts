@@ -30,6 +30,14 @@ import {
   type CreateCategoryDto,
   type UpdateCategoryDto,
   type OrganisationStatus,
+  type Order,
+  type OrderItem,
+  type CreateOrderDto,
+  type UpdateOrderStatusDto,
+  type CancelOrderDto,
+  type OrderFilterParams,
+  type OrderSummaryStats,
+  OrderStatus,
 } from '@ontime/shared';
 import { API_BASE_URL, STORAGE_KEYS } from './config';
 
@@ -564,6 +572,76 @@ class ApiClient {
   ): Promise<{ success: boolean; message?: string; data?: OnboardUserResponse; error?: string }> {
     return this.onboardUser(dto);
   }
+
+  // ── Orders ──────────────────────────────────────────────────
+
+  async getOrders(params?: OrderFilterParams): Promise<{
+    success: boolean;
+    data?: {
+      orders: Order[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    };
+    error?: string;
+  }> {
+    const query = new URLSearchParams();
+    if (params?.page !== undefined) query.set('page', params.page.toString());
+    if (params?.limit !== undefined) query.set('limit', params.limit.toString());
+    if (params?.status) query.set('status', params.status);
+    if (params?.organisationId) query.set('organisationId', params.organisationId);
+    if (params?.search) query.set('search', params.search);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return this.request(`/orders${queryString}`);
+  }
+
+  async getOrderById(id: string): Promise<{
+    success: boolean;
+    data?: { order: Order };
+    error?: string;
+  }> {
+    return this.request(`/orders/${id}`);
+  }
+
+  async createOrder(
+    dto: CreateOrderDto,
+  ): Promise<{ success: boolean; data?: { order: Order }; error?: string }> {
+    return this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateOrderStatus(
+    id: string,
+    dto: UpdateOrderStatusDto,
+  ): Promise<{ success: boolean; message?: string; data?: { order: Order }; error?: string }> {
+    return this.request(`/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async cancelOrder(
+    id: string,
+    dto?: CancelOrderDto,
+  ): Promise<{ success: boolean; message?: string; data?: { order: Order }; error?: string }> {
+    return this.request(`/orders/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(dto || {}),
+    });
+  }
+
+  async getOrderStats(organisationId?: string): Promise<{
+    success: boolean;
+    data?: { stats: OrderSummaryStats };
+    error?: string;
+  }> {
+    const queryString = organisationId ? `?organisationId=${encodeURIComponent(organisationId)}` : '';
+    return this.request(`/orders/summary/stats${queryString}`);
+  }
 }
 
 export const api = new ApiClient();
+
