@@ -2,7 +2,11 @@ import type { Request, Response, RequestHandler } from 'express';
 import { categoriesService, CategoryError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type CreateCategoryInput, type UpdateCategoryInput } from './validator';
+import {
+  type CreateCategoryInput,
+  type UpdateCategoryInput,
+  type CategoryFilterInput,
+} from './validator';
 
 function handleCategoryError(res: Response, error: unknown): void {
   if (error instanceof CategoryError) {
@@ -16,14 +20,15 @@ function handleCategoryError(res: Response, error: unknown): void {
 
 /**
  * @route   GET /api/v1/categories
- * @desc    List all categories with product counts
+ * @desc    List all categories with product counts, search, and pagination
  * @access  Protected
  */
 export const listCategories: RequestHandler = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      const categories = await categoriesService.listCategories();
-      successResponse(res, 'Categories retrieved successfully', { categories });
+      const filters = req.query as unknown as CategoryFilterInput;
+      const result = await categoriesService.listCategories(filters);
+      successResponse(res, 'Categories retrieved successfully', result);
     } catch (error) {
       handleCategoryError(res, error);
     }

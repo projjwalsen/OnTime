@@ -1,29 +1,79 @@
-import { type Organisation, OrganisationStatus } from '@ontime/shared';
+import { type Organisation, type PaginationMeta, OrganisationStatus } from '@ontime/shared';
 import { prisma } from '../../lib/prisma';
-import { type CreateOrganisationInput, type UpdateOrganisationInput } from './validator';
+import {
+  type CreateOrganisationInput,
+  type UpdateOrganisationInput,
+  type OrganisationFilterInput,
+} from './validator';
+
+export interface ListOrganisationsResult {
+  organisations: Organisation[];
+  pagination: PaginationMeta;
+}
 
 export class OrganisationsService {
   /**
-   * List all organisations (for distributor) or single organisation.
+   * List organisations with search, filtering, and pagination (for distributor).
    */
-  async listOrganisations(): Promise<Organisation[]> {
-    const list = await prisma.organisation.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async listOrganisations(filters?: OrganisationFilterInput): Promise<ListOrganisationsResult> {
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit || 20));
+    const skip = (page - 1) * limit;
 
-    return list.map((org) => ({
-      id: org.id,
-      name: org.name,
-      email: org.email,
-      mobile: org.mobile,
-      address: org.address,
-      area: org.area,
-      city: org.city,
-      taxNumber: org.taxNumber,
-      status: org.status as OrganisationStatus,
-      createdAt: org.createdAt,
-      updatedAt: org.updatedAt,
-    }));
+    const where: any = {};
+
+    if (filters?.search && filters.search.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { mobile: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { area: { contains: search, mode: 'insensitive' } },
+        { address: { contains: search, mode: 'insensitive' } },
+        { taxNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.city && filters.city.trim()) {
+      where.city = { contains: filters.city.trim(), mode: 'insensitive' };
+    }
+
+    const [total, list] = await Promise.all([
+      prisma.organisation.count({ where }),
+      prisma.organisation.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      organisations: list.map((org) => ({
+        id: org.id,
+        name: org.name,
+        email: org.email,
+        mobile: org.mobile,
+        address: org.address,
+        area: org.area,
+        city: org.city,
+        taxNumber: org.taxNumber,
+        status: org.status as OrganisationStatus,
+        createdAt: org.createdAt,
+        updatedAt: org.updatedAt,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   /**

@@ -30,5 +30,16 @@ export const updateOrganisationSchema = z.object({
     .optional(),
 });
 
+export const organisationFilterQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  status: z
+    .enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED])
+    .optional(),
+  city: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
 export type CreateOrganisationInput = z.infer<typeof createOrganisationSchema>;
 export type UpdateOrganisationInput = z.infer<typeof updateOrganisationSchema>;
+export type OrganisationFilterInput = z.infer<typeof organisationFilterQuerySchema>;

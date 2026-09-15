@@ -10,8 +10,12 @@ import {
   requireDistributorAdmin,
   requireOrganisationAdmin,
 } from '../../middleware/rbac.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
-import { createOrganisationSchema, updateOrganisationSchema } from './validator';
+import { validateBody, validateRequest } from '../../middleware/validate.middleware';
+import {
+  createOrganisationSchema,
+  updateOrganisationSchema,
+  organisationFilterQuerySchema,
+} from './validator';
 
 const router = Router();
 
@@ -19,10 +23,15 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/v1/organisations
- * @desc    List all organisations
+ * @desc    List all organisations with search, filters, and pagination
  * @access  Protected (Distributor Admin)
  */
-router.get('/', requireDistributorAdmin, listOrganisations);
+router.get(
+  '/',
+  requireDistributorAdmin,
+  validateRequest({ query: organisationFilterQuerySchema }),
+  listOrganisations,
+);
 
 /**
  * @route   POST /api/v1/organisations

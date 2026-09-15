@@ -1,6 +1,10 @@
 import { prisma } from '../../lib/prisma';
-import { type Product, type ProductVariant } from '@ontime/shared';
-import { type CreateProductInput, type UpdateProductInput } from './validator';
+import { type Product, type ProductVariant, type PaginationMeta } from '@ontime/shared';
+import {
+  type CreateProductInput,
+  type UpdateProductInput,
+  type ProductFilterInput,
+} from './validator';
 
 export class ProductError extends Error {
   constructor(
@@ -10,6 +14,11 @@ export class ProductError extends Error {
     super(message);
     this.name = 'ProductError';
   }
+}
+
+export interface ListProductsResult {
+  products: Product[];
+  pagination: PaginationMeta;
 }
 
 function formatProduct(p: {
@@ -78,22 +87,69 @@ function formatProduct(p: {
 
 export class ProductsService {
   /**
-   * List all products in catalog.
+   * List products in catalog with search, filtering, and pagination.
    */
-  async listProducts(): Promise<Product[]> {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-        variants: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async listProducts(filters?: ProductFilterInput): Promise<ListProductsResult> {
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit || 20));
+    const skip = (page - 1) * limit;
 
-    return products.map(formatProduct);
+    const where: any = {};
+
+    if (filters?.search && filters.search.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters?.categoryId) {
+      where.categoryId = filters.categoryId;
+    }
+
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
+      where.price = {};
+      if (filters.minPrice !== undefined) {
+        where.price.gte = filters.minPrice;
+      }
+      if (filters.maxPrice !== undefined) {
+        where.price.lte = filters.maxPrice;
+      }
+    }
+
+    const [total, products] = await Promise.all([
+      prisma.product.count({ where }),
+      prisma.product.findMany({
+        where,
+        include: {
+          category: true,
+          variants: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    return {
+      products: products.map(formatProduct),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   /**

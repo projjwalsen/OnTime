@@ -2,8 +2,13 @@ import { Router } from 'express';
 import { listUsers, getUserById, updateProfile, inviteUser, onboardUser } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireOrganisationAdmin } from '../../middleware/rbac.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
-import { updateUserProfileSchema, inviteUserSchema, onboardUserSchema } from './validator';
+import { validateBody, validateRequest } from '../../middleware/validate.middleware';
+import {
+  updateUserProfileSchema,
+  inviteUserSchema,
+  onboardUserSchema,
+  userFilterQuerySchema,
+} from './validator';
 
 const router = Router();
 
@@ -12,10 +17,15 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/v1/users
- * @desc    List users
+ * @desc    List users with search, filter, and pagination
  * @access  Protected (Admin only)
  */
-router.get('/', requireOrganisationAdmin, listUsers);
+router.get(
+  '/',
+  requireOrganisationAdmin,
+  validateRequest({ query: userFilterQuerySchema }),
+  listUsers,
+);
 
 /**
  * @route   POST /api/v1/users/onboard

@@ -27,8 +27,21 @@ export const onboardUserSchema = z.object({
 export const inviteUserSchema = onboardUserSchema;
 export const inviteStaffSchema = onboardUserSchema;
 
+export const userFilterQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  role: z.enum([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STAFF]).optional(),
+  organisationId: z.string().optional(),
+  isActive: z
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
+    .optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
 export type OnboardUserInput = z.infer<typeof onboardUserSchema>;
 export type InviteUserInput = OnboardUserInput;
 export type InviteStaffInput = OnboardUserInput;
+export type UserFilterInput = z.infer<typeof userFilterQuerySchema>;
 

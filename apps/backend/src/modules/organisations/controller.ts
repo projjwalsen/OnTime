@@ -2,17 +2,22 @@ import type { Request, Response, RequestHandler } from 'express';
 import { organisationsService } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type CreateOrganisationInput, type UpdateOrganisationInput } from './validator';
+import {
+  type CreateOrganisationInput,
+  type UpdateOrganisationInput,
+  type OrganisationFilterInput,
+} from './validator';
 
 /**
  * @route   GET /api/v1/organisations
- * @desc    List all organisations (Distributor Admin)
+ * @desc    List all organisations (Distributor Admin) with search, filter, and pagination
  * @access  Protected (Distributor Admin)
  */
 export const listOrganisations: RequestHandler = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
-    const organisations = await organisationsService.listOrganisations();
-    successResponse(res, 'Organisations retrieved successfully', { organisations });
+  async (req: Request, res: Response): Promise<void> => {
+    const filters = req.query as unknown as OrganisationFilterInput;
+    const result = await organisationsService.listOrganisations(filters);
+    successResponse(res, 'Organisations retrieved successfully', result);
   },
 );
 

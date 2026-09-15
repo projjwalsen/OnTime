@@ -2,7 +2,11 @@ import type { Request, Response, RequestHandler } from 'express';
 import { usersService, UserError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type UpdateUserProfileInput, type OnboardUserInput } from './validator';
+import {
+  type UpdateUserProfileInput,
+  type OnboardUserInput,
+  type UserFilterInput,
+} from './validator';
 
 function handleUserError(res: Response, error: unknown): void {
   if (error instanceof UserError) {
@@ -16,14 +20,18 @@ function handleUserError(res: Response, error: unknown): void {
 
 /**
  * @route   GET /api/v1/users
- * @desc    List users (scoped to caller organisation or all for distributor)
+ * @desc    List users with search, filter, and pagination (scoped to caller organisation or all for distributor)
  * @access  Protected (Requires Admin)
  */
 export const listUsers: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const organisationId = req.user?.organisationId ?? undefined;
-    const users = await usersService.listUsers({ organisationId });
-    successResponse(res, 'Users retrieved successfully', { users });
+    if (!req.user) {
+      errorResponse(res, 'Unauthorised', 401);
+      return;
+    }
+    const filters = req.query as unknown as UserFilterInput;
+    const result = await usersService.listUsers(req.user, filters);
+    successResponse(res, 'Users retrieved successfully', result);
   },
 );
 

@@ -8,8 +8,12 @@ import {
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
-import { createCategorySchema, updateCategorySchema } from './validator';
+import { validateBody, validateRequest } from '../../middleware/validate.middleware';
+import {
+  createCategorySchema,
+  updateCategorySchema,
+  categoryFilterQuerySchema,
+} from './validator';
 
 const router = Router();
 
@@ -17,10 +21,10 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/v1/categories
- * @desc    List all categories with product count
+ * @desc    List all categories with product count, search, and pagination
  * @access  Protected (All users)
  */
-router.get('/', listCategories);
+router.get('/', validateRequest({ query: categoryFilterQuerySchema }), listCategories);
 
 /**
  * @route   POST /api/v1/categories

@@ -40,3 +40,11 @@ export interface CreateOrganisationDto {
  * Status changes are handled separately (distributor-only).
  */
 export type UpdateOrganisationDto = Partial<Omit<CreateOrganisationDto, 'email'>>;
+
+export interface OrganisationFilterParams {
+  search?: string | undefined;
+  status?: OrganisationStatus | undefined;
+  city?: string | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}

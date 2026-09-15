@@ -335,11 +335,14 @@ export class OrdersService {
       where.status = filters.status;
     }
 
-    if (filters.search) {
+    if (filters.search && filters.search.trim()) {
+      const search = filters.search.trim();
       where.OR = [
-        { orderNumber: { contains: filters.search, mode: 'insensitive' } },
-        { notes: { contains: filters.search, mode: 'insensitive' } },
-        { organisation: { name: { contains: filters.search, mode: 'insensitive' } } },
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+        { deliveryAddress: { contains: search, mode: 'insensitive' } },
+        { cancellationReason: { contains: search, mode: 'insensitive' } },
+        { organisation: { name: { contains: search, mode: 'insensitive' } } },
       ];
     }
 

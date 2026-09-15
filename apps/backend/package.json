@@ -20,7 +20,8 @@
     "seed": "tsx prisma/seed.ts",
     "test:auth": "tsx src/tests/auth.test.ts",
     "test:products": "tsx src/tests/products.test.ts",
-    "test:orders": "tsx src/tests/orders.test.ts"
+    "test:orders": "tsx src/tests/orders.test.ts",
+    "test:pagination": "tsx src/tests/pagination_and_filters.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

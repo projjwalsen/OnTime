@@ -3,6 +3,7 @@ import {
   type User,
   type Organisation,
   type AuthContext,
+  type PaginationMeta,
   type InvitationResponse,
   type OnboardUserResponse,
   UserRole,
@@ -15,7 +16,11 @@ import { prisma } from '../../lib/prisma';
 import { emailService } from '../../lib/email.service';
 import { hashPassword } from '../../utils/password';
 import { config } from '../../config/env';
-import { type UpdateUserProfileInput, type OnboardUserInput } from './validator';
+import {
+  type UpdateUserProfileInput,
+  type OnboardUserInput,
+  type UserFilterInput,
+} from './validator';
 
 export class UserError extends Error {
   constructor(
@@ -27,32 +32,78 @@ export class UserError extends Error {
   }
 }
 
+export interface ListUsersResult {
+  users: User[];
+  pagination: PaginationMeta;
+}
+
 export class UsersService {
   /**
-   * List users scoped by organisation or for platform admin.
+   * List users scoped by organisation or for platform admin with search, filter, and pagination.
    */
-  async listUsers(options: { organisationId?: string | null | undefined }): Promise<User[]> {
-    const where = options.organisationId ? { organisationId: options.organisationId } : {};
+  async listUsers(caller: AuthContext, filters?: UserFilterInput): Promise<ListUsersResult> {
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit || 20));
+    const skip = (page - 1) * limit;
 
-    const users = await prisma.user.findMany({
-      where,
-      include: { organisation: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const where: any = {};
 
-    return users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      mobile: u.mobile,
-      role: u.role as UserRole,
-      organisationId: u.organisationId,
-      isActive: u.isActive,
-      mustChangePassword: u.mustChangePassword,
-      organisation: (u.organisation as unknown as Organisation) ?? null,
-      createdAt: u.createdAt,
-      updatedAt: u.updatedAt,
-    }));
+    // Multi-tenant scoping
+    if (caller.role !== UserRole.SUPER_ADMIN) {
+      where.organisationId = caller.organisationId;
+    } else if (filters?.organisationId) {
+      where.organisationId = filters.organisationId;
+    }
+
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters?.search && filters.search.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { mobile: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        include: { organisation: true },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        mobile: u.mobile,
+        role: u.role as UserRole,
+        organisationId: u.organisationId,
+        isActive: u.isActive,
+        mustChangePassword: u.mustChangePassword,
+        organisation: (u.organisation as unknown as Organisation) ?? null,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   /**

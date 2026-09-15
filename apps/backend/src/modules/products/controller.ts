@@ -2,7 +2,11 @@ import type { Request, Response, RequestHandler } from 'express';
 import { productsService, ProductError } from './service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
-import { type CreateProductInput, type UpdateProductInput } from './validator';
+import {
+  type CreateProductInput,
+  type UpdateProductInput,
+  type ProductFilterInput,
+} from './validator';
 
 function handleProductError(res: Response, error: unknown): void {
   if (error instanceof ProductError) {
@@ -16,14 +20,15 @@ function handleProductError(res: Response, error: unknown): void {
 
 /**
  * @route   GET /api/v1/products
- * @desc    List products in catalog
+ * @desc    List products in catalog with search, filters, and pagination
  * @access  Protected
  */
 export const listProducts: RequestHandler = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      const products = await productsService.listProducts();
-      successResponse(res, 'Products retrieved successfully', { products });
+      const filters = req.query as unknown as ProductFilterInput;
+      const result = await productsService.listProducts(filters);
+      successResponse(res, 'Products retrieved successfully', result);
     } catch (error) {
       handleProductError(res, error);
     }

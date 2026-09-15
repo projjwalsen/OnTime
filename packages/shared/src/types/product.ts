@@ -74,3 +74,19 @@ export interface UpdateProductDto extends Partial<CreateProductDto> {
   variant?: ProductVariantDto;
 }
 
+export interface CategoryFilterParams {
+  search?: string | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}
+
+export interface ProductFilterParams {
+  search?: string | undefined;
+  categoryId?: string | undefined;
+  isActive?: boolean | undefined;
+  minPrice?: number | undefined;
+  maxPrice?: number | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}
+

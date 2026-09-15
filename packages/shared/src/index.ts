@@ -32,9 +32,15 @@ export {
 
 // Types
 export type {
+  PaginationParams,
+  PaginationMeta,
+  PaginatedResult,
+} from './types/pagination';
+export type {
   Organisation,
   CreateOrganisationDto,
   UpdateOrganisationDto,
+  OrganisationFilterParams,
 } from './types/organisation';
 export type {
   User,
@@ -43,6 +49,7 @@ export type {
   OnboardUserDto,
   OnboardUserResponse,
   InvitationResponse,
+  UserFilterParams,
 } from './types/user';
 export type {
   Product,
@@ -53,6 +60,8 @@ export type {
   UpdateProductDto,
   CreateCategoryDto,
   UpdateCategoryDto,
+  CategoryFilterParams,
+  ProductFilterParams,
 } from './types/product';
 export type {
   OrderItem,

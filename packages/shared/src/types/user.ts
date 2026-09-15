@@ -81,3 +81,12 @@ export interface InvitationResponse {
   temporaryPassword?: string | undefined;
 }
 
+export interface UserFilterParams {
+  search?: string | undefined;
+  role?: UserRole | undefined;
+  organisationId?: string | undefined;
+  isActive?: boolean | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}
+

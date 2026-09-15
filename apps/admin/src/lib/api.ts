@@ -38,6 +38,7 @@ import {
   type OrderFilterParams,
   type OrderSummaryStats,
   OrderStatus,
+  UserRole,
 } from '@ontime/shared';
 import { API_BASE_URL, STORAGE_KEYS } from './config';
 
@@ -488,14 +489,21 @@ class ApiClient {
 
   // ── Categories ──────────────────────────────────────────────
 
-  async getCategories(params?: { search?: string | undefined }): Promise<{
+  async getCategories(params?: {
+    page?: number | undefined;
+    limit?: number | undefined;
+    search?: string | undefined;
+  }): Promise<{
     success: boolean;
     data?: {
-      categories: (Category & { _count?: { products: number } })[];
+      categories: (Category & { _count?: { products: number }; productCount?: number })[];
+      pagination?: { total: number; page: number; limit: number; totalPages: number };
     };
     error?: string;
   }> {
     const query = new URLSearchParams();
+    if (params?.page !== undefined) query.set('page', params.page.toString());
+    if (params?.limit !== undefined) query.set('limit', params.limit.toString());
     if (params?.search) query.set('search', params.search);
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
@@ -535,7 +543,9 @@ class ApiClient {
     page?: number | undefined;
     limit?: number | undefined;
     search?: string | undefined;
+    role?: UserRole | undefined;
     organisationId?: string | undefined;
+    isActive?: boolean | undefined;
   }): Promise<{
     success: boolean;
     data?: {
@@ -548,7 +558,9 @@ class ApiClient {
     if (params?.page !== undefined) query.set('page', params.page.toString());
     if (params?.limit !== undefined) query.set('limit', params.limit.toString());
     if (params?.search) query.set('search', params.search);
+    if (params?.role) query.set('role', params.role);
     if (params?.organisationId) query.set('organisationId', params.organisationId);
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return this.request(`/users${queryString}`);

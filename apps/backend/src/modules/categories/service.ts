@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
-import { type Category } from '@ontime/shared';
-import { type CreateCategoryInput, type UpdateCategoryInput } from './validator';
+import { type Category, type PaginationMeta } from '@ontime/shared';
+import { type CreateCategoryInput, type UpdateCategoryInput, type CategoryFilterInput } from './validator';
 
 export class CategoryError extends Error {
   constructor(
@@ -16,30 +16,62 @@ export interface CategoryWithCount extends Category {
   productCount: number;
 }
 
+export interface ListCategoriesResult {
+  categories: CategoryWithCount[];
+  pagination: PaginationMeta;
+}
+
 export class CategoriesService {
   /**
-   * List all categories with product counts.
+   * List categories with product counts, search, and pagination.
    */
-  async listCategories(): Promise<CategoryWithCount[]> {
-    const categories = await prisma.category.findMany({
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+  async listCategories(filters?: CategoryFilterInput): Promise<ListCategoriesResult> {
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit || 20));
+    const skip = (page - 1) * limit;
 
-    return categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      description: cat.description,
-      productCount: cat._count.products,
-      createdAt: cat.createdAt,
-      updatedAt: cat.updatedAt,
-    }));
+    const where: any = {};
+    if (filters?.search && filters.search.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, categories] = await Promise.all([
+      prisma.category.count({ where }),
+      prisma.category.findMany({
+        where,
+        include: {
+          _count: {
+            select: { products: true },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          name: 'asc',
+        },
+      }),
+    ]);
+
+    return {
+      categories: categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        productCount: cat._count.products,
+        createdAt: cat.createdAt,
+        updatedAt: cat.updatedAt,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 
   /**

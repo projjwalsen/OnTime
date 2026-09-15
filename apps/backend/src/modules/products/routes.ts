@@ -2,8 +2,12 @@ import { Router } from 'express';
 import { listProducts, createProduct, getProductById, updateProduct } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
-import { createProductSchema, updateProductSchema } from './validator';
+import { validateBody, validateRequest } from '../../middleware/validate.middleware';
+import {
+  createProductSchema,
+  updateProductSchema,
+  productFilterQuerySchema,
+} from './validator';
 
 const router = Router();
 
@@ -11,10 +15,10 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/v1/products
- * @desc    List products
+ * @desc    List products with search, filters, and pagination
  * @access  Protected
  */
-router.get('/', listProducts);
+router.get('/', validateRequest({ query: productFilterQuerySchema }), listProducts);
 
 /**
  * @route   POST /api/v1/products
