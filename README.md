@@ -190,7 +190,7 @@ See [`.env.example`](.env.example) for all required variables.
 | `NODE_ENV`               | `development` \| `production` \| `test` |
 | `CORS_ORIGIN`            | Allowed CORS origins                    |
 | `JWT_SECRET`             | Secret key for signing access tokens    |
-| `JWT_EXPIRES_IN`         | Expiry for access tokens (e.g. `15m`)   |
+| `JWT_EXPIRES_IN`         | Expiry for access tokens (e.g. `1d`)    |
 | `JWT_REFRESH_SECRET`     | Secret key for refresh tokens           |
 | `JWT_REFRESH_EXPIRES_IN` | Expiry for refresh tokens (e.g. `7d`)   |
 | `BCRYPT_SALT_ROUNDS`     | Salt rounds for password hashing (`10`) |

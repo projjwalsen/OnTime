@@ -44,9 +44,9 @@ export function verifyRefreshToken(token: string): { userId: string } {
  * Calculate token expiry duration in seconds from a duration string (e.g. '15m', '1h', '7d').
  */
 export function parseDurationToSeconds(duration?: string): number {
-  if (!duration) return 900;
+  if (!duration) return 86400;
   const match = /^(\d+)([smhd])$/.exec(duration);
-  if (!match || !match[1] || !match[2]) return 900; // default 15m (900 seconds)
+  if (!match || !match[1] || !match[2]) return 86400; // default 1d (86400 seconds)
   const val = parseInt(match[1], 10);
   const unit = match[2];
   switch (unit) {
@@ -59,6 +59,6 @@ export function parseDurationToSeconds(duration?: string): number {
     case 'd':
       return val * 86400;
     default:
-      return 900;
+      return 86400;
   }
 }

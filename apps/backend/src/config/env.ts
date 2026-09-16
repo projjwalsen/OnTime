@@ -54,7 +54,7 @@ export const config = {
     'JWT_SECRET',
     'ontime_dev_secret_key_change_in_production_min_32_chars_long',
   ),
-  jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '15m'),
+  jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '1d'),
   jwtRefreshSecret: optionalEnv(
     'JWT_REFRESH_SECRET',
     'ontime_dev_refresh_secret_key_change_in_production_min_32_chars_long',
