@@ -3,7 +3,7 @@ import { OrderStatus } from '@ontime/shared';
 
 export const createOrderItemSchema = z.object({
   productId: z.string({ message: 'Product ID is required' }).min(1, 'Product ID is required'),
-  variantId: z.string().optional(),
+  variantId: z.string().nullable().optional(),
   quantity: z
     .number({ message: 'Quantity is required' })
     .int('Quantity must be an integer')
@@ -14,9 +14,9 @@ export const createOrderSchema = z.object({
   items: z
     .array(createOrderItemSchema, { message: 'Items array is required' })
     .min(1, 'Order must contain at least one item'),
-  notes: z.string().trim().optional(),
-  deliveryAddress: z.string().trim().optional(),
-  organisationId: z.string().optional(),
+  notes: z.string().trim().nullable().optional(),
+  deliveryAddress: z.string().trim().nullable().optional(),
+  organisationId: z.string().nullable().optional(),
 });
 
 export const updateOrderStatusSchema = z.object({

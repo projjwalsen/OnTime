@@ -1,7 +1,15 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Plus, Search, Edit2, Trash2, Loader2, Tag, Layers, Image as ImageIcon } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Loader2, Tag, Layers } from 'lucide-react';
 import { api } from '../../../lib/api';
-import { Product, Category, CreateProductDto, UpdateProductDto, ProductVariantDto } from '@ontime/shared';
+import {
+  Product,
+  Category,
+  CreateProductDto,
+  UpdateProductDto,
+  ProductVariantDto,
+} from '@ontime/shared';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
@@ -159,14 +167,12 @@ export default function ProductsPage() {
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
         ...(formData.variants.length > 0
           ? {
-              variants: formData.variants.map(
-                (v): ProductVariantDto => ({
-                  weight: v.weight.trim() || undefined,
-                  description: v.description.trim() || undefined,
-                  image: v.image.trim() || undefined,
-                  price: parseFloat(v.price) || 0,
-                }),
-              ),
+              variants: formData.variants.map((v): ProductVariantDto => ({
+                weight: v.weight.trim() || undefined,
+                description: v.description.trim() || undefined,
+                image: v.image.trim() || undefined,
+                price: parseFloat(v.price) || 0,
+              })),
             }
           : {}),
       };
@@ -199,14 +205,12 @@ export default function ProductsPage() {
         unit: formData.unit.trim(),
         isActive: formData.isActive,
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
-        variants: formData.variants.map(
-          (v): ProductVariantDto => ({
-            weight: v.weight.trim() || undefined,
-            description: v.description.trim() || undefined,
-            image: v.image.trim() || undefined,
-            price: parseFloat(v.price) || 0,
-          }),
-        ),
+        variants: formData.variants.map((v): ProductVariantDto => ({
+          weight: v.weight.trim() || undefined,
+          description: v.description.trim() || undefined,
+          image: v.image.trim() || undefined,
+          price: parseFloat(v.price) || 0,
+        })),
       };
 
       const res = await api.updateProduct(selectedProduct.id, dto);
@@ -443,11 +447,15 @@ export default function ProductsPage() {
                           }}
                         >
                           <Layers size={11} />
-                          {prod.variants.length} {prod.variants.length === 1 ? 'Variant' : 'Variants'}
+                          {prod.variants.length}{' '}
+                          {prod.variants.length === 1 ? 'Variant' : 'Variants'}
                         </span>
                         <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
                           {prod.variants
-                            .map((v) => `${v.weight ? v.weight + ' ' : ''}$${Number(v.price).toFixed(2)}`)
+                            .map(
+                              (v) =>
+                                `${v.weight ? v.weight + ' ' : ''}$${Number(v.price).toFixed(2)}`,
+                            )
                             .slice(0, 2)
                             .join(', ')}
                           {prod.variants.length > 2 ? ` +${prod.variants.length - 2} more` : ''}
@@ -623,7 +631,14 @@ export default function ProductsPage() {
                 type="button"
                 variant="secondary"
                 onClick={handleAddVariant}
-                style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '0.8rem' }}
+                style={{
+                  width: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                }}
               >
                 <Plus size={14} />
                 <span>Add Variant</span>
@@ -641,7 +656,8 @@ export default function ProductsPage() {
                   borderRadius: '6px',
                 }}
               >
-                No variants added yet. Click &quot;Add Variant&quot; to configure weights and pricing.
+                No variants added yet. Click &quot;Add Variant&quot; to configure weights and
+                pricing.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -658,7 +674,14 @@ export default function ProductsPage() {
                       gap: '0.5rem',
                     }}
                   >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '8px', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.2fr 1fr 2fr auto',
+                        gap: '8px',
+                        alignItems: 'center',
+                      }}
+                    >
                       <Input
                         placeholder="Weight (e.g. 500g)"
                         value={variant.weight}
@@ -812,7 +835,14 @@ export default function ProductsPage() {
                 type="button"
                 variant="secondary"
                 onClick={handleAddVariant}
-                style={{ width: 'auto', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '0.8rem' }}
+                style={{
+                  width: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                }}
               >
                 <Plus size={14} />
                 <span>Add Variant</span>
@@ -830,7 +860,8 @@ export default function ProductsPage() {
                   borderRadius: '6px',
                 }}
               >
-                No variants added yet. Click &quot;Add Variant&quot; to configure weights and pricing.
+                No variants added yet. Click &quot;Add Variant&quot; to configure weights and
+                pricing.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -847,7 +878,14 @@ export default function ProductsPage() {
                       gap: '0.5rem',
                     }}
                   >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 2fr auto', gap: '8px', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.2fr 1fr 2fr auto',
+                        gap: '8px',
+                        alignItems: 'center',
+                      }}
+                    >
                       <Input
                         placeholder="Weight (e.g. 500g)"
                         value={variant.weight}
@@ -897,4 +935,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-

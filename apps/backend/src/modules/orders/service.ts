@@ -211,7 +211,11 @@ export class OrdersService {
     for (const item of data.items) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
-        include: { variants: true },
+        include: {
+          variants: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
       });
 
       if (!product) {
@@ -225,14 +229,32 @@ export class OrdersService {
       let variantWeight: string | null = null;
       let selectedVariantId: string | null = null;
 
-      if (item.variantId) {
+      if (item.variantId && item.variantId.trim() !== '' && item.variantId !== item.productId) {
         const variant = product.variants.find((v) => v.id === item.variantId);
-        if (!variant) {
-          throw new OrderError(`Variant with ID "${item.variantId}" not found for product "${product.name}"`, 404);
+        if (variant) {
+          selectedVariantId = variant.id;
+          unitPrice = Number(variant.price);
+          variantWeight = variant.weight;
+        } else {
+          throw new OrderError(
+            `Variant with ID "${item.variantId}" not found for product "${product.name}"`,
+            404,
+          );
         }
-        selectedVariantId = variant.id;
-        unitPrice = Number(variant.price);
-        variantWeight = variant.weight;
+      } else {
+        // User did not select an explicit sub-variant (omitted, null, empty string, or passed productId)
+        const defaultVariant = product.variants?.[0];
+        if (defaultVariant) {
+          // If the product has variants, select the default (first) variant
+          selectedVariantId = defaultVariant.id;
+          unitPrice = Number(defaultVariant.price);
+          variantWeight = defaultVariant.weight;
+        } else {
+          // Base product without variants
+          selectedVariantId = null;
+          unitPrice = Number(product.price);
+          variantWeight = null;
+        }
       }
 
       const itemTotal = unitPrice * item.quantity;

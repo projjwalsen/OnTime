@@ -493,6 +493,48 @@ async function runTests() {
   assert(retailerAStats.totalRevenue >= 1890, `Expected Org A total revenue to be at least 1890, got ${retailerAStats.totalRevenue}`);
   console.log('  ✔ Order summary statistics correctly aggregated and tenant-scoped');
 
+  // -------------------------------------------------------------
+  // TEST 9: Base Product Ordering (variantId equal to productId or null)
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 9: Base Product Ordering (variantId === productId or null) ---');
+  const baseOrderRes = await makeRequest(
+    'POST',
+    '/api/v1/orders',
+    {
+      deliveryAddress: 'Retailer A Storefront',
+      notes: 'Please ring bell',
+      items: [
+        { productId: prod1.id, variantId: prod1.id, quantity: 2 },
+        { productId: prod2.id, variantId: null, quantity: 1 },
+      ],
+    },
+    tokenA,
+  );
+  assert(baseOrderRes.status === 201, `Base product order creation failed: ${JSON.stringify(baseOrderRes.body)}`);
+  const baseOrder = baseOrderRes.body.data.order;
+  assert(baseOrder.items.length === 2, 'Expected 2 items in base order');
+  // prod1 has variants -> defaults to first variant (1kg @ 160)
+  const defaultVar = prod1.variants[0]!;
+  assert(baseOrder.items[0].variantId === defaultVar.id, 'Item 1 should select default variant ID');
+  assert(baseOrder.items[0].unitPrice === 160, 'Item 1 should use default variant price (160)');
+  assert(baseOrder.items[0].variantWeight === '1kg', 'Item 1 should have variant weight 1kg');
+  // prod2 has NO variants -> base product (130)
+  assert(baseOrder.items[1].variantId === null, 'Item 2 variantId should be null');
+  assert(baseOrder.items[1].unitPrice === 130, 'Item 2 should use base product price (130)');
+  console.log('  ✔ Default variant automatically selected for product with variants; base product used for product without variants');
+
+  // Non-existent variant ID that is NOT productId should return 404
+  const invalidVariantRes = await makeRequest(
+    'POST',
+    '/api/v1/orders',
+    {
+      items: [{ productId: prod1.id, variantId: 'non-existent-variant-id-9999', quantity: 1 }],
+    },
+    tokenA,
+  );
+  assert(invalidVariantRes.status === 404, `Expected 404 for invalid variant ID, got ${invalidVariantRes.status}`);
+  console.log('  ✔ Non-existent variant ID rejected with 404');
+
   console.log('\n===========================================================');
   console.log('🎉 ALL ORDER & FULFILLMENT TESTS PASSED! 🎉');
   console.log('===========================================================');

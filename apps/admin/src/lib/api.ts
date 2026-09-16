@@ -22,8 +22,6 @@ import {
   type CreateOrganisationDto,
   type UpdateOrganisationDto,
   type Product,
-  type ProductVariant,
-  type ProductVariantDto,
   type CreateProductDto,
   type UpdateProductDto,
   type Category,
@@ -31,13 +29,11 @@ import {
   type UpdateCategoryDto,
   type OrganisationStatus,
   type Order,
-  type OrderItem,
   type CreateOrderDto,
   type UpdateOrderStatusDto,
   type CancelOrderDto,
   type OrderFilterParams,
   type OrderSummaryStats,
-  OrderStatus,
   UserRole,
 } from '@ontime/shared';
 import { API_BASE_URL, STORAGE_KEYS } from './config';
@@ -650,10 +646,11 @@ class ApiClient {
     data?: { stats: OrderSummaryStats };
     error?: string;
   }> {
-    const queryString = organisationId ? `?organisationId=${encodeURIComponent(organisationId)}` : '';
+    const queryString = organisationId
+      ? `?organisationId=${encodeURIComponent(organisationId)}`
+      : '';
     return this.request(`/orders/summary/stats${queryString}`);
   }
 }
 
 export const api = new ApiClient();
-
