@@ -11,10 +11,7 @@ import {
   Layers,
   BarChart3,
   Settings,
-  ShieldCheck,
-  LogOut,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -28,7 +25,6 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
 
   return (
     <aside className="admin-sidebar" data-node-id="4:48" data-name="Sidebar">
@@ -123,77 +119,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Role & User Footer */}
-      <div
-        style={{
-          padding: '1rem 1rem',
-          borderTop: '1px solid var(--border-figma)',
-          backgroundColor: '#fafbfd',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-          <div
-            style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '50%',
-              backgroundColor: '#e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#334155',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-            }}
-          >
-            {user?.name ? user.name[0]?.toUpperCase() : 'A'}
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <p
-              style={{
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                color: '#0f172a',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-              }}
-            >
-              {user?.name || 'Distributor Admin'}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
-              <ShieldCheck size={11} color="#059669" />
-              <span style={{ fontSize: '0.675rem', color: '#059669', fontWeight: 600 }}>
-                SUPER_ADMIN
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 8px',
-            borderRadius: '6px',
-            fontSize: '0.775rem',
-            fontWeight: 500,
-            color: '#dc2626',
-            backgroundColor: '#fef2f2',
-            justifyContent: 'center',
-            transition: 'all 150ms ease',
-          }}
-        >
-          <LogOut size={13} />
-          <span>Sign out</span>
-        </button>
-      </div>
     </aside>
   );
 }

@@ -1,48 +1,57 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { ShieldCheck, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../lib/api';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard Overview',
+  '/orders': 'Wholesale Orders',
   '/organisations': 'Retailer Organisations',
   '/products': 'Product Catalog',
   '/categories': 'Category Management',
+  '/reports': 'Reports & Analytics',
   '/users': 'Platform Users',
   '/settings': 'Admin Settings & Security',
 };
 
 export function TopNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
+  const { user, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdown on outside click
   useEffect(() => {
-    let isMounted = true;
-
-    async function checkHealth() {
-      try {
-        const res = await api.checkHealth();
-        if (isMounted) {
-          setIsBackendHealthy(res.success && res.data?.status === 'ok');
-        }
-      } catch {
-        if (isMounted) setIsBackendHealthy(false);
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
       }
     }
-
-    void checkHealth();
-    const interval = setInterval(() => {
-      void checkHealth();
-    }, 30000);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => {
-      isMounted = false;
-      clearInterval(interval);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isDropdownOpen]);
+
+  // Close dropdown on ESC
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
 
   const pageTitle = PAGE_TITLES[pathname] || 'Distributor Admin Portal';
 
@@ -52,48 +61,7 @@ export function TopNav() {
         <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>{pageTitle}</h2>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        {/* Backend Health Badge */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '9999px',
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            backgroundColor:
-              isBackendHealthy === true
-                ? '#ecfdf5'
-                : isBackendHealthy === false
-                  ? '#fef2f2'
-                  : '#f8fafc',
-            color:
-              isBackendHealthy === true
-                ? '#065f46'
-                : isBackendHealthy === false
-                  ? '#991b1b'
-                  : '#64748b',
-            border: `1px solid ${isBackendHealthy === true ? '#a7f3d0' : isBackendHealthy === false ? '#fecaca' : '#e2e8f0'}`,
-          }}
-          title={isBackendHealthy ? 'Backend API connected' : 'Backend API check failed'}
-        >
-          <Activity
-            size={13}
-            color={
-              isBackendHealthy ? '#10b981' : isBackendHealthy === false ? '#ef4444' : '#94a3b8'
-            }
-          />
-          <span>
-            {isBackendHealthy
-              ? 'API Online'
-              : isBackendHealthy === false
-                ? 'API Offline'
-                : 'Checking API...'}
-          </span>
-        </div>
-
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         {/* Distributor Badge */}
         <div
           style={{
@@ -112,25 +80,161 @@ export function TopNav() {
           <span>Distributor Admin</span>
         </div>
 
-        {/* User Mini Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
+        {/* User Avatar Button & Dropdown */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             style={{
-              width: '32px',
-              height: '32px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
-              backgroundColor: '#f1f5f9',
+              border: `1px solid ${isDropdownOpen ? '#93c5fd' : '#e2e8f0'}`,
+              backgroundColor: isDropdownOpen ? '#eff6ff' : '#f8fafc',
+              color: isDropdownOpen ? '#2563eb' : '#475569',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#475569',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
+            title="User Profile & Settings"
           >
-            <UserIcon size={16} />
-          </div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155' }}>
-            {user?.email || 'admin@ontime.com'}
-          </span>
+            <UserIcon size={18} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '240px',
+                backgroundColor: '#ffffff',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                boxShadow:
+                  '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+                zIndex: 1000,
+                overflow: 'hidden',
+                animation: 'slideUp 0.15s ease',
+              }}
+            >
+              {/* User Header Info */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  backgroundColor: '#f8fafc',
+                  borderBottom: '1px solid #e2e8f0',
+                }}
+              >
+                <p style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>
+                  {user?.name || 'Platform Admin'}
+                </p>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#64748b',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginTop: '2px',
+                  }}
+                >
+                  {user?.email}
+                </p>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}
+                >
+                  <ShieldCheck size={12} color="#059669" />
+                  <span
+                    style={{
+                      fontSize: '0.675rem',
+                      fontWeight: 700,
+                      color: '#059669',
+                      backgroundColor: '#ecfdf5',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    SUPER_ADMIN
+                  </span>
+                </div>
+              </div>
+
+              {/* Menu Links */}
+              <div style={{ padding: '6px' }}>
+                <Link
+                  href="/settings"
+                  onClick={() => setIsDropdownOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.825rem',
+                    color: '#334155',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Settings size={15} color="#64748b" />
+                  <span>Admin Settings</span>
+                </Link>
+
+                <div
+                  style={{
+                    height: '1px',
+                    backgroundColor: '#e2e8f0',
+                    margin: '4px 0',
+                  }}
+                />
+
+                {/* Sign Out Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    logout();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.825rem',
+                    color: '#dc2626',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#fef2f2';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <LogOut size={15} color="#dc2626" />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
