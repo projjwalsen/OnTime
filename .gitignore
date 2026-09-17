@@ -66,6 +66,6 @@ temp/
 postman/
 *.postman_collection.json
 
-scripts/
-*.tsbuildinfo
-*.ts
+# scripts/
+# *.tsbuildinfo
+# *.ts
