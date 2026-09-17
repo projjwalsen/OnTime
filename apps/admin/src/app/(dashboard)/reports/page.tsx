@@ -303,7 +303,11 @@ export default function ReportsPage() {
                 <DollarSign size={16} color="#059669" />
               </div>
               <div className="figma-kpi-value">
-                ₹{totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                $
+                {totalRevenue.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
               <div className="figma-kpi-subtitle">Completed & active orders</div>
             </div>
@@ -329,7 +333,11 @@ export default function ReportsPage() {
                 <TrendingUp size={16} color="#8b5cf6" />
               </div>
               <div className="figma-kpi-value">
-                ₹{avgOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                $
+                {avgOrderValue.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
               <div className="figma-kpi-subtitle">Per non-cancelled order</div>
             </div>
@@ -552,7 +560,7 @@ export default function ReportsPage() {
                     <th>Customer Name</th>
                     <th>City</th>
                     <th>Total Orders</th>
-                    <th>Total Spend (₹)</th>
+                    <th>Total Spend ($)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -575,7 +583,11 @@ export default function ReportsPage() {
                         </span>
                       </td>
                       <td style={{ fontWeight: 700, color: '#0f172a' }}>
-                        ₹{c.totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        $
+                        {c.totalSpent.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                   ))}

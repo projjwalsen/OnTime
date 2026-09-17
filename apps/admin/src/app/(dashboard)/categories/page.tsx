@@ -369,13 +369,8 @@ export default function CategoriesPage() {
             <Button variant="secondary" onClick={() => setIsEditOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleUpdate}
-              isLoading={saving}
-              style={{ width: 'auto' }}
-            >
-              Save Changes
+            <Button variant="primary" onClick={handleUpdate} isLoading={saving}>
+              Save
             </Button>
           </>
         }

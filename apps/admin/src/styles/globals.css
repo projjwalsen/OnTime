@@ -102,26 +102,32 @@ textarea {
   font-size: 0.75rem;
   line-height: 1rem;
 }
+
 .text-sm {
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
+
 .text-base {
   font-size: 1rem;
   line-height: 1.5rem;
 }
+
 .text-lg {
   font-size: 1.125rem;
   line-height: 1.75rem;
 }
+
 .text-xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
 }
+
 .text-2xl {
   font-size: 1.5rem;
   line-height: 2rem;
 }
+
 .text-3xl {
   font-size: 1.875rem;
   line-height: 2.25rem;
@@ -130,9 +136,11 @@ textarea {
 .font-medium {
   font-weight: 500;
 }
+
 .font-semibold {
   font-weight: 600;
 }
+
 .font-bold {
   font-weight: 700;
 }
@@ -464,8 +472,9 @@ textarea {
 
 /* ── Buttons ── */
 .btn-primary {
-  width: 100%;
-  height: 46px;
+  width: fit-content;
+  height: auto;
+  padding: 0.5rem 1rem;
   background-color: #2f54eb;
   color: #ffffff;
   font-weight: 600;
@@ -493,8 +502,9 @@ textarea {
 }
 
 .btn-secondary {
-  height: 40px;
-  padding: 0 1rem;
+  min-width: fit-content;
+  height: auto;
+  padding: 0.5rem 1rem;
   background-color: #ffffff;
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
@@ -809,6 +819,7 @@ textarea {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -819,6 +830,7 @@ textarea {
     opacity: 0;
     transform: translateY(12px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -829,6 +841,7 @@ textarea {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

@@ -1328,9 +1328,8 @@ export default function ProductsPage() {
               onClick={handleUpdateProduct}
               isLoading={saving}
               disabled={uploadingImages}
-              style={{ width: 'auto' }}
             >
-              Save Changes
+              Save
             </Button>
           </>
         }
