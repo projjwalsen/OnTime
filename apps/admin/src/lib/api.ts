@@ -34,6 +34,8 @@ import {
   type CancelOrderDto,
   type OrderFilterParams,
   type OrderSummaryStats,
+  type UploadedMediaFile,
+  type UploadMediaResponse,
   UserRole,
 } from '@ontime/shared';
 import { API_BASE_URL, STORAGE_KEYS } from './config';
@@ -650,6 +652,97 @@ class ApiClient {
       ? `?organisationId=${encodeURIComponent(organisationId)}`
       : '';
     return this.request(`/orders/summary/stats${queryString}`);
+  }
+
+  // ── Media Upload (Super Admin) ─────────────────────────────
+
+  async uploadMedia(
+    files: File[] | FileList,
+  ): Promise<{ success: boolean; data?: UploadMediaResponse; message?: string; error?: string }> {
+    const formData = new FormData();
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
+      formData.append('files', file);
+    }
+
+    const url = `${API_BASE_URL}/media/upload`;
+    const token = this.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (response.status === 401) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          const retryToken = this.getAccessToken();
+          if (retryToken) headers['Authorization'] = `Bearer ${retryToken}`;
+          const retryResponse = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          const retryJson = (await retryResponse.json()) as ApiResponse<UploadMediaResponse>;
+          if (!retryResponse.ok) {
+            return {
+              success: false,
+              error: retryJson.message || retryJson.error || `HTTP error ${retryResponse.status}`,
+            };
+          }
+          return retryJson;
+        } else {
+          this.clearTokens();
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+        }
+      }
+
+      const json = (await response.json()) as ApiResponse<UploadMediaResponse>;
+      if (!response.ok) {
+        return {
+          success: false,
+          error: json.message || json.error || `HTTP error ${response.status}`,
+        };
+      }
+
+      return json;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      return {
+        success: false,
+        error: msg,
+      };
+    }
+  }
+
+  async uploadSingleMedia(file: File): Promise<{
+    success: boolean;
+    data?: { file: UploadedMediaFile; url: string };
+    message?: string;
+    error?: string;
+  }> {
+    const res = await this.uploadMedia([file]);
+    if (res.success && res.data && res.data.files && res.data.files.length > 0) {
+      return {
+        success: true,
+        data: {
+          file: res.data.files[0]!,
+          url: res.data.files[0]!.url,
+        },
+      };
+    }
+    return {
+      success: false,
+      error: res.error || 'Failed to upload image',
+    };
   }
 }
 

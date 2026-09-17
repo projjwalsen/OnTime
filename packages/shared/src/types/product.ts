@@ -62,22 +62,22 @@ export interface Product {
 export interface CreateProductDto {
   name: string;
   sku: string;
-  description?: string;
+  description?: string | null | undefined;
   price: number;
-  categoryId?: string;
-  unit?: string;
-  isActive?: boolean;
-  images?: string[];
-  packagingNote?: string | null;
-  variants?: ProductVariantDto[];
-  variant?: ProductVariantDto;
+  categoryId?: string | undefined;
+  unit?: string | undefined;
+  isActive?: boolean | undefined;
+  images?: string[] | undefined;
+  packagingNote?: string | null | undefined;
+  variants?: ProductVariantDto[] | undefined;
+  variant?: ProductVariantDto | undefined;
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {
-  images?: string[];
-  packagingNote?: string | null;
-  variants?: ProductVariantDto[];
-  variant?: ProductVariantDto;
+  images?: string[] | undefined;
+  packagingNote?: string | null | undefined;
+  variants?: ProductVariantDto[] | undefined;
+  variant?: ProductVariantDto | undefined;
 }
 
 export interface CategoryFilterParams {

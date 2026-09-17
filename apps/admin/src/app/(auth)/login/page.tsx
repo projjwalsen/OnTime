@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
     <div className="figma-screen-container" data-node-id="4:4">
       {/* Top Left Figma Wireframe Header */}
       <header className="figma-screen-header">
-        <h1 className="figma-screen-title">01. Admin Login</h1>
+        <h1 className="figma-screen-title">Admin Login</h1>
         <p className="figma-screen-subtitle">Secure distributor access</p>
       </header>
 

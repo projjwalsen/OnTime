@@ -94,6 +94,10 @@ export type {
   SendRegistrationOtpDto,
   VerifyRegistrationOtpDto,
 } from './types/auth';
+export type {
+  UploadedMediaFile,
+  UploadMediaResponse,
+} from './types/media';
 
 
 // Constants

@@ -78,5 +78,18 @@ export const config = {
   otpExpiryMinutes: parseInt(optionalEnv('OTP_EXPIRY_MINUTES', '10'), 10),
   otpMaxAttempts: parseInt(optionalEnv('OTP_MAX_ATTEMPTS', '5'), 10),
   otpCooldownSeconds: parseInt(optionalEnv('OTP_COOLDOWN_SECONDS', '60'), 10),
+
+  /**
+   * Supabase Storage / S3 Configuration
+   */
+  supabaseUrl: optionalEnv(
+    'SUPABASE_URL',
+    'https://qkgcmbemxxyeubxgmbwp.supabase.co',
+  ),
+  supabaseKey: optionalEnv(
+    'SUPABASE_SERVICE_ROLE_KEY',
+    optionalEnv('SUPABASE_KEY', optionalEnv('SUPABASE_ANON_KEY', '')),
+  ),
+  supabaseBucket: optionalEnv('SUPABASE_STORAGE_BUCKET', 'product-images'),
 } as const;
 

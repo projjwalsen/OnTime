@@ -6,6 +6,7 @@ import { organisationsRoutes } from '../../modules/organisations';
 import { productsRoutes } from '../../modules/products';
 import { categoriesRoutes } from '../../modules/categories';
 import { ordersRoutes } from '../../modules/orders';
+import { mediaRoutes } from '../../modules/media';
 
 const router = Router();
 
@@ -50,6 +51,12 @@ router.use('/categories', categoriesRoutes);
  * @desc   Order management & fulfillment endpoints
  */
 router.use('/orders', ordersRoutes);
+
+/**
+ * @route  /api/v1/media
+ * @desc   Media & product image upload endpoints (Super Admin only)
+ */
+router.use('/media', mediaRoutes);
 
 export default router;
 
