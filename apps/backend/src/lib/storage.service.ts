@@ -77,7 +77,7 @@ export class StorageService {
     let publicUrl = `${config.supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${this.bucket}/${fileKey}`;
 
     if (this.supabase) {
-      const { error } = await this.supabase.storage
+      let { error } = await this.supabase.storage
         .from(this.bucket)
         .upload(fileKey, file.buffer, {
           contentType: file.mimetype,
@@ -85,12 +85,29 @@ export class StorageService {
           cacheControl: '31536000',
         });
 
+      // Auto-create bucket if missing
+      if (error && error.message && (error.message.includes('Bucket not found') || error.message.includes('NoSuchBucket'))) {
+        try {
+          await this.supabase.storage.createBucket(this.bucket, {
+            public: true,
+            fileSizeLimit: 10 * 1024 * 1024,
+          });
+          const retry = await this.supabase.storage
+            .from(this.bucket)
+            .upload(fileKey, file.buffer, {
+              contentType: file.mimetype,
+              upsert: true,
+              cacheControl: '31536000',
+            });
+          error = retry.error;
+        } catch (bucketErr) {
+          console.warn('[StorageService] Auto-bucket creation attempt failed:', bucketErr);
+        }
+      }
+
       if (error) {
         console.error('[StorageService] Supabase upload error:', error);
-        // If the bucket doesn't exist, attempt to provide the public URL format or throw helpful error
-        if (error.message && !error.message.includes('Bucket not found')) {
-          throw new StorageError(`Failed to upload image: ${error.message}`, 502);
-        }
+        throw new StorageError(`Failed to upload image: ${error.message}`, 502);
       }
 
       const { data: urlData } = this.supabase.storage

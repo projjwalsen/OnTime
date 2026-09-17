@@ -82,10 +82,19 @@ export const config = {
   /**
    * Supabase Storage / S3 Configuration
    */
-  supabaseUrl: optionalEnv(
-    'SUPABASE_URL',
-    'https://qkgcmbemxxyeubxgmbwp.supabase.co',
-  ),
+  supabaseUrl: (() => {
+    let rawUrl = optionalEnv(
+      'SUPABASE_URL',
+      'https://qkgcmbemxxyeubxgmbwp.supabase.co',
+    );
+    if (rawUrl.includes('.storage.supabase.co')) {
+      const match = rawUrl.match(/https?:\/\/([^.]+)\.storage\.supabase\.co/);
+      if (match && match[1]) {
+        rawUrl = `https://${match[1]}.supabase.co`;
+      }
+    }
+    return rawUrl.replace(/\/+$/, '');
+  })(),
   supabaseKey: optionalEnv(
     'SUPABASE_SERVICE_ROLE_KEY',
     optionalEnv('SUPABASE_KEY', optionalEnv('SUPABASE_ANON_KEY', '')),
