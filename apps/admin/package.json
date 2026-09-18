@@ -4,6 +4,7 @@
   "private": true,
   "description": "OnTime Distributor Admin Dashboard — Next.js + TypeScript",
   "scripts": {
+    "prebuild": "npm --prefix ../.. run build:shared",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
