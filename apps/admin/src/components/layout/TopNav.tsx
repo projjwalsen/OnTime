@@ -7,7 +7,7 @@ import { ShieldCheck, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard Overview',
+  '/dashboard': 'Overview',
   '/orders': 'Wholesale Orders',
   '/organisations': 'Retailer Organisations',
   '/products': 'Product Catalog',
