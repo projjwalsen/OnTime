@@ -1,6 +1,10 @@
 import { prisma } from '../../lib/prisma';
 import { type Category, type PaginationMeta } from '@ontime/shared';
-import { type CreateCategoryInput, type UpdateCategoryInput, type CategoryFilterInput } from './validator';
+import {
+  type CreateCategoryInput,
+  type UpdateCategoryInput,
+  type CategoryFilterInput,
+} from './validator';
 
 export class CategoryError extends Error {
   constructor(

@@ -21,6 +21,7 @@
     "test:auth": "tsx src/tests/auth.test.ts",
     "test:products": "tsx src/tests/products.test.ts",
     "test:orders": "tsx src/tests/orders.test.ts",
+    "test:draft-orders": "tsx src/tests/draft_orders.test.ts",
     "test:pagination": "tsx src/tests/pagination_and_filters.test.ts",
     "test:media": "tsx src/tests/media_upload.test.ts"
   },

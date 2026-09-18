@@ -103,7 +103,10 @@ async function runTests() {
     email: superAdminEmail,
     password: defaultPassword,
   });
-  assert(superLoginRes.status === 200, `Super Admin login failed: ${JSON.stringify(superLoginRes.body)}`);
+  assert(
+    superLoginRes.status === 200,
+    `Super Admin login failed: ${JSON.stringify(superLoginRes.body)}`,
+  );
   const superToken = superLoginRes.body.data.tokens.accessToken;
 
   // 2. Setup Organisation A (Retailer A)
@@ -148,14 +151,20 @@ async function runTests() {
     email: orgAAdminEmail,
     password: defaultPassword,
   });
-  assert(loginARes.status === 200, `Retailer A Admin login failed: ${JSON.stringify(loginARes.body)}`);
+  assert(
+    loginARes.status === 200,
+    `Retailer A Admin login failed: ${JSON.stringify(loginARes.body)}`,
+  );
   const tokenA = loginARes.body.data.tokens.accessToken;
 
   const loginAStaffRes = await makeRequest('POST', '/api/v1/auth/login', {
     email: orgAStaffEmail,
     password: defaultPassword,
   });
-  assert(loginAStaffRes.status === 200, `Retailer A Staff login failed: ${JSON.stringify(loginAStaffRes.body)}`);
+  assert(
+    loginAStaffRes.status === 200,
+    `Retailer A Staff login failed: ${JSON.stringify(loginAStaffRes.body)}`,
+  );
   const tokenAStaff = loginAStaffRes.body.data.tokens.accessToken;
 
   // 3. Setup Organisation B (Retailer B)
@@ -188,7 +197,10 @@ async function runTests() {
     email: orgBAdminEmail,
     password: defaultPassword,
   });
-  assert(loginBRes.status === 200, `Retailer B Admin login failed: ${JSON.stringify(loginBRes.body)}`);
+  assert(
+    loginBRes.status === 200,
+    `Retailer B Admin login failed: ${JSON.stringify(loginBRes.body)}`,
+  );
   const tokenB = loginBRes.body.data.tokens.accessToken;
 
   // 4. Setup Products and Variants
@@ -257,10 +269,16 @@ async function runTests() {
   };
 
   const createOrderRes = await makeRequest('POST', '/api/v1/orders', createOrderPayload, tokenA);
-  assert(createOrderRes.status === 201, `Create order failed: ${JSON.stringify(createOrderRes.body)}`);
+  assert(
+    createOrderRes.status === 201,
+    `Create order failed: ${JSON.stringify(createOrderRes.body)}`,
+  );
   const orderA1 = createOrderRes.body.data.order;
 
-  assert(orderA1.orderNumber.startsWith('ORD-'), `Invalid orderNumber format: ${orderA1.orderNumber}`);
+  assert(
+    orderA1.orderNumber.startsWith('ORD-'),
+    `Invalid orderNumber format: ${orderA1.orderNumber}`,
+  );
   assert(orderA1.status === OrderStatus.PENDING, `Expected status PENDING, got ${orderA1.status}`);
   assert(orderA1.organisationId === orgA.id, 'Organisation ID mismatch');
   assert(orderA1.subtotal === 1890, `Expected subtotal 1890, got ${orderA1.subtotal}`);
@@ -278,7 +296,9 @@ async function runTests() {
   assert(item2.variantWeight === null, 'Variant weight should be null');
   assert(item2.unitPrice === 130, `Expected unitPrice 130, got ${item2.unitPrice}`);
   assert(item2.totalPrice === 390, `Expected totalPrice 390, got ${item2.totalPrice}`);
-  console.log(`  ✔ Order created (${orderA1.orderNumber}) with total ${orderA1.totalAmount} and snapshotted fields`);
+  console.log(
+    `  ✔ Order created (${orderA1.orderNumber}) with total ${orderA1.totalAmount} and snapshotted fields`,
+  );
 
   // -------------------------------------------------------------
   // TEST 2: Retailer Staff can place orders for their organisation
@@ -293,7 +313,10 @@ async function runTests() {
     },
     tokenAStaff,
   );
-  assert(staffOrderRes.status === 201, `Staff order placement failed: ${JSON.stringify(staffOrderRes.body)}`);
+  assert(
+    staffOrderRes.status === 201,
+    `Staff order placement failed: ${JSON.stringify(staffOrderRes.body)}`,
+  );
   const orderA2 = staffOrderRes.body.data.order;
   assert(orderA2.organisationId === orgA.id, 'Staff order must belong to Organisation A');
   assert(orderA2.totalAmount === 1300, `Expected 1300, got ${orderA2.totalAmount}`);
@@ -313,33 +336,61 @@ async function runTests() {
     },
     tokenB,
   );
-  assert(orderBRes.status === 201, `Retailer B order creation failed: ${JSON.stringify(orderBRes.body)}`);
+  assert(
+    orderBRes.status === 201,
+    `Retailer B order creation failed: ${JSON.stringify(orderBRes.body)}`,
+  );
   const orderB1 = orderBRes.body.data.order;
 
   // Retailer A lists orders: should only see Org A's orders (2 orders: orderA1, orderA2)
   const listARes = await makeRequest('GET', '/api/v1/orders', undefined, tokenA);
   assert(listARes.status === 200, `List orders A failed: ${JSON.stringify(listARes.body)}`);
-  assert(listARes.body.data.orders.length === 2, `Org A should see 2 orders, saw ${listARes.body.data.orders.length}`);
+  assert(
+    listARes.body.data.orders.length === 2,
+    `Org A should see 2 orders, saw ${listARes.body.data.orders.length}`,
+  );
   const hasOtherOrgOrder = listARes.body.data.orders.some((o: any) => o.organisationId !== orgA.id);
   assert(!hasOtherOrgOrder, 'Isolation breach: Org A saw orders belonging to another tenant');
   console.log('  ✔ Tenant A listing correctly isolated to tenant A');
 
   // Retailer B attempts to access Org A's order by ID -> 403 Forbidden
-  const crossTenantGet = await makeRequest('GET', `/api/v1/orders/${orderA1.id}`, undefined, tokenB);
-  assert(crossTenantGet.status === 403, `Expected 403 Forbidden for cross-tenant access, got ${crossTenantGet.status}`);
+  const crossTenantGet = await makeRequest(
+    'GET',
+    `/api/v1/orders/${orderA1.id}`,
+    undefined,
+    tokenB,
+  );
+  assert(
+    crossTenantGet.status === 403,
+    `Expected 403 Forbidden for cross-tenant access, got ${crossTenantGet.status}`,
+  );
   console.log('  ✔ Cross-tenant order inspection correctly rejected with 403 Forbidden');
 
   // Super Admin lists orders -> sees all orders across tenants
   const superListRes = await makeRequest('GET', '/api/v1/orders', undefined, superToken);
-  assert(superListRes.status === 200, `Super Admin list failed: ${JSON.stringify(superListRes.body)}`);
+  assert(
+    superListRes.status === 200,
+    `Super Admin list failed: ${JSON.stringify(superListRes.body)}`,
+  );
   const foundA = superListRes.body.data.orders.some((o: any) => o.id === orderA1.id);
   const foundB = superListRes.body.data.orders.some((o: any) => o.id === orderB1.id);
   assert(foundA && foundB, 'Super Admin should see orders from both Organisation A and B');
 
   // Super Admin filters by organisationId
-  const superFilterRes = await makeRequest('GET', `/api/v1/orders?organisationId=${orgB.id}`, undefined, superToken);
-  assert(superFilterRes.status === 200, `Super Admin filter failed: ${JSON.stringify(superFilterRes.body)}`);
-  assert(superFilterRes.body.data.orders.length === 1, 'Filtered query should return exactly 1 order for Org B');
+  const superFilterRes = await makeRequest(
+    'GET',
+    `/api/v1/orders?organisationId=${orgB.id}`,
+    undefined,
+    superToken,
+  );
+  assert(
+    superFilterRes.status === 200,
+    `Super Admin filter failed: ${JSON.stringify(superFilterRes.body)}`,
+  );
+  assert(
+    superFilterRes.body.data.orders.length === 1,
+    'Filtered query should return exactly 1 order for Org B',
+  );
   assert(superFilterRes.body.data.orders[0].id === orderB1.id, 'Filtered query order ID mismatch');
   console.log('  ✔ Super Admin multi-tenant listing and filtering verified');
 
@@ -353,7 +404,10 @@ async function runTests() {
     { cancellationReason: 'Ordered incorrect quantity by mistake' },
     tokenA,
   );
-  assert(cancelRes.status === 200, `Retailer cancel order failed: ${JSON.stringify(cancelRes.body)}`);
+  assert(
+    cancelRes.status === 200,
+    `Retailer cancel order failed: ${JSON.stringify(cancelRes.body)}`,
+  );
   assert(cancelRes.body.data.order.status === OrderStatus.CANCELLED, 'Status should be CANCELLED');
   assert(
     cancelRes.body.data.order.cancellationReason === 'Ordered incorrect quantity by mistake',
@@ -368,7 +422,10 @@ async function runTests() {
     { cancellationReason: 'Trying to cancel again' },
     tokenA,
   );
-  assert(reCancelRes.status === 400, `Expected 400 when cancelling already cancelled order, got ${reCancelRes.status}`);
+  assert(
+    reCancelRes.status === 400,
+    `Expected 400 when cancelling already cancelled order, got ${reCancelRes.status}`,
+  );
   console.log('  ✔ Retailer order cancellation and idempotency guard validated');
 
   // -------------------------------------------------------------
@@ -382,7 +439,10 @@ async function runTests() {
     { status: OrderStatus.CONFIRMED },
     superToken,
   );
-  assert(confirmRes.status === 200, `PENDING -> CONFIRMED failed: ${JSON.stringify(confirmRes.body)}`);
+  assert(
+    confirmRes.status === 200,
+    `PENDING -> CONFIRMED failed: ${JSON.stringify(confirmRes.body)}`,
+  );
   assert(confirmRes.body.data.order.status === OrderStatus.CONFIRMED, 'Status should be CONFIRMED');
 
   // 2. CONFIRMED -> PROCESSING
@@ -402,7 +462,10 @@ async function runTests() {
     { status: OrderStatus.DISPATCHED },
     superToken,
   );
-  assert(dispRes.status === 200, `PROCESSING -> DISPATCHED failed: ${JSON.stringify(dispRes.body)}`);
+  assert(
+    dispRes.status === 200,
+    `PROCESSING -> DISPATCHED failed: ${JSON.stringify(dispRes.body)}`,
+  );
   assert(dispRes.body.data.order.status === OrderStatus.DISPATCHED, 'Status should be DISPATCHED');
 
   // 4. DISPATCHED -> DELIVERED
@@ -412,7 +475,10 @@ async function runTests() {
     { status: OrderStatus.DELIVERED },
     superToken,
   );
-  assert(delivRes.status === 200, `DISPATCHED -> DELIVERED failed: ${JSON.stringify(delivRes.body)}`);
+  assert(
+    delivRes.status === 200,
+    `DISPATCHED -> DELIVERED failed: ${JSON.stringify(delivRes.body)}`,
+  );
   assert(delivRes.body.data.order.status === OrderStatus.DELIVERED, 'Status should be DELIVERED');
   assert(!!delivRes.body.data.order.deliveredAt, 'deliveredAt timestamp must be set on DELIVERED');
 
@@ -439,7 +505,10 @@ async function runTests() {
     { cancellationReason: 'Cancel delivered goods' },
     tokenA,
   );
-  assert(lateCancelRes.status === 400, `Expected 400 for retailer cancelling non-pending order, got ${lateCancelRes.status}`);
+  assert(
+    lateCancelRes.status === 400,
+    `Expected 400 for retailer cancelling non-pending order, got ${lateCancelRes.status}`,
+  );
   console.log('  ✔ Retailer cancellation blocked when order is past PENDING state');
 
   // -------------------------------------------------------------
@@ -458,8 +527,18 @@ async function runTests() {
   const orderC = orderCRes.body.data.order;
 
   // Progress to PROCESSING
-  await makeRequest('PATCH', `/api/v1/orders/${orderC.id}/status`, { status: OrderStatus.CONFIRMED }, superToken);
-  await makeRequest('PATCH', `/api/v1/orders/${orderC.id}/status`, { status: OrderStatus.PROCESSING }, superToken);
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${orderC.id}/status`,
+    { status: OrderStatus.CONFIRMED },
+    superToken,
+  );
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${orderC.id}/status`,
+    { status: OrderStatus.PROCESSING },
+    superToken,
+  );
 
   // Super admin cancels
   const superCancelRes = await makeRequest(
@@ -468,29 +547,72 @@ async function runTests() {
     { cancellationReason: 'Stock shortage at regional distributor warehouse' },
     superToken,
   );
-  assert(superCancelRes.status === 200, `Super Admin cancel failed: ${JSON.stringify(superCancelRes.body)}`);
-  assert(superCancelRes.body.data.order.status === OrderStatus.CANCELLED, 'Status should be CANCELLED');
+  assert(
+    superCancelRes.status === 200,
+    `Super Admin cancel failed: ${JSON.stringify(superCancelRes.body)}`,
+  );
+  assert(
+    superCancelRes.body.data.order.status === OrderStatus.CANCELLED,
+    'Status should be CANCELLED',
+  );
   console.log('  ✔ Super Admin successfully cancelled order during PROCESSING');
 
   // -------------------------------------------------------------
   // TEST 8: Order Summary Statistics
   // -------------------------------------------------------------
   console.log('\n--- TEST 8: Order Summary Statistics Aggregation ---');
-  const superStatsRes = await makeRequest('GET', '/api/v1/orders/stats/summary', undefined, superToken);
+  const superStatsRes = await makeRequest(
+    'GET',
+    '/api/v1/orders/stats/summary',
+    undefined,
+    superToken,
+  );
   assert(superStatsRes.status === 200, `Super stats failed: ${JSON.stringify(superStatsRes.body)}`);
   const superStats = superStatsRes.body.data.stats;
-  assert(superStats.totalOrders >= 4, `Expected at least 4 total orders, got ${superStats.totalOrders}`);
-  assert(superStats.deliveredOrders >= 1, `Expected at least 1 delivered order, got ${superStats.deliveredOrders}`);
-  assert(superStats.cancelledOrders >= 2, `Expected at least 2 cancelled orders, got ${superStats.cancelledOrders}`);
-  assert(superStats.totalRevenue >= 1890, `Expected revenue >= 1890, got ${superStats.totalRevenue}`);
+  assert(
+    superStats.totalOrders >= 4,
+    `Expected at least 4 total orders, got ${superStats.totalOrders}`,
+  );
+  assert(
+    superStats.deliveredOrders >= 1,
+    `Expected at least 1 delivered order, got ${superStats.deliveredOrders}`,
+  );
+  assert(
+    superStats.cancelledOrders >= 2,
+    `Expected at least 2 cancelled orders, got ${superStats.cancelledOrders}`,
+  );
+  assert(
+    superStats.totalRevenue >= 1890,
+    `Expected revenue >= 1890, got ${superStats.totalRevenue}`,
+  );
 
-  const retailerAStatsRes = await makeRequest('GET', '/api/v1/orders/stats/summary', undefined, tokenA);
-  assert(retailerAStatsRes.status === 200, `Retailer A stats failed: ${JSON.stringify(retailerAStatsRes.body)}`);
+  const retailerAStatsRes = await makeRequest(
+    'GET',
+    '/api/v1/orders/stats/summary',
+    undefined,
+    tokenA,
+  );
+  assert(
+    retailerAStatsRes.status === 200,
+    `Retailer A stats failed: ${JSON.stringify(retailerAStatsRes.body)}`,
+  );
   const retailerAStats = retailerAStatsRes.body.data.stats;
-  assert(retailerAStats.totalOrders === 3, `Expected Org A to have 3 orders, got ${retailerAStats.totalOrders}`);
-  assert(retailerAStats.deliveredOrders === 1, `Expected Org A to have 1 delivered order, got ${retailerAStats.deliveredOrders}`);
-  assert(retailerAStats.cancelledOrders === 2, `Expected Org A to have 2 cancelled orders, got ${retailerAStats.cancelledOrders}`);
-  assert(retailerAStats.totalRevenue >= 1890, `Expected Org A total revenue to be at least 1890, got ${retailerAStats.totalRevenue}`);
+  assert(
+    retailerAStats.totalOrders === 3,
+    `Expected Org A to have 3 orders, got ${retailerAStats.totalOrders}`,
+  );
+  assert(
+    retailerAStats.deliveredOrders === 1,
+    `Expected Org A to have 1 delivered order, got ${retailerAStats.deliveredOrders}`,
+  );
+  assert(
+    retailerAStats.cancelledOrders === 2,
+    `Expected Org A to have 2 cancelled orders, got ${retailerAStats.cancelledOrders}`,
+  );
+  assert(
+    retailerAStats.totalRevenue >= 1890,
+    `Expected Org A total revenue to be at least 1890, got ${retailerAStats.totalRevenue}`,
+  );
   console.log('  ✔ Order summary statistics correctly aggregated and tenant-scoped');
 
   // -------------------------------------------------------------
@@ -510,7 +632,10 @@ async function runTests() {
     },
     tokenA,
   );
-  assert(baseOrderRes.status === 201, `Base product order creation failed: ${JSON.stringify(baseOrderRes.body)}`);
+  assert(
+    baseOrderRes.status === 201,
+    `Base product order creation failed: ${JSON.stringify(baseOrderRes.body)}`,
+  );
   const baseOrder = baseOrderRes.body.data.order;
   assert(baseOrder.items.length === 2, 'Expected 2 items in base order');
   // prod1 has variants -> defaults to first variant (1kg @ 160)
@@ -521,7 +646,9 @@ async function runTests() {
   // prod2 has NO variants -> base product (130)
   assert(baseOrder.items[1].variantId === null, 'Item 2 variantId should be null');
   assert(baseOrder.items[1].unitPrice === 130, 'Item 2 should use base product price (130)');
-  console.log('  ✔ Default variant automatically selected for product with variants; base product used for product without variants');
+  console.log(
+    '  ✔ Default variant automatically selected for product with variants; base product used for product without variants',
+  );
 
   // Non-existent variant ID that is NOT productId should return 404
   const invalidVariantRes = await makeRequest(
@@ -532,7 +659,10 @@ async function runTests() {
     },
     tokenA,
   );
-  assert(invalidVariantRes.status === 404, `Expected 404 for invalid variant ID, got ${invalidVariantRes.status}`);
+  assert(
+    invalidVariantRes.status === 404,
+    `Expected 404 for invalid variant ID, got ${invalidVariantRes.status}`,
+  );
   console.log('  ✔ Non-existent variant ID rejected with 404');
 
   console.log('\n===========================================================');

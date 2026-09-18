@@ -144,7 +144,6 @@ async function runTests() {
       where: {
         email: {
           in: ['admin@ontime.com', 'admin@apexretailers.com', 'staff@apexretailers.com'],
-
         },
       },
       data: { passwordHash: defaultPasswordHash },
@@ -164,10 +163,7 @@ async function runTests() {
       body: { email: 'admin@ontime.com', password: 'Password123!' },
     });
     assert(distLogin.status === 200, `Login status 200, got ${distLogin.status}`);
-    assert(
-      distLogin.body.data.user.role === UserRole.SUPER_ADMIN,
-      'Role is SUPER_ADMIN',
-    );
+    assert(distLogin.body.data.user.role === UserRole.SUPER_ADMIN, 'Role is SUPER_ADMIN');
     assert(distLogin.body.data.user.organisationId === null, 'Super admin organisationId is null');
     assert(!!distLogin.body.data.tokens.accessToken, 'Access token is present');
     assert(!!distLogin.body.data.tokens.refreshToken, 'Refresh token is present');
@@ -182,10 +178,7 @@ async function runTests() {
       body: { email: 'admin@apexretailers.com', password: 'Password123!' },
     });
     assert(orgAdminLogin.status === 200, `Login status 200, got ${orgAdminLogin.status}`);
-    assert(
-      orgAdminLogin.body.data.user.role === UserRole.ADMIN,
-      'Role is ADMIN',
-    );
+    assert(orgAdminLogin.body.data.user.role === UserRole.ADMIN, 'Role is ADMIN');
     assert(
       typeof orgAdminLogin.body.data.user.organisationId === 'string',
       'organisationId is string',
@@ -204,17 +197,13 @@ async function runTests() {
       body: { email: 'staff@apexretailers.com', password: 'Password123!' },
     });
     assert(orgStaffLogin.status === 200, `Login status 200, got ${orgStaffLogin.status}`);
-    assert(
-      orgStaffLogin.body.data.user.role === UserRole.STAFF,
-      'Role is STAFF',
-    );
+    assert(orgStaffLogin.body.data.user.role === UserRole.STAFF, 'Role is STAFF');
     assert(
       typeof orgStaffLogin.body.data.user.organisationId === 'string',
       'organisationId is string',
     );
     const orgStaffAccessToken = orgStaffLogin.body.data.tokens.accessToken;
     console.log('  ✔ Organisation Staff login passed\n');
-
 
     // ── Test 5: GET /auth/me with Bearer Token ──────────────
     console.log('Test 5: GET /api/v1/auth/me Profile verification');
@@ -348,15 +337,15 @@ async function runTests() {
         mobile: '+91 9988776655',
       },
     });
-    assert(onboardStaffRes.status === 201, `Onboard staff status 201, got ${onboardStaffRes.status}`);
+    assert(
+      onboardStaffRes.status === 201,
+      `Onboard staff status 201, got ${onboardStaffRes.status}`,
+    );
     assert(
       onboardStaffRes.body.data.user.email === 'newstaff@apexretailers.com',
       'New user email matches',
     );
-    assert(
-      onboardStaffRes.body.data.user.role === UserRole.STAFF,
-      'New user role is STAFF',
-    );
+    assert(onboardStaffRes.body.data.user.role === UserRole.STAFF, 'New user role is STAFF');
     assert(
       onboardStaffRes.body.data.user.mustChangePassword === true,
       'mustChangePassword is true on initial onboard',
@@ -372,7 +361,10 @@ async function runTests() {
       method: 'POST',
       body: { email: 'newstaff@apexretailers.com', password: staffTempPassword },
     });
-    assert(newStaffFirstLogin.status === 200, `First login status 200, got ${newStaffFirstLogin.status}`);
+    assert(
+      newStaffFirstLogin.status === 200,
+      `First login status 200, got ${newStaffFirstLogin.status}`,
+    );
     assert(
       newStaffFirstLogin.body.data.mustChangePassword === true,
       'mustChangePassword flag is true on first login',
@@ -464,10 +456,7 @@ async function runTests() {
       distDynamicOnboard.body.data.user.email === 'dynamicorgadmin@apexretailers.com',
       'Created user email matches',
     );
-    assert(
-      distDynamicOnboard.body.data.user.role === UserRole.ADMIN,
-      'Role is ADMIN',
-    );
+    assert(distDynamicOnboard.body.data.user.role === UserRole.ADMIN, 'Role is ADMIN');
     assert(
       distDynamicOnboard.body.data.user.mustChangePassword === true,
       'mustChangePassword is true on onboard',
@@ -566,10 +555,7 @@ async function runTests() {
       },
     });
     assert(registerRes.status === 201, `Register status 201, got ${registerRes.status}`);
-    assert(
-      registerRes.body.data.user.role === UserRole.ADMIN,
-      'Self-registered role is ADMIN',
-    );
+    assert(registerRes.body.data.user.role === UserRole.ADMIN, 'Self-registered role is ADMIN');
 
     assert(
       registerRes.body.data.organisation.name === 'Zenith Retail Stores',
@@ -600,7 +586,10 @@ async function runTests() {
         otp: registrationOtp,
       },
     });
-    assert(verifyRegOtpRes.status === 200, `Expected 200 on OTP verify, got ${verifyRegOtpRes.status}`);
+    assert(
+      verifyRegOtpRes.status === 200,
+      `Expected 200 on OTP verify, got ${verifyRegOtpRes.status}`,
+    );
     assert(verifyRegOtpRes.body.data.valid === true, 'OTP verification succeeded');
 
     // 15c. Resend registration OTP (cooldown check)
@@ -639,7 +628,9 @@ async function runTests() {
       'Logged-in organisation details match',
     );
 
-    console.log('  ✔ Retailer self-registration, OTP verification, conflict prevention & login passed\n');
+    console.log(
+      '  ✔ Retailer self-registration, OTP verification, conflict prevention & login passed\n',
+    );
 
     // ============================================================
     // 16. OTP-BASED LOGIN FLOW
@@ -654,7 +645,10 @@ async function runTests() {
     assert(sendLoginOtpRes.status === 200, `Expected 200, got ${sendLoginOtpRes.status}`);
     assert(!!sendLoginOtpRes.body.data.expiresInSeconds, 'expiresInSeconds is returned');
     const loginOtp = sendLoginOtpRes.body.data.otp;
-    assert(typeof loginOtp === 'string' && loginOtp.length === 6, '6-digit OTP returned in test mode');
+    assert(
+      typeof loginOtp === 'string' && loginOtp.length === 6,
+      '6-digit OTP returned in test mode',
+    );
 
     // 16b. Rapid resend should trigger cooldown 429
     const rapidResendOtpRes = await request('/api/v1/auth/otp/login/send', {
@@ -723,7 +717,10 @@ async function runTests() {
     });
     assert(forgotOtpRes.status === 200, `Expected 200, got ${forgotOtpRes.status}`);
     const resetOtp = forgotOtpRes.body.data.otp;
-    assert(typeof resetOtp === 'string' && resetOtp.length === 6, '6-digit Reset OTP returned in test mode');
+    assert(
+      typeof resetOtp === 'string' && resetOtp.length === 6,
+      '6-digit Reset OTP returned in test mode',
+    );
 
     // 17b. Anti-enumeration check for non-existent email (returns 200 with generic message and no OTP)
     const nonexistentForgotRes = await request('/api/v1/auth/otp/forgot-password/send', {
@@ -775,7 +772,6 @@ async function runTests() {
     });
     assert(otpOldPassLogin.status === 401, 'Login with old password fails');
 
-
     // 17g. Attempt to reset again with already used OTP (should fail 400)
     const reuseResetOtpRes = await request('/api/v1/auth/otp/forgot-password/reset', {
       method: 'POST',
@@ -813,4 +809,3 @@ runTests().catch((err) => {
   console.error('❌ Test failed with error:', err);
   process.exit(1);
 });
-

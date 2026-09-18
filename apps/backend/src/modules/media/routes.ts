@@ -35,11 +35,7 @@ router.post(
  * @desc    Alias for upload endpoint
  * @access  SUPER_ADMIN only
  */
-router.post(
-  '/',
-  upload.any(),
-  asyncHandler(mediaController.uploadImages.bind(mediaController)),
-);
+router.post('/', upload.any(), asyncHandler(mediaController.uploadImages.bind(mediaController)));
 
 export default router;
 export const mediaRoutes = router;

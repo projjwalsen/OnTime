@@ -90,6 +90,7 @@ model Organisation {
   users       User[]
   invitations OrganisationInvitation[]
   orders      Order[]
+  draftOrders DraftOrder[]
 
   @@map("organisations")
 }
@@ -128,6 +129,7 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   createdOrders       Order[]
+  createdDraftOrders  DraftOrder[]
 
   @@index([organisationId])
   @@index([role])
@@ -271,9 +273,10 @@ model Product {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  variants    ProductVariant[]
-  orderItems  OrderItem[]
+  category        Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants        ProductVariant[]
+  orderItems      OrderItem[]
+  draftOrderItems DraftOrderItem[]
 
   @@index([categoryId])
   @@index([sku])
@@ -296,8 +299,9 @@ model ProductVariant {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[]
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems      OrderItem[]
+  draftOrderItems DraftOrderItem[]
 
   @@index([productId])
   @@map("product_variants")
@@ -371,6 +375,70 @@ model OrderItem {
   @@index([variantId])
   @@map("order_items")
 }
+
+// ============================================================
+// DRAFT ORDER
+// Represents an unsubmitted / work-in-progress order created by a retailer.
+//
+// DATA OWNERSHIP: Retailer organisation-level entity.
+// ============================================================
+
+model DraftOrder {
+  id              String           @id @default(uuid())
+  organisationId  String
+  createdByUserId String
+  title           String?
+  notes           String?
+  deliveryAddress String?
+  subtotal        Decimal          @default(0.00) @db.Decimal(10, 2)
+  taxAmount       Decimal          @default(0.00) @db.Decimal(10, 2)
+  totalAmount     Decimal          @default(0.00) @db.Decimal(10, 2)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  organisation    Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy       User             @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  items           DraftOrderItem[]
+
+  @@index([organisationId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+  @@map("draft_orders")
+}
+
+// ============================================================
+// DRAFT ORDER ITEM
+// Line items in a draft order.
+//
+// DATA OWNERSHIP: Scoped through DraftOrder.
+// ============================================================
+
+model DraftOrderItem {
+  id            String          @id @default(uuid())
+  draftOrderId  String
+  productId     String
+  variantId     String?
+  productName   String
+  productSku    String
+  variantWeight String?
+  unitPrice     Decimal         @db.Decimal(10, 2)
+  quantity      Int             @default(1)
+  totalPrice    Decimal         @db.Decimal(10, 2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relations
+  draftOrder    DraftOrder      @relation(fields: [draftOrderId], references: [id], onDelete: Cascade)
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([draftOrderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("draft_order_items")
+}
+
 
 
 

@@ -31,11 +31,7 @@ export {
 } from './enums/order-status';
 
 // Types
-export type {
-  PaginationParams,
-  PaginationMeta,
-  PaginatedResult,
-} from './types/pagination';
+export type { PaginationParams, PaginationMeta, PaginatedResult } from './types/pagination';
 export type {
   Organisation,
   CreateOrganisationDto,
@@ -74,6 +70,16 @@ export type {
   OrderSummaryStats,
 } from './types/order';
 export type {
+  DraftOrder,
+  DraftOrderItem,
+  CreateDraftOrderDto,
+  CreateDraftOrderItemDto,
+  UpdateDraftOrderDto,
+  AddDraftOrderItemDto,
+  UpdateDraftOrderItemDto,
+  DraftOrderFilterParams,
+} from './types/draft-order';
+export type {
   LoginCredentialsDto,
   AuthTokens,
   AuthResponse,
@@ -94,11 +100,7 @@ export type {
   SendRegistrationOtpDto,
   VerifyRegistrationOtpDto,
 } from './types/auth';
-export type {
-  UploadedMediaFile,
-  UploadMediaResponse,
-} from './types/media';
-
+export type { UploadedMediaFile, UploadMediaResponse } from './types/media';
 
 // Constants
 export {

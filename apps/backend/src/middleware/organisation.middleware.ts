@@ -33,7 +33,6 @@ export function scopeToOrganisation(req: Request, res: Response, next: NextFunct
 
   // Super Admin has cross-organisation platform access
   if (isSuperAdmin(req.user.role)) {
-
     const targetOrgId =
       req.params.organisationId ||
       req.params.orgId ||

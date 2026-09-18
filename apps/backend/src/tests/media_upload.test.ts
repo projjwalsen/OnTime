@@ -212,12 +212,24 @@ async function runTests() {
     superToken,
   );
 
-  console.log('Upload 1 response status:', uploadRes1.status, 'body:', JSON.stringify(uploadRes1.body));
+  console.log(
+    'Upload 1 response status:',
+    uploadRes1.status,
+    'body:',
+    JSON.stringify(uploadRes1.body),
+  );
   assert(uploadRes1.status === 201, `Upload single failed: ${JSON.stringify(uploadRes1.body)}`);
   assert(uploadRes1.body.success === true, 'Response success should be true');
   assert(uploadRes1.body.data.files.length === 1, 'Expected 1 uploaded file item');
-  assert(typeof uploadRes1.body.data.url === 'string' && uploadRes1.body.data.url.includes('supabase.co'), 'Expected Supabase public URL');
-  assert(uploadRes1.body.data.files[0].originalName === 'basmati-front.png', 'Original filename should be preserved');
+  assert(
+    typeof uploadRes1.body.data.url === 'string' &&
+      uploadRes1.body.data.url.includes('supabase.co'),
+    'Expected Supabase public URL',
+  );
+  assert(
+    uploadRes1.body.data.files[0].originalName === 'basmati-front.png',
+    'Original filename should be preserved',
+  );
   console.log(`  ✔ Super Admin uploaded single image successfully: ${uploadRes1.body.data.url}`);
 
   const uploadedUrl1 = uploadRes1.body.data.url;
@@ -359,7 +371,10 @@ async function runTests() {
     superToken,
   );
 
-  assert(createProdRes.status === 201, `Create product failed: ${JSON.stringify(createProdRes.body)}`);
+  assert(
+    createProdRes.status === 201,
+    `Create product failed: ${JSON.stringify(createProdRes.body)}`,
+  );
   const createdProd = createProdRes.body.data.product;
   assert(createdProd.images.length === 3, `Expected 3 images, got ${createdProd.images.length}`);
   assert(createdProd.images[0] === uploadedUrls[0], 'First image URL mismatch');

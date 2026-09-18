@@ -98,4 +98,3 @@ export const config = {
   ),
   supabaseBucket: optionalEnv('SUPABASE_STORAGE_BUCKET', 'product-images'),
 } as const;
-

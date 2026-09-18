@@ -113,21 +113,33 @@ router.post('/otp/login/verify', validateBody(verifyLoginOtpSchema), verifyLogin
  * @desc    Send password reset OTP code via email
  * @access  Public
  */
-router.post('/otp/forgot-password/send', validateBody(sendForgotPasswordOtpSchema), sendForgotPasswordOtp);
+router.post(
+  '/otp/forgot-password/send',
+  validateBody(sendForgotPasswordOtpSchema),
+  sendForgotPasswordOtp,
+);
 
 /**
  * @route   POST /api/v1/auth/otp/forgot-password/verify
  * @desc    Verify password reset OTP code
  * @access  Public
  */
-router.post('/otp/forgot-password/verify', validateBody(verifyForgotPasswordOtpSchema), verifyForgotPasswordOtp);
+router.post(
+  '/otp/forgot-password/verify',
+  validateBody(verifyForgotPasswordOtpSchema),
+  verifyForgotPasswordOtp,
+);
 
 /**
  * @route   POST /api/v1/auth/otp/forgot-password/reset
  * @desc    Reset password using verified OTP code
  * @access  Public
  */
-router.post('/otp/forgot-password/reset', validateBody(resetPasswordWithOtpSchema), resetPasswordWithOtp);
+router.post(
+  '/otp/forgot-password/reset',
+  validateBody(resetPasswordWithOtpSchema),
+  resetPasswordWithOtp,
+);
 
 /**
  * @route   POST /api/v1/auth/otp/register/send
@@ -141,10 +153,13 @@ router.post('/otp/register/send', validateBody(sendRegistrationOtpSchema), sendR
  * @desc    Verify retailer registration OTP code
  * @access  Public
  */
-router.post('/otp/register/verify', validateBody(verifyRegistrationOtpSchema), verifyRegistrationOtp);
+router.post(
+  '/otp/register/verify',
+  validateBody(verifyRegistrationOtpSchema),
+  verifyRegistrationOtp,
+);
 
 // ── Protected Routes ───────────────────────────────────────
-
 
 /**
  * @route   GET /api/v1/auth/me

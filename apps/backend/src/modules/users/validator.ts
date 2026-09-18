@@ -44,4 +44,3 @@ export type OnboardUserInput = z.infer<typeof onboardUserSchema>;
 export type InviteUserInput = OnboardUserInput;
 export type InviteStaffInput = OnboardUserInput;
 export type UserFilterInput = z.infer<typeof userFilterQuerySchema>;
-

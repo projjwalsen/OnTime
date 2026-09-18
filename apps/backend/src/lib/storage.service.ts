@@ -77,28 +77,28 @@ export class StorageService {
     let publicUrl = `${config.supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${this.bucket}/${fileKey}`;
 
     if (this.supabase) {
-      let { error } = await this.supabase.storage
-        .from(this.bucket)
-        .upload(fileKey, file.buffer, {
-          contentType: file.mimetype,
-          upsert: true,
-          cacheControl: '31536000',
-        });
+      let { error } = await this.supabase.storage.from(this.bucket).upload(fileKey, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+        cacheControl: '31536000',
+      });
 
       // Auto-create bucket if missing
-      if (error && error.message && (error.message.includes('Bucket not found') || error.message.includes('NoSuchBucket'))) {
+      if (
+        error &&
+        error.message &&
+        (error.message.includes('Bucket not found') || error.message.includes('NoSuchBucket'))
+      ) {
         try {
           await this.supabase.storage.createBucket(this.bucket, {
             public: true,
             fileSizeLimit: 10 * 1024 * 1024,
           });
-          const retry = await this.supabase.storage
-            .from(this.bucket)
-            .upload(fileKey, file.buffer, {
-              contentType: file.mimetype,
-              upsert: true,
-              cacheControl: '31536000',
-            });
+          const retry = await this.supabase.storage.from(this.bucket).upload(fileKey, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true,
+            cacheControl: '31536000',
+          });
           error = retry.error;
         } catch (bucketErr) {
           console.warn('[StorageService] Auto-bucket creation attempt failed:', bucketErr);
@@ -110,9 +110,7 @@ export class StorageService {
         throw new StorageError(`Failed to upload image: ${error.message}`, 502);
       }
 
-      const { data: urlData } = this.supabase.storage
-        .from(this.bucket)
-        .getPublicUrl(fileKey);
+      const { data: urlData } = this.supabase.storage.from(this.bucket).getPublicUrl(fileKey);
 
       if (urlData?.publicUrl) {
         publicUrl = urlData.publicUrl;

@@ -36,6 +36,12 @@ import {
   type OrderSummaryStats,
   type UploadedMediaFile,
   type UploadMediaResponse,
+  type DraftOrder,
+  type CreateDraftOrderDto,
+  type UpdateDraftOrderDto,
+  type AddDraftOrderItemDto,
+  type UpdateDraftOrderItemDto,
+  type DraftOrderFilterParams,
   UserRole,
 } from '@ontime/shared';
 import { API_BASE_URL, STORAGE_KEYS } from './config';
@@ -743,6 +749,103 @@ class ApiClient {
       success: false,
       error: res.error || 'Failed to upload image',
     };
+  }
+
+  // ── Draft Orders ──────────────────────────────────────────
+
+  async getDraftOrders(params: DraftOrderFilterParams = {}): Promise<
+    ApiResponse<{
+      draftOrders: DraftOrder[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>
+  > {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+    if (params.search) searchParams.set('search', params.search);
+    if (params.startDate) searchParams.set('startDate', params.startDate);
+    if (params.endDate) searchParams.set('endDate', params.endDate);
+
+    const qs = searchParams.toString();
+    return this.request<{
+      draftOrders: DraftOrder[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>(`/v1/draft-orders${qs ? `?${qs}` : ''}`);
+  }
+
+  async getDraftOrderById(id: string): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(`/v1/draft-orders/${id}`);
+  }
+
+  async createDraftOrder(
+    dto: CreateDraftOrderDto,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>('/v1/draft-orders', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateDraftOrder(
+    id: string,
+    dto: UpdateDraftOrderDto,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(`/v1/draft-orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async addItemToDraftOrder(
+    draftOrderId: string,
+    dto: AddDraftOrderItemDto,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(`/v1/draft-orders/${draftOrderId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateDraftOrderItem(
+    draftOrderId: string,
+    itemId: string,
+    dto: UpdateDraftOrderItemDto,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(
+      `/v1/draft-orders/${draftOrderId}/items/${itemId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(dto),
+      },
+    );
+  }
+
+  async deleteDraftOrderItem(
+    draftOrderId: string,
+    itemId: string,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(
+      `/v1/draft-orders/${draftOrderId}/items/${itemId}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  async deleteDraftOrder(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/draft-orders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async convertDraftOrder(
+    id: string,
+    overrides?: { notes?: string; deliveryAddress?: string },
+  ): Promise<ApiResponse<{ order: Order }>> {
+    return this.request<{ order: Order }>(`/v1/draft-orders/${id}/convert`, {
+      method: 'POST',
+      body: JSON.stringify(overrides || {}),
+    });
   }
 }
 

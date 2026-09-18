@@ -24,10 +24,7 @@ export enum UserRole {
  * Roles that belong to a retailer organisation.
  * Used to enforce that super admins have no organisationId.
  */
-export const ORGANISATION_ROLES: readonly UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.STAFF,
-] as const;
+export const ORGANISATION_ROLES: readonly UserRole[] = [UserRole.ADMIN, UserRole.STAFF] as const;
 
 /**
  * Roles that are allowed to invite new staff members.
@@ -39,10 +36,7 @@ export const INVITATION_ALLOWED_ROLES: readonly UserRole[] = [UserRole.ADMIN] as
  * Roles that can be assigned via an invitation.
  * SUPER_ADMIN is never created through the invitation flow.
  */
-export const INVITABLE_ROLES: readonly UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.STAFF,
-] as const;
+export const INVITABLE_ROLES: readonly UserRole[] = [UserRole.ADMIN, UserRole.STAFF] as const;
 
 /**
  * Helper predicates for role checking.

@@ -30,7 +30,12 @@ export class EmailService {
   /**
    * Helper to send or log an email.
    */
-  async sendMail(options: { to: string; subject: string; text: string; html: string }): Promise<void> {
+  async sendMail(options: {
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+  }): Promise<void> {
     const record: SentEmailRecord = {
       to: options.to,
       subject: options.subject,
@@ -135,7 +140,11 @@ export class EmailService {
   /**
    * Send Password Reset OTP Email.
    */
-  async sendPasswordResetOtpEmail(email: string, otp: string, expiresInMinutes = 10): Promise<void> {
+  async sendPasswordResetOtpEmail(
+    email: string,
+    otp: string,
+    expiresInMinutes = 10,
+  ): Promise<void> {
     const subject = `${otp} is your OnTime password reset code`;
     const text = `Hello,\n\nWe received a request to reset your password for OnTime. Your password reset code is: ${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. If you did not request a password reset, please ignore this email or secure your account.\n\nBest regards,\nOnTime Team`;
 

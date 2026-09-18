@@ -10,10 +10,8 @@ import {
   type RegisterRetailerDto,
   type SendOtpResponse,
   type VerifyLoginOtpDto,
-  type SendForgotPasswordOtpDto,
   type VerifyForgotPasswordOtpDto,
   type ResetPasswordWithOtpDto,
-  type SendRegistrationOtpDto,
   type VerifyRegistrationOtpDto,
   type User,
   type Organisation,
@@ -32,7 +30,6 @@ import {
   parseDurationToSeconds,
 } from '../../utils/jwt';
 import { config } from '../../config/env';
-
 
 export class AuthError extends Error {
   constructor(
@@ -511,7 +508,6 @@ export class AuthService {
       message: 'If an account exists with this email, a password reset link has been sent.',
       ...((config.isDevelopment || config.isTest || !config.isProduction) && { resetToken: token }),
     };
-
   }
 
   /**
@@ -770,7 +766,9 @@ export class AuthService {
     if (recentOtp) {
       const remainingSecs = Math.max(
         1,
-        Math.ceil((recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000),
+        Math.ceil(
+          (recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000,
+        ),
       );
       throw new AuthError(
         `Please wait ${remainingSecs} seconds before requesting a new verification code.`,
@@ -812,7 +810,6 @@ export class AuthService {
       expiresInSeconds: config.otpExpiryMinutes * 60,
       ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp } : {}),
     };
-
   }
 
   /**
@@ -973,7 +970,9 @@ export class AuthService {
     if (recentOtp) {
       const remainingSecs = Math.max(
         1,
-        Math.ceil((recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000),
+        Math.ceil(
+          (recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000,
+        ),
       );
       throw new AuthError(
         `Please wait ${remainingSecs} seconds before requesting a new reset code.`,
@@ -1013,7 +1012,6 @@ export class AuthService {
       expiresInSeconds: config.otpExpiryMinutes * 60,
       ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp } : {}),
     };
-
   }
 
   /**
@@ -1215,7 +1213,9 @@ export class AuthService {
     if (recentOtp) {
       const remainingSecs = Math.max(
         1,
-        Math.ceil((recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000),
+        Math.ceil(
+          (recentOtp.createdAt.getTime() + config.otpCooldownSeconds * 1000 - Date.now()) / 1000,
+        ),
       );
       throw new AuthError(
         `Please wait ${remainingSecs} seconds before requesting a new verification code.`,
@@ -1352,4 +1352,3 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
-

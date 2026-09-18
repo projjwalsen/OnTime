@@ -72,8 +72,8 @@ function formatProduct(p: {
     isActive: p.isActive,
     images: p.images ?? [],
     packagingNote: p.packagingNote ?? null,
-    variants: p.variants?.map(
-      (v): ProductVariant => ({
+    variants:
+      p.variants?.map((v): ProductVariant => ({
         id: v.id,
         productId: v.productId,
         weight: v.weight,
@@ -82,8 +82,7 @@ function formatProduct(p: {
         price: Number(v.price),
         createdAt: v.createdAt,
         updatedAt: v.updatedAt,
-      }),
-    ) ?? [],
+      })) ?? [],
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -301,7 +300,9 @@ export class ProductsService {
           ...(data.unit && { unit: data.unit }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
           ...(data.images !== undefined && { images: data.images }),
-          ...(data.packagingNote !== undefined && { packagingNote: data.packagingNote?.trim() || null }),
+          ...(data.packagingNote !== undefined && {
+            packagingNote: data.packagingNote?.trim() || null,
+          }),
         },
         include: {
           category: true,
@@ -317,4 +318,3 @@ export class ProductsService {
 }
 
 export const productsService = new ProductsService();
-

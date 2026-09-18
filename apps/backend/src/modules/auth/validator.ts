@@ -178,4 +178,3 @@ export type VerifyForgotPasswordOtpInput = z.infer<typeof verifyForgotPasswordOt
 export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchema>;
 export type SendRegistrationOtpInput = z.infer<typeof sendRegistrationOtpSchema>;
 export type VerifyRegistrationOtpInput = z.infer<typeof verifyRegistrationOtpSchema>;
-

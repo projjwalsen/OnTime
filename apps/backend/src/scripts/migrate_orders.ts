@@ -38,11 +38,21 @@ async function main() {
   console.log('Table orders created/verified.');
 
   // 3. Create indexes for orders
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "orders_organisationId_idx" ON "orders"("organisationId");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "orders_createdByUserId_idx" ON "orders"("createdByUserId");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "orders_status_idx" ON "orders"("status");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "orders_orderNumber_idx" ON "orders"("orderNumber");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "orders_createdAt_idx" ON "orders"("createdAt");`);
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "orders_organisationId_idx" ON "orders"("organisationId");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "orders_createdByUserId_idx" ON "orders"("createdByUserId");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "orders_status_idx" ON "orders"("status");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "orders_orderNumber_idx" ON "orders"("orderNumber");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "orders_createdAt_idx" ON "orders"("createdAt");`,
+  );
   console.log('Indexes for orders created/verified.');
 
   // 4. Create order_items table
@@ -68,9 +78,15 @@ async function main() {
   console.log('Table order_items created/verified.');
 
   // 5. Create indexes for order_items
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "order_items_orderId_idx" ON "order_items"("orderId");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "order_items_productId_idx" ON "order_items"("productId");`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "order_items_variantId_idx" ON "order_items"("variantId");`);
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "order_items_orderId_idx" ON "order_items"("orderId");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "order_items_productId_idx" ON "order_items"("productId");`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "order_items_variantId_idx" ON "order_items"("variantId");`,
+  );
   console.log('Indexes for order_items created/verified.');
 }
 

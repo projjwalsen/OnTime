@@ -18,7 +18,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'LKK PANDA OYSTER SAUCE 1300660798',
     sku: 'SAU-001',
     unit: '6 X 2.2KG',
-    price: 26.00,
+    price: 26.0,
     packagingNote: 'Pack of 6 bottles (2.2kg each)',
   },
   {
@@ -34,7 +34,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO HOT PEPPER SAUCE',
     sku: 'SAU-003',
     unit: '36 X 60ML',
-    price: 4.00,
+    price: 4.0,
     packagingNote: 'Pack of 36 bottles (60ml each)',
   },
   {
@@ -42,7 +42,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'KIKKOMAN SOY SAUCE - FANCY GRADE KSE11842-01',
     sku: 'SAU-038',
     unit: '6 X 1.6LTR',
-    price: 28.00,
+    price: 28.0,
     packagingNote: 'Pack of 6 bottles (1.6L each)',
   },
   {
@@ -50,7 +50,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO TOMATO SACHET',
     sku: 'SAU-028',
     unit: '1000 X 10GM',
-    price: 100.00,
+    price: 100.0,
     packagingNote: 'Master carton containing 1000 sachets of 10g',
   },
 
@@ -60,7 +60,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO BAKED BEANS IN TOMATO SAUCE',
     sku: 'BRK-004',
     unit: '6 X 2.7KG',
-    price: 18.00,
+    price: 18.0,
     packagingNote: 'Pack of 6 cans (2.7kg each)',
   },
 
@@ -70,7 +70,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE DRIED MUSHROOM "LC" 3-4CM',
     sku: 'MSH-006',
     unit: '6 X 500GM',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 6 packets (500g each)',
   },
   {
@@ -78,7 +78,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE MUSHROOM WHOLE',
     sku: 'MSH-007',
     unit: '6 X 2.84KG',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 6 cans (2.84kg each)',
   },
   {
@@ -86,7 +86,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE MUSHROOM PIECES & STEMS',
     sku: 'MSH-008',
     unit: '6 X 2.84KG',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 6 cans (2.84kg each)',
   },
 
@@ -96,7 +96,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'FIGARO CAPERS IN VINEGAR',
     sku: 'PCK-012',
     unit: '6 X 920GM',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 6 jars (920g each)',
   },
   {
@@ -104,7 +104,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO SUNDRIED TOMATO IN SUNFLOWER OIL',
     sku: 'PCK-005',
     unit: '2 X 3KG',
-    price: 72.00,
+    price: 72.0,
     packagingNote: 'Pack of 2 jars (3kg each)',
   },
   {
@@ -112,7 +112,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'PINK GINGER SLICED FOR SUSHI - GARI SHOGA',
     sku: 'PCK-037',
     unit: '10 X 1.5KG',
-    price: 17.50,
+    price: 17.5,
     packagingNote: 'Pack of 10 pouches (1.5kg each)',
   },
 
@@ -122,7 +122,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO KALAMATA OLIVE PITTED',
     sku: 'OLV-009',
     unit: '6 X 3.3KG',
-    price: 62.00,
+    price: 62.0,
     packagingNote: 'Pack of 6 jars (3.3kg each)',
   },
   {
@@ -130,7 +130,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO WHOLE GREEN OLIVE',
     sku: 'OLV-034',
     unit: '6 X 3KG',
-    price: 30.00,
+    price: 30.0,
     packagingNote: 'Pack of 6 jars (3kg each)',
   },
   {
@@ -138,7 +138,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO SLICED BLACK OLIVE',
     sku: 'OLV-035',
     unit: '6 X 3KG',
-    price: 30.00,
+    price: 30.0,
     packagingNote: 'Pack of 6 jars (3kg each)',
   },
   {
@@ -146,7 +146,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO PITTED BLACK OLIVE',
     sku: 'OLV-036',
     unit: '6 X 3KG',
-    price: 30.00,
+    price: 30.0,
     packagingNote: 'Pack of 6 jars (3kg each)',
   },
 
@@ -156,7 +156,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORRINI BLENDED POMACE OLIVE OIL "ITALY" - PET BTL',
     sku: 'OIL-010',
     unit: '2 X 5 LTR',
-    price: 85.00,
+    price: 85.0,
     packagingNote: 'Pack of 2 PET bottles (5L each)',
   },
 
@@ -216,7 +216,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'MAE PLOY RED CURRY PASTE',
     sku: 'CRP-014-RED',
     unit: '12 X 1KG',
-    price: 18.00,
+    price: 18.0,
     packagingNote: 'Pack of 12 tubs (1kg each)',
   },
   {
@@ -224,7 +224,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'MAE PLOY YELLOW CURRY PASTE',
     sku: 'CRP-014-YEL',
     unit: '12 X 1KG',
-    price: 18.00,
+    price: 18.0,
     packagingNote: 'Pack of 12 tubs (1kg each)',
   },
   {
@@ -232,7 +232,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'MAE PLOY GREEN CURRY PASTE',
     sku: 'CRP-014-GRN',
     unit: '12 X 1KG',
-    price: 18.00,
+    price: 18.0,
     packagingNote: 'Pack of 12 tubs (1kg each)',
   },
 
@@ -242,7 +242,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO SWEET PAPRIKA 120 ASTA POWDER',
     sku: 'SPC-013',
     unit: '12 X 1KG',
-    price: 35.00,
+    price: 35.0,
     packagingNote: 'Pack of 12 packets (1kg each)',
   },
   {
@@ -250,7 +250,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE WHITE PEPPER WHOLE "LC"',
     sku: 'SPC-029',
     unit: '20 X 500GM',
-    price: 35.00,
+    price: 35.0,
     packagingNote: 'Pack of 20 packets (500g each)',
   },
   {
@@ -258,7 +258,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'BLACK PEPPER WHOLE',
     sku: 'SPC-030',
     unit: '20 X 500GM',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 20 packets (500g each)',
   },
 
@@ -268,7 +268,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE WHITE SESAME SEED "LC"',
     sku: 'SED-031-WHT',
     unit: '40 X 500GM',
-    price: 12.00,
+    price: 12.0,
     packagingNote: 'Pack of 40 packets (500g each)',
   },
   {
@@ -276,7 +276,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE BLACK SESAME SEED "LC"',
     sku: 'SED-031-BLK',
     unit: '40 X 500GM',
-    price: 12.00,
+    price: 12.0,
     packagingNote: 'Pack of 40 packets (500g each)',
   },
 
@@ -286,7 +286,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO BALSAMIC VINEGAR',
     sku: 'VNG-023',
     unit: '12 X 500ML',
-    price: 7.50,
+    price: 7.5,
     packagingNote: 'Pack of 12 bottles (500ml each)',
   },
   {
@@ -294,7 +294,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'HON MIRIN',
     sku: 'VNG-033',
     unit: '6 X 1.8LTR',
-    price: 32.00,
+    price: 32.0,
     packagingNote: 'Pack of 6 bottles (1.8L each)',
   },
 
@@ -304,7 +304,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE CREAM CORN',
     sku: 'CRN-022',
     unit: '24 X 425GM',
-    price: 3.50,
+    price: 3.5,
     packagingNote: 'Pack of 24 cans (425g each)',
   },
   {
@@ -312,7 +312,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE WHOLE KERNEL CORN',
     sku: 'CRN-023',
     unit: '24 X 425GM',
-    price: 3.50,
+    price: 3.5,
     packagingNote: 'Pack of 24 cans (425g each)',
   },
 
@@ -322,7 +322,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE WHITE BREAD CRUMBS',
     sku: 'BCR-021',
     unit: '10 X 1KG',
-    price: 12.00,
+    price: 12.0,
     packagingNote: 'Pack of 10 packets (1kg each)',
   },
 
@@ -342,7 +342,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO JALAPENO PEPPER SLICED',
     sku: 'CFV-026',
     unit: '6 X 2.9KG',
-    price: 25.00,
+    price: 25.0,
     packagingNote: 'Pack of 6 cans (2.9kg each)',
   },
   {
@@ -350,7 +350,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE LYCHEE IN SYRUP',
     sku: 'CFV-024',
     unit: '12 X 565GM',
-    price: 7.00,
+    price: 7.0,
     packagingNote: 'Pack of 12 cans (565g each)',
   },
 
@@ -360,7 +360,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE RICE VERMICELLI - BEE HOON',
     sku: 'NDL-027',
     unit: '30 X 500GM',
-    price: 4.50,
+    price: 4.5,
     packagingNote: 'Pack of 30 packets (500g each)',
   },
 
@@ -370,7 +370,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'SAPORITO RISO ARBORIO RICE',
     sku: 'JPN-039',
     unit: '12 X 1KG',
-    price: 18.50,
+    price: 18.5,
     packagingNote: 'Pack of 12 packets (1kg each)',
   },
 
@@ -380,7 +380,7 @@ const clientCatalog: CatalogItem[] = [
     name: '8" (20cm) BAMBOO STICK / SATAY STICK',
     sku: 'NFD-011',
     unit: '125 X 200GM',
-    price: 5.50,
+    price: 5.5,
     packagingNote: 'Carton of 125 packs (200g each)',
   },
 
@@ -390,7 +390,7 @@ const clientCatalog: CatalogItem[] = [
     name: 'YOWE COCONUT MILK 5%~7%',
     sku: 'OTH-032',
     unit: '24 X 400ML',
-    price: 3.00,
+    price: 3.0,
     packagingNote: 'Pack of 24 cans (400ml each)',
   },
 ];
@@ -447,7 +447,9 @@ async function main() {
       },
     });
 
-    console.log(`  ✔ [${product.sku}] ${product.name} | ${product.unit} | $${product.price.toString()}`);
+    console.log(
+      `  ✔ [${product.sku}] ${product.name} | ${product.unit} | $${product.price.toString()}`,
+    );
   }
 
   console.log('\n======================================================');

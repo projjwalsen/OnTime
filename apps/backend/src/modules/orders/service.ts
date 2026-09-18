@@ -169,7 +169,10 @@ export class OrdersService {
     let organisationId: string;
     if (caller.role === UserRole.SUPER_ADMIN) {
       if (!data.organisationId) {
-        throw new OrderError('organisationId is required when creating an order as SUPER_ADMIN', 400);
+        throw new OrderError(
+          'organisationId is required when creating an order as SUPER_ADMIN',
+          400,
+        );
       }
       organisationId = data.organisationId;
     } else {
@@ -222,7 +225,10 @@ export class OrdersService {
         throw new OrderError(`Product with ID "${item.productId}" not found`, 404);
       }
       if (!product.isActive) {
-        throw new OrderError(`Product "${product.name}" (${product.sku}) is currently inactive and cannot be ordered`, 400);
+        throw new OrderError(
+          `Product "${product.name}" (${product.sku}) is currently inactive and cannot be ordered`,
+          400,
+        );
       }
 
       let unitPrice = Number(product.price);
@@ -272,7 +278,7 @@ export class OrdersService {
       });
     }
 
-    const taxAmount = 0.00;
+    const taxAmount = 0.0;
     const totalAmount = subtotal + taxAmount;
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
@@ -431,7 +437,10 @@ export class OrdersService {
 
     // Verify multi-tenant access
     if (caller.role !== UserRole.SUPER_ADMIN && order.organisationId !== caller.organisationId) {
-      throw new OrderError('Forbidden: Cannot access orders belonging to another organisation', 403);
+      throw new OrderError(
+        'Forbidden: Cannot access orders belonging to another organisation',
+        403,
+      );
     }
 
     return formatOrder(order);
@@ -446,7 +455,10 @@ export class OrdersService {
     data: UpdateOrderStatusInput,
   ): Promise<Order> {
     if (caller.role !== UserRole.SUPER_ADMIN) {
-      throw new OrderError('Forbidden: Only platform administrators can transition order fulfillment status', 403);
+      throw new OrderError(
+        'Forbidden: Only platform administrators can transition order fulfillment status',
+        403,
+      );
     }
 
     const existing = await prisma.order.findUnique({
@@ -523,7 +535,10 @@ export class OrdersService {
     // Role specific cancellation rules
     if (caller.role !== UserRole.SUPER_ADMIN) {
       if (existing.organisationId !== caller.organisationId) {
-        throw new OrderError('Forbidden: Cannot cancel orders belonging to another organisation', 403);
+        throw new OrderError(
+          'Forbidden: Cannot cancel orders belonging to another organisation',
+          403,
+        );
       }
       if (!isRetailerCancellable(currentStatus)) {
         throw new OrderError(
@@ -542,7 +557,11 @@ export class OrdersService {
       data: {
         status: OrderStatus.CANCELLED,
         cancelledAt: new Date(),
-        cancellationReason: reason?.trim() || (caller.role === UserRole.SUPER_ADMIN ? 'Cancelled by platform admin' : 'Cancelled by customer'),
+        cancellationReason:
+          reason?.trim() ||
+          (caller.role === UserRole.SUPER_ADMIN
+            ? 'Cancelled by platform admin'
+            : 'Cancelled by customer'),
       },
       include: {
         items: {

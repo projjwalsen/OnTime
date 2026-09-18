@@ -5,7 +5,9 @@ export const productVariantSchema = z.object({
   weight: z.string().trim().optional(),
   description: z.string().trim().optional(),
   image: z.string().trim().optional(),
-  price: z.number({ message: 'Variant price is required' }).positive('Price must be greater than 0'),
+  price: z
+    .number({ message: 'Variant price is required' })
+    .positive('Price must be greater than 0'),
 });
 
 export const createProductSchema = z.object({
@@ -41,4 +43,3 @@ export type ProductVariantInput = z.infer<typeof productVariantSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ProductFilterInput = z.infer<typeof productFilterQuerySchema>;
-

@@ -9,11 +9,7 @@ import {
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
-import {
-  createCategorySchema,
-  updateCategorySchema,
-  categoryFilterQuerySchema,
-} from './validator';
+import { createCategorySchema, updateCategorySchema, categoryFilterQuerySchema } from './validator';
 
 const router = Router();
 

@@ -110,4 +110,3 @@ export const onboardUser: RequestHandler = asyncHandler(
  * @access  Protected (Super Admin or Admin)
  */
 export const inviteUser: RequestHandler = onboardUser;
-

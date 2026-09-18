@@ -19,13 +19,13 @@ DISTRIBUTOR / PLATFORM OWNER
 
 ### Key Architectural Rules
 
-| Rule                       | Description                                           |
-| -------------------------- | ----------------------------------------------------- |
-| Distributor creates orgs   | Only `SUPER_ADMIN` can onboard retailer organisations |
+| Rule                       | Description                                                                |
+| -------------------------- | -------------------------------------------------------------------------- |
+| Distributor creates orgs   | Only `SUPER_ADMIN` can onboard retailer organisations                      |
 | Org Admin onboards staff   | `ADMIN` can onboard staff to their own org with auto-generated credentials |
-| Staff cannot onboard users | `STAFF` has no onboarding permissions                 |
-| Org cannot create orgs     | Retailer organisations cannot create other organisations |
-| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity |
+| Staff cannot onboard users | `STAFF` has no onboarding permissions                                      |
+| Org cannot create orgs     | Retailer organisations cannot create other organisations                   |
+| Distributor ≠ Organisation | The distributor is NOT modelled as an Organisation entity                  |
 
 ---
 

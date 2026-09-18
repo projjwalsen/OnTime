@@ -89,4 +89,3 @@ export interface UserFilterParams {
   page?: number | undefined;
   limit?: number | undefined;
 }
-

@@ -1,5 +1,4 @@
 import { UserRole } from '../enums/roles';
-import { OtpPurpose } from '../enums/otp';
 import { User } from './user';
 import { Organisation } from './organisation';
 
@@ -84,7 +83,6 @@ export interface JwtPayload {
   iat?: number;
   exp?: number;
 }
-
 
 /**
  * Request payload for requesting a password reset token.
@@ -182,4 +180,3 @@ export interface VerifyRegistrationOtpDto {
   email: string;
   otp: string;
 }
-

@@ -8,7 +8,6 @@ import {
   type OnboardUserResponse,
   UserRole,
   InvitationStatus,
-  INVITATION_EXPIRY_DAYS,
   isSuperAdmin,
 } from '@ontime/shared';
 
