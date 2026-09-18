@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import type { Request, Response, NextFunction } from 'express';
 import type { AuthContext } from '@ontime/shared';
 import { errorResponse } from '../utils/response';

@@ -20,8 +20,10 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
-  "devDependencies": {
-    "rimraf": "^5.0.10",
+  "dependencies": {
     "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.10"
   }
 }
