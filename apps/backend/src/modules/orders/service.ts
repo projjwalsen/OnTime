@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { emailService } from '../../lib/email.service';
 import {
   type AuthContext,
   type Order,
@@ -335,6 +336,34 @@ export class OrdersService {
       });
     });
 
+    // Asynchronously dispatch order confirmation email in background
+    const recipientEmail = created.createdBy?.email || created.organisation?.email;
+    if (recipientEmail) {
+      emailService
+        .sendOrderConfirmationEmail(recipientEmail, {
+          orderNumber: created.orderNumber,
+          organisationName: created.organisation.name,
+          customerName: created.createdBy?.name || 'Valued Customer',
+          subtotal: Number(created.subtotal),
+          taxAmount: Number(created.taxAmount),
+          totalAmount: Number(created.totalAmount),
+          items: created.items.map((item) => ({
+            name: item.productName,
+            sku: item.productSku,
+            variant: item.variantWeight,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            totalPrice: Number(item.totalPrice),
+          })),
+          deliveryAddress: created.deliveryAddress,
+          notes: created.notes,
+          createdAt: created.createdAt,
+        })
+        .catch((err) => {
+          console.error('[OrdersService] Failed to enqueue order confirmation email:', err);
+        });
+    }
+
     return formatOrder(created);
   }
 
@@ -511,6 +540,43 @@ export class OrdersService {
       },
     });
 
+    // Asynchronously dispatch order status update email
+    const recipientEmail = updated.createdBy?.email || updated.organisation?.email;
+    if (recipientEmail) {
+      const emailPayload = {
+        orderNumber: updated.orderNumber,
+        organisationName: updated.organisation.name,
+        customerName: updated.createdBy?.name || 'Valued Customer',
+        subtotal: Number(updated.subtotal),
+        taxAmount: Number(updated.taxAmount),
+        totalAmount: Number(updated.totalAmount),
+        items: updated.items.map((item) => ({
+          name: item.productName,
+          sku: item.productSku,
+          variant: item.variantWeight,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.totalPrice),
+        })),
+        deliveryAddress: updated.deliveryAddress,
+        notes: updated.notes,
+        cancellationReason: updated.cancellationReason,
+        createdAt: updated.createdAt,
+      };
+
+      if (nextStatus === OrderStatus.CANCELLED) {
+        emailService.sendOrderCancelledEmail(recipientEmail, emailPayload).catch((err) => {
+          console.error('[OrdersService] Failed to enqueue order cancellation email:', err);
+        });
+      } else {
+        emailService
+          .sendOrderStatusUpdateEmail(recipientEmail, emailPayload, currentStatus, nextStatus)
+          .catch((err) => {
+            console.error('[OrdersService] Failed to enqueue order status update email:', err);
+          });
+      }
+    }
+
     return formatOrder(updated);
   }
 
@@ -572,6 +638,35 @@ export class OrdersService {
         createdBy: true,
       },
     });
+
+    // Asynchronously dispatch order cancellation email
+    const cancelRecipientEmail = updated.createdBy?.email || updated.organisation?.email;
+    if (cancelRecipientEmail) {
+      emailService
+        .sendOrderCancelledEmail(cancelRecipientEmail, {
+          orderNumber: updated.orderNumber,
+          organisationName: updated.organisation.name,
+          customerName: updated.createdBy?.name || 'Valued Customer',
+          subtotal: Number(updated.subtotal),
+          taxAmount: Number(updated.taxAmount),
+          totalAmount: Number(updated.totalAmount),
+          items: updated.items.map((item) => ({
+            name: item.productName,
+            sku: item.productSku,
+            variant: item.variantWeight,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            totalPrice: Number(item.totalPrice),
+          })),
+          deliveryAddress: updated.deliveryAddress,
+          notes: updated.notes,
+          cancellationReason: updated.cancellationReason,
+          createdAt: updated.createdAt,
+        })
+        .catch((err) => {
+          console.error('[OrdersService] Failed to enqueue order cancellation email:', err);
+        });
+    }
 
     return formatOrder(updated);
   }

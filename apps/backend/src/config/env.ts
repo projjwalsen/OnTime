@@ -13,7 +13,7 @@ function requireEnv(key: string): string {
   if (!value) {
     throw new Error(
       `[Config] Missing required environment variable: ${key}\n` +
-        `  Hint: Copy .env.example to .env and fill in the values.`,
+      `  Hint: Copy .env.example to .env and fill in the values.`,
     );
   }
   return value;
@@ -70,7 +70,7 @@ export const config = {
   smtpSecure: optionalEnv('SMTP_SECURE', 'false') === 'true',
   smtpUser: optionalEnv('SMTP_USER', ''),
   smtpPass: optionalEnv('SMTP_PASS', ''),
-  emailFrom: optionalEnv('EMAIL_FROM', 'OnTime Platform <noreply@ontime.com>'),
+  emailFrom: optionalEnv('EMAIL_FROM', ''),
 
   /**
    * OTP Configuration

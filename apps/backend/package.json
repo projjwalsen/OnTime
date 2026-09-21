@@ -19,6 +19,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
     "test:auth": "tsx src/tests/auth.test.ts",
+    "test:email": "tsx src/tests/email.test.ts",
     "test:products": "tsx src/tests/products.test.ts",
     "test:orders": "tsx src/tests/orders.test.ts",
     "test:draft-orders": "tsx src/tests/draft_orders.test.ts",
