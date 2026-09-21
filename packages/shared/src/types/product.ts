@@ -89,10 +89,21 @@ export interface CategoryFilterParams {
 
 export interface ProductFilterParams {
   search?: string | undefined;
+  q?: string | undefined;
+  id?: string | undefined;
+  name?: string | undefined;
+  sku?: string | undefined;
+  description?: string | undefined;
+  unit?: string | undefined;
+  packagingNote?: string | undefined;
+  categoryName?: string | undefined;
   categoryId?: string | undefined;
-  isActive?: boolean | undefined;
+  price?: number | undefined;
   minPrice?: number | undefined;
   maxPrice?: number | undefined;
+  isActive?: boolean | undefined;
   page?: number | undefined;
   limit?: number | undefined;
 }
+
+export type ProductSearchParams = ProductFilterParams;

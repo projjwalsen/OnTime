@@ -3,7 +3,11 @@ import { listProducts, createProduct, getProductById, updateProduct } from './co
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
-import { createProductSchema, updateProductSchema, productFilterQuerySchema } from './validator';
+import {
+  createProductSchema,
+  updateProductSchema,
+  productFilterQuerySchema,
+} from './validator';
 
 const router = Router();
 
@@ -11,7 +15,7 @@ router.use(authMiddleware);
 
 /**
  * @route   GET /api/v1/products
- * @desc    List products with search, filters, and pagination
+ * @desc    List and search products with global search (name, category, sku, id, description, unit, packaging note, price) & filters
  * @access  Protected
  */
 router.get('/', validateRequest({ query: productFilterQuerySchema }), listProducts);

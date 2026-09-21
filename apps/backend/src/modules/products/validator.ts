@@ -28,18 +28,30 @@ export const updateProductSchema = createProductSchema.partial();
 
 export const productFilterQuerySchema = z.object({
   search: z.string().trim().optional(),
-  categoryId: z.string().optional(),
+  q: z.string().trim().optional(),
+  id: z.string().trim().optional(),
+  name: z.string().trim().optional(),
+  sku: z.string().trim().optional(),
+  description: z.string().trim().optional(),
+  unit: z.string().trim().optional(),
+  packagingNote: z.string().trim().optional(),
+  categoryName: z.string().trim().optional(),
+  categoryId: z.string().trim().optional(),
+  price: z.coerce.number().positive().optional(),
+  minPrice: z.coerce.number().positive().optional(),
+  maxPrice: z.coerce.number().positive().optional(),
   isActive: z
     .enum(['true', 'false'])
     .transform((val) => val === 'true')
     .optional(),
-  minPrice: z.coerce.number().positive().optional(),
-  maxPrice: z.coerce.number().positive().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
+
+export const productSearchQuerySchema = productFilterQuerySchema;
 
 export type ProductVariantInput = z.infer<typeof productVariantSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ProductFilterInput = z.infer<typeof productFilterQuerySchema>;
+export type ProductSearchInput = z.infer<typeof productSearchQuerySchema>;

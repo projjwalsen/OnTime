@@ -317,6 +317,167 @@ async function runTests() {
   assert(remainingVariants.length === 0, 'Variants should have been deleted on cascade');
   console.log('  ✔ Foreign key cascade deletion verified for product_variants');
 
+  // Test 7: Global Search across Category Name, Name, SKU, ID, Description, Unit, Packaging Note, and Price
+  console.log('\n--- TEST 7: Global search across all catalog fields (GET /api/v1/products?search=...) ---');
+  
+  // Create a unique category and product to test search capabilities
+  const spiceCatName = `Organic Spices & Herbs ${Date.now()}`;
+  const spiceCatRes = await makeRequest(
+    'POST',
+    '/api/v1/categories',
+    {
+      name: spiceCatName,
+      description: 'Aromatic farm-fresh organic spices',
+    },
+    token,
+  );
+  assert(spiceCatRes.status === 201, 'Create spice category failed');
+  const spiceCatId = spiceCatRes.body.data.category.id;
+
+  const spiceSku = `CARDAMOM-${Date.now()}`;
+  const spiceProdRes = await makeRequest(
+    'POST',
+    '/api/v1/products',
+    {
+      name: 'Premium Green Cardamom Pods',
+      sku: spiceSku,
+      description: 'Handpicked whole 8mm bold green cardamom pods from Idukki',
+      price: 350.0,
+      categoryId: spiceCatId,
+      unit: 'pouch',
+      packagingNote: 'Vacuum sealed in multi-layer foil pouch for aroma preservation',
+      variants: [
+        {
+          weight: '100g',
+          description: 'Zip pouch 100g',
+          price: 350.0,
+        },
+        {
+          weight: '500g',
+          description: 'Aroma lock tin 500g',
+          price: 1600.0,
+        },
+      ],
+    },
+    token,
+  );
+  assert(spiceProdRes.status === 201, 'Create spice product failed');
+  const spiceProd = spiceProdRes.body.data.product;
+
+  // 7a: Search by Category Name
+  const searchCatRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=${encodeURIComponent('Organic Spices')}`,
+    undefined,
+    token,
+  );
+  assert(searchCatRes.status === 200, 'Search by category name failed');
+  assert(
+    searchCatRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by category name',
+  );
+  console.log('  ✔ Global search by Category Name matched successfully');
+
+  // 7b: Search by Unit
+  const searchUnitRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=pouch`,
+    undefined,
+    token,
+  );
+  assert(searchUnitRes.status === 200, 'Search by unit failed');
+  assert(
+    searchUnitRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by unit',
+  );
+  console.log('  ✔ Global search by Unit matched successfully');
+
+  // 7c: Search by Packaging Note
+  const searchPackRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=foil%20pouch`,
+    undefined,
+    token,
+  );
+  assert(searchPackRes.status === 200, 'Search by packaging note failed');
+  assert(
+    searchPackRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by packaging note',
+  );
+  console.log('  ✔ Global search by Packaging Note matched successfully');
+
+  // 7d: Search by SKU
+  const searchSkuRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=${spiceSku}`,
+    undefined,
+    token,
+  );
+  assert(searchSkuRes.status === 200, 'Search by SKU failed');
+  assert(
+    searchSkuRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by SKU',
+  );
+  console.log('  ✔ Global search by SKU matched successfully');
+
+  // 7e: Search by ID
+  const searchIdRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=${spiceProd.id}`,
+    undefined,
+    token,
+  );
+  assert(searchIdRes.status === 200, 'Search by ID failed');
+  assert(
+    searchIdRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by ID',
+  );
+  console.log('  ✔ Global search by ID matched successfully');
+
+  // 7f: Search by Price number
+  const searchPriceRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=350`,
+    undefined,
+    token,
+  );
+  assert(searchPriceRes.status === 200, 'Search by price failed');
+  assert(
+    searchPriceRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by price number',
+  );
+  console.log('  ✔ Global search by numeric Price matched successfully');
+
+  // 7g: Search by Variant Weight
+  const searchVariantRes = await makeRequest(
+    'GET',
+    `/api/v1/products?search=100g`,
+    undefined,
+    token,
+  );
+  assert(searchVariantRes.status === 200, 'Search by variant weight failed');
+  assert(
+    searchVariantRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Product not found when searching by variant weight',
+  );
+  console.log('  ✔ Global search by Variant Weight matched successfully');
+
+  // Test 8: Specific field-level filter parameters
+  console.log('\n--- TEST 8: Specific field filters (categoryName, unit, packagingNote, sku, price range) ---');
+  const fieldFilterRes = await makeRequest(
+    'GET',
+    `/api/v1/products?categoryName=${encodeURIComponent('Spices')}&unit=pouch&sku=${spiceSku}&minPrice=300&maxPrice=400`,
+    undefined,
+    token,
+  );
+  assert(fieldFilterRes.status === 200, 'Specific field filtering failed');
+  assert(
+    fieldFilterRes.body.data.products.length >= 1 &&
+      fieldFilterRes.body.data.products.some((p: any) => p.id === spiceProd.id),
+    'Expected product to match compound specific filters',
+  );
+  console.log('  ✔ Specific field filters (categoryName, unit, sku, minPrice, maxPrice) verified');
+
   console.log('\n===========================================================');
   console.log('🎉 ALL PRODUCT & VARIANT TESTS PASSED! 🎉');
   console.log('===========================================================');

@@ -20,7 +20,7 @@ function handleProductError(res: Response, error: unknown): void {
 
 /**
  * @route   GET /api/v1/products
- * @desc    List products in catalog with search, filters, and pagination
+ * @desc    List and search products in catalog with multi-field search, filters, and pagination
  * @access  Protected
  */
 export const listProducts: RequestHandler = asyncHandler(
