@@ -12,7 +12,7 @@ import { useToast } from '../../../components/ui/Toast';
 export default function CategoriesPage() {
   const { success, error: toastError } = useToast();
 
-  const [categories, setCategories] = useState<(Category & { _count?: { products: number } })[]>(
+  const [categories, setCategories] = useState<Category[]>(
     [],
   );
   const [loading, setLoading] = useState(true);
@@ -254,8 +254,7 @@ export default function CategoriesPage() {
                         fontWeight: 500,
                       }}
                     >
-                      <Package size={14} color="#64748b" />
-                      {cat._count?.products ?? '—'} products
+                      {cat?.productCount ?? '—'} products
                     </span>
                   </td>
                   <td>
