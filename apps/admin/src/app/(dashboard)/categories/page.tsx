@@ -233,20 +233,6 @@ export default function CategoriesPage() {
                 <tr key={cat.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          backgroundColor: '#fef3c7',
-                          color: '#d97706',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Layers size={18} />
-                      </div>
                       <strong style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.9rem' }}>
                         {cat.name}
                       </strong>
