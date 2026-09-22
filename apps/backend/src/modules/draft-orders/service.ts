@@ -23,6 +23,7 @@ export class DraftOrderError extends Error {
   ) {
     super(message);
     this.name = 'DraftOrderError';
+    Object.setPrototypeOf(this, DraftOrderError.prototype);
   }
 }
 
@@ -553,79 +554,109 @@ export class DraftOrdersService {
       );
     }
 
-    return await prisma.$transaction(async (tx) => {
-      let subtotal = Number(existing.subtotal);
+    // Pre-resolve items pricing and validate before entering transaction
+    let preparedItems: Array<{
+      productId: string;
+      variantId: string | null;
+      productName: string;
+      productSku: string;
+      variantWeight: string | null;
+      unitPrice: number;
+      quantity: number;
+      totalPrice: number;
+    }> | null = null;
+    let newSubtotal = Number(existing.subtotal);
 
-      // If replacement items are provided
-      if (data.items !== undefined) {
-        // Remove previous items
+    if (data.items !== undefined) {
+      preparedItems = [];
+      newSubtotal = 0;
+      for (const item of data.items) {
+        const resolved = await this.resolveItemPricing(item.productId, item.variantId);
+        const itemTotal = resolved.unitPrice * item.quantity;
+        newSubtotal += itemTotal;
+
+        preparedItems.push({
+          productId: resolved.product.id,
+          variantId: resolved.selectedVariantId,
+          productName: resolved.product.name,
+          productSku: resolved.product.sku,
+          variantWeight: resolved.variantWeight,
+          unitPrice: resolved.unitPrice,
+          quantity: item.quantity,
+          totalPrice: itemTotal,
+        });
+      }
+    }
+
+    const totalAmount = newSubtotal;
+
+    return await prisma.$transaction(async (tx) => {
+      if (preparedItems !== null) {
+        // 1. Remove previous items
         await tx.draftOrderItem.deleteMany({
           where: { draftOrderId: id },
         });
 
-        subtotal = 0;
-        const preparedItems: Array<{
-          draftOrderId: string;
-          productId: string;
-          variantId: string | null;
-          productName: string;
-          productSku: string;
-          variantWeight: string | null;
-          unitPrice: number;
-          quantity: number;
-          totalPrice: number;
-        }> = [];
-
-        for (const item of data.items) {
-          const resolved = await this.resolveItemPricing(item.productId, item.variantId);
-          const itemTotal = resolved.unitPrice * item.quantity;
-          subtotal += itemTotal;
-
-          preparedItems.push({
-            draftOrderId: id,
-            productId: resolved.product.id,
-            variantId: resolved.selectedVariantId,
-            productName: resolved.product.name,
-            productSku: resolved.product.sku,
-            variantWeight: resolved.variantWeight,
-            unitPrice: resolved.unitPrice,
-            quantity: item.quantity,
-            totalPrice: itemTotal,
-          });
-        }
-
-        if (preparedItems.length > 0) {
-          await tx.draftOrderItem.createMany({
-            data: preparedItems,
-          });
-        }
-      }
-
-      const totalAmount = subtotal;
-
-      const updated = await tx.draftOrder.update({
-        where: { id },
-        data: {
-          title: data.title !== undefined ? data.title?.trim() || null : existing.title,
-          notes: data.notes !== undefined ? data.notes?.trim() || null : existing.notes,
-          deliveryAddress:
-            data.deliveryAddress !== undefined
-              ? data.deliveryAddress?.trim() || null
-              : existing.deliveryAddress,
-          subtotal,
-          totalAmount,
-        },
-        include: {
-          items: {
-            include: { product: true, variant: true },
-            orderBy: { createdAt: 'asc' },
+        // 2. Update metadata & re-create items safely with Prisma nested create
+        const updated = await tx.draftOrder.update({
+          where: { id },
+          data: {
+            title: data.title !== undefined ? data.title?.trim() || null : existing.title,
+            notes: data.notes !== undefined ? data.notes?.trim() || null : existing.notes,
+            deliveryAddress:
+              data.deliveryAddress !== undefined
+                ? data.deliveryAddress?.trim() || null
+                : existing.deliveryAddress,
+            subtotal: newSubtotal,
+            totalAmount,
+            items: {
+              create: preparedItems.map((item) => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                productName: item.productName,
+                productSku: item.productSku,
+                variantWeight: item.variantWeight,
+                unitPrice: item.unitPrice,
+                quantity: item.quantity,
+                totalPrice: item.totalPrice,
+              })),
+            },
           },
-          organisation: true,
-          createdBy: true,
-        },
-      });
+          include: {
+            items: {
+              include: { product: true, variant: true },
+              orderBy: { createdAt: 'asc' },
+            },
+            organisation: true,
+            createdBy: true,
+          },
+        });
 
-      return formatDraftOrder(updated);
+        return formatDraftOrder(updated);
+      } else {
+        // Only metadata update
+        const updated = await tx.draftOrder.update({
+          where: { id },
+          data: {
+            title: data.title !== undefined ? data.title?.trim() || null : existing.title,
+            notes: data.notes !== undefined ? data.notes?.trim() || null : existing.notes,
+            deliveryAddress:
+              data.deliveryAddress !== undefined
+                ? data.deliveryAddress?.trim() || null
+                : existing.deliveryAddress,
+          },
+          include: {
+            items: {
+              include: { product: true, variant: true },
+              orderBy: { createdAt: 'asc' },
+            },
+            organisation: true,
+            createdBy: true,
+          },
+        });
+
+        return formatDraftOrder(updated);
+      }
     });
   }
 

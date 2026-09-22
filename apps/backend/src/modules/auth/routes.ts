@@ -17,6 +17,11 @@ import {
   resetPasswordWithOtp,
   sendRegistrationOtp,
   verifyRegistrationOtp,
+  getActiveSessions,
+  revokeSession,
+  getSignInActivity,
+  getTwoFactorStatus,
+  toggleTwoFactor,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
@@ -36,7 +41,9 @@ import {
   resetPasswordWithOtpSchema,
   sendRegistrationOtpSchema,
   verifyRegistrationOtpSchema,
+  toggleTwoFactorSchema,
 } from './validator';
+
 
 const router = Router();
 
@@ -182,4 +189,40 @@ router.post('/logout', authMiddleware, logout);
  */
 router.post('/change-password', authMiddleware, validateBody(changePasswordSchema), changePassword);
 
+/**
+ * @route   GET /api/v1/auth/sessions
+ * @desc    List active sessions
+ * @access  Protected
+ */
+router.get('/sessions', authMiddleware, getActiveSessions);
+
+/**
+ * @route   DELETE /api/v1/auth/sessions/:id
+ * @desc    Revoke a specific active session
+ * @access  Protected
+ */
+router.delete('/sessions/:id', authMiddleware, revokeSession);
+
+/**
+ * @route   GET /api/v1/auth/sign-in-activity
+ * @desc    Get recent sign-in activity
+ * @access  Protected
+ */
+router.get('/sign-in-activity', authMiddleware, getSignInActivity);
+
+/**
+ * @route   GET /api/v1/auth/2fa/status
+ * @desc    Get 2FA status
+ * @access  Protected
+ */
+router.get('/2fa/status', authMiddleware, getTwoFactorStatus);
+
+/**
+ * @route   POST /api/v1/auth/2fa/toggle
+ * @desc    Toggle 2FA on/off
+ * @access  Protected
+ */
+router.post('/2fa/toggle', authMiddleware, validateBody(toggleTwoFactorSchema), toggleTwoFactor);
+
 export default router;
+

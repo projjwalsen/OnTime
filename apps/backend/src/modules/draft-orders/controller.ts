@@ -13,13 +13,19 @@ import {
 } from './validator';
 
 function handleDraftOrderError(res: Response, error: unknown): void {
-  if (error instanceof DraftOrderError) {
-    errorResponse(res, error.message, error.statusCode);
+  if (
+    error instanceof DraftOrderError ||
+    (error as any)?.name === 'DraftOrderError' ||
+    ((error as any)?.statusCode && typeof (error as any).statusCode === 'number' && (error as any).statusCode < 500)
+  ) {
+    const statusCode = (error as any).statusCode || 400;
+    const message = (error as any).message || 'Draft order operation failed';
+    errorResponse(res, message, statusCode);
     return;
   }
   const err = error as Error;
   console.error('[Draft Orders Controller Error]', err.message, err.stack);
-  errorResponse(res, 'An unexpected error occurred in draft order operations.', 500);
+  errorResponse(res, err.message || 'An unexpected error occurred in draft order operations.', 500);
 }
 
 /**

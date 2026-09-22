@@ -41,13 +41,20 @@ export const login: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const credentials = req.body as LoginCredentialsDto;
-      const result = await authService.login(credentials);
+      const userAgent = req.headers['user-agent'] as string | undefined;
+      const ipAddress = (req.headers['x-forwarded-for'] as string) || req.ip || undefined;
+      const result = await authService.login(credentials, {
+        ipAddress,
+        userAgent,
+        deviceInfo: userAgent ? userAgent.slice(0, 100) : undefined,
+      });
       successResponse(res, 'Login successful', result);
     } catch (error) {
       handleAuthError(res, error);
     }
   },
 );
+
 
 /**
  * @route   POST /api/v1/auth/refresh
@@ -339,3 +346,111 @@ export const verifyRegistrationOtp: RequestHandler = asyncHandler(
     }
   },
 );
+
+// ── Security & Session Handlers ─────────────────────────────
+
+/**
+ * @route   GET /api/v1/auth/sessions
+ * @desc    List active sessions for current user
+ * @access  Protected
+ */
+export const getActiveSessions: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const authHeader = req.headers.authorization;
+      const currentToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+      const sessions = await authService.getActiveSessions(req.user.userId, currentToken);
+      successResponse(res, 'Active sessions retrieved successfully', { sessions });
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   DELETE /api/v1/auth/sessions/:id
+ * @desc    Revoke a specific active session
+ * @access  Protected
+ */
+export const revokeSession: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const id = req.params.id as string;
+      await authService.revokeSession(req.user.userId, id);
+      successResponse(res, 'Session revoked successfully', null);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   GET /api/v1/auth/sign-in-activity
+ * @desc    Get recent login activity for current user
+ * @access  Protected
+ */
+export const getSignInActivity: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const activities = await authService.getSignInActivity(req.user.userId, limit);
+      successResponse(res, 'Sign-in activity retrieved successfully', { activities });
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   GET /api/v1/auth/2fa/status
+ * @desc    Get Two-Step Verification (2FA) status
+ * @access  Protected
+ */
+export const getTwoFactorStatus: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const status = await authService.getTwoFactorStatus(req.user.userId);
+      successResponse(res, '2FA status retrieved successfully', status);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/2fa/toggle
+ * @desc    Toggle Two-Step Verification (2FA) status
+ * @access  Protected
+ */
+export const toggleTwoFactor: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const { enabled, password } = req.body;
+      const result = await authService.toggleTwoFactor(req.user.userId, enabled, password);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleAuthError(res, error);
+    }
+  },
+);
+

@@ -39,8 +39,22 @@ export const userFilterQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
+export const updateUserRoleSchema = z.object({
+  role: z.enum([UserRole.ADMIN, UserRole.STAFF], {
+    message: 'Role must be either ADMIN or STAFF',
+  }),
+});
+
+
+export const updateUserStatusSchema = z.object({
+  isActive: z.boolean({ message: 'isActive boolean is required' }),
+});
+
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
 export type OnboardUserInput = z.infer<typeof onboardUserSchema>;
 export type InviteUserInput = OnboardUserInput;
 export type InviteStaffInput = OnboardUserInput;
 export type UserFilterInput = z.infer<typeof userFilterQuerySchema>;
+export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
+

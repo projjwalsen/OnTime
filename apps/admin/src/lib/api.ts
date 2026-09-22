@@ -47,8 +47,27 @@ import {
   type UpdateDraftOrderItemDto,
   type BulkRemoveDraftOrderItemsDto,
   type DraftOrderFilterParams,
+  type DeliveryAddress,
+  type CreateAddressDto,
+  type UpdateAddressDto,
+  type NotificationPreference,
+  type UpdateNotificationPreferenceDto,
+  type SupportTicket,
+  type CreateSupportTicketDto,
+  type SupportTopicOption,
+  type HelpArticle,
+  type HelpCategorySummary,
+  type HelpArticleFilterParams,
+  type ActiveSession,
+  type SignInActivityItem,
+  type TwoFactorStatusResponse,
+  type ToggleTwoFactorDto,
+  type TeamSummary,
+  type UpdateUserRoleDto,
+  type UpdateUserStatusDto,
   UserRole,
 } from '@ontime/shared';
+
 import { API_BASE_URL, STORAGE_KEYS } from './config';
 
 interface ApiResponse<T> {
@@ -904,6 +923,173 @@ class ApiClient {
       body: JSON.stringify(overrides || {}),
     });
   }
+
+  // ── Delivery Addresses ────────────────────────────────────
+
+  async getAddresses(): Promise<ApiResponse<{ addresses: DeliveryAddress[] }>> {
+    return this.request<{ addresses: DeliveryAddress[] }>('/v1/addresses');
+  }
+
+  async getAddressById(id: string): Promise<ApiResponse<{ address: DeliveryAddress }>> {
+    return this.request<{ address: DeliveryAddress }>(`/v1/addresses/${id}`);
+  }
+
+  async createAddress(
+    dto: CreateAddressDto,
+  ): Promise<ApiResponse<{ address: DeliveryAddress }>> {
+    return this.request<{ address: DeliveryAddress }>('/v1/addresses', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateAddress(
+    id: string,
+    dto: UpdateAddressDto,
+  ): Promise<ApiResponse<{ address: DeliveryAddress }>> {
+    return this.request<{ address: DeliveryAddress }>(`/v1/addresses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async setDefaultAddress(id: string): Promise<ApiResponse<{ address: DeliveryAddress }>> {
+    return this.request<{ address: DeliveryAddress }>(`/v1/addresses/${id}/default`, {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteAddress(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/addresses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Notification Preferences ──────────────────────────────
+
+  async getNotificationPreferences(): Promise<
+    ApiResponse<{ preferences: NotificationPreference }>
+  > {
+    return this.request<{ preferences: NotificationPreference }>('/v1/notifications/preferences');
+  }
+
+  async updateNotificationPreferences(
+    dto: UpdateNotificationPreferenceDto,
+  ): Promise<ApiResponse<{ preferences: NotificationPreference }>> {
+    return this.request<{ preferences: NotificationPreference }>('/v1/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  // ── Support Tickets & Topics ──────────────────────────────
+
+  async getSupportTopics(): Promise<ApiResponse<{ topics: SupportTopicOption[] }>> {
+    return this.request<{ topics: SupportTopicOption[] }>('/v1/support/topics');
+  }
+
+  async createSupportTicket(
+    dto: CreateSupportTicketDto,
+  ): Promise<ApiResponse<{ ticket: SupportTicket }>> {
+    return this.request<{ ticket: SupportTicket }>('/v1/support/tickets', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async getSupportTickets(): Promise<ApiResponse<{ tickets: SupportTicket[] }>> {
+    return this.request<{ tickets: SupportTicket[] }>('/v1/support/tickets');
+  }
+
+  async getSupportTicketById(id: string): Promise<ApiResponse<{ ticket: SupportTicket }>> {
+    return this.request<{ ticket: SupportTicket }>(`/v1/support/tickets/${id}`);
+  }
+
+  // ── Help Center ───────────────────────────────────────────
+
+  async getHelpCategories(): Promise<ApiResponse<{ categories: HelpCategorySummary[] }>> {
+    return this.request<{ categories: HelpCategorySummary[] }>('/v1/help/categories');
+  }
+
+  async getHelpArticles(
+    params?: HelpArticleFilterParams,
+  ): Promise<ApiResponse<{ articles: HelpArticle[] }>> {
+    const qs = new URLSearchParams();
+    if (params?.category) qs.set('category', params.category);
+    if (params?.search) qs.set('search', params.search);
+    const queryString = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<{ articles: HelpArticle[] }>(`/v1/help/articles${queryString}`);
+  }
+
+  async getHelpArticleById(idOrSlug: string): Promise<ApiResponse<{ article: HelpArticle }>> {
+    return this.request<{ article: HelpArticle }>(`/v1/help/articles/${idOrSlug}`);
+  }
+
+  // ── Team & Permissions ────────────────────────────────────
+
+  async getTeamOverview(): Promise<ApiResponse<TeamSummary>> {
+    return this.request<TeamSummary>('/v1/users/team');
+  }
+
+  async updateUserRole(
+    userId: string,
+    dto: UpdateUserRoleDto,
+  ): Promise<ApiResponse<{ user: User }>> {
+    return this.request<{ user: User }>(`/v1/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateUserStatus(
+    userId: string,
+    dto: UpdateUserStatusDto,
+  ): Promise<ApiResponse<{ user: User }>> {
+    return this.request<{ user: User }>(`/v1/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async revokeInvitation(invitationId: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/users/invitations/${invitationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Security & Sessions ───────────────────────────────────
+
+  async getActiveSessions(): Promise<ApiResponse<{ sessions: ActiveSession[] }>> {
+    return this.request<{ sessions: ActiveSession[] }>('/v1/auth/sessions');
+  }
+
+  async revokeSession(sessionId: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/auth/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getSignInActivity(
+    limit: number = 20,
+  ): Promise<ApiResponse<{ activities: SignInActivityItem[] }>> {
+    return this.request<{ activities: SignInActivityItem[] }>(
+      `/v1/auth/sign-in-activity?limit=${limit}`,
+    );
+  }
+
+  async getTwoFactorStatus(): Promise<ApiResponse<TwoFactorStatusResponse>> {
+    return this.request<TwoFactorStatusResponse>('/v1/auth/2fa/status');
+  }
+
+  async toggleTwoFactor(
+    dto: ToggleTwoFactorDto,
+  ): Promise<ApiResponse<{ enabled: boolean; message: string }>> {
+    return this.request<{ enabled: boolean; message: string }>('/v1/auth/2fa/toggle', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
 }
 
 export const api = new ApiClient();
+
