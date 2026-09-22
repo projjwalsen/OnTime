@@ -68,6 +68,7 @@ export interface OrderEmailItem {
   sku?: string;
   variant?: string | null;
   quantity: number;
+  originalQuantity?: number | null;
   unitPrice: number;
   totalPrice: number;
 }
@@ -83,8 +84,10 @@ export interface OrderEmailData {
   items: OrderEmailItem[];
   deliveryAddress?: string | null;
   notes?: string | null;
+  modificationNote?: string | null;
   status?: string;
   cancellationReason?: string | null;
+  rejectionReason?: string | null;
   createdAt: Date | string;
 }
 

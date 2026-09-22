@@ -4,7 +4,11 @@ import {
   listOrders,
   getOrderStats,
   getOrderById,
+  getOrderHistory,
   updateOrderStatus,
+  modifyOrderStock,
+  approvePartialOrder,
+  rejectPartialOrder,
   cancelOrder,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
@@ -12,6 +16,9 @@ import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
 import {
   createOrderSchema,
+  modifyOrderSchema,
+  approvePartialOrderSchema,
+  rejectPartialOrderSchema,
   updateOrderStatusSchema,
   cancelOrderSchema,
   orderFilterQuerySchema,
@@ -53,8 +60,65 @@ router.get('/stats', getOrderStats);
 router.get('/:id', getOrderById);
 
 /**
+ * @route   GET /api/v1/orders/:id/history
+ * @desc    Get timestamped audit history for an order
+ * @access  Protected
+ */
+router.get('/:id/history', getOrderHistory);
+
+/**
+ * @route   PATCH /api/v1/orders/:id/modify or PUT /api/v1/orders/:id/modify
+ * @desc    Modify order products/quantities as per stock availability (Super Admin only)
+ * @access  Protected (Distributor Super Admin only)
+ */
+router.patch(
+  '/:id/modify',
+  requireDistributorAdmin,
+  validateBody(modifyOrderSchema),
+  modifyOrderStock,
+);
+router.put(
+  '/:id/modify',
+  requireDistributorAdmin,
+  validateBody(modifyOrderSchema),
+  modifyOrderStock,
+);
+
+/**
+ * @route   POST /api/v1/orders/:id/approve-partial, POST /api/v1/orders/:id/approve
+ * @desc    Approve partial/modified order (Retailer Admin/Staff or Super Admin)
+ * @access  Protected
+ */
+router.post(
+  '/:id/approve-partial',
+  validateBody(approvePartialOrderSchema),
+  approvePartialOrder,
+);
+router.post(
+  '/:id/approve',
+  validateBody(approvePartialOrderSchema),
+  approvePartialOrder,
+);
+
+/**
+ * @route   POST /api/v1/orders/:id/reject-partial, POST /api/v1/orders/:id/reject
+ * @desc    Reject partial/modified order (Retailer Admin/Staff or Super Admin)
+ * @access  Protected
+ */
+router.post(
+  '/:id/reject-partial',
+  validateBody(rejectPartialOrderSchema),
+  rejectPartialOrder,
+);
+router.post(
+  '/:id/reject',
+  validateBody(rejectPartialOrderSchema),
+  rejectPartialOrder,
+);
+
+/**
  * @route   PATCH /api/v1/orders/:id/status
- * @desc    Transition order fulfillment status (CONFIRMED, PROCESSING, DISPATCHED, DELIVERED, CANCELLED)
+ * @desc    Transition order fulfillment status (AWAITING, CONFIRMED, PROCESSING, DISPATCHED, DELIVERED, CANCELLED, REJECTED)
  * @access  Protected (Distributor Super Admin only)
  */
 router.patch(
@@ -66,10 +130,11 @@ router.patch(
 
 /**
  * @route   POST /api/v1/orders/:id/cancel or PATCH /api/v1/orders/:id/cancel
- * @desc    Cancel an order (Retailer when PENDING, or Super Admin before DELIVERED)
+ * @desc    Cancel an order (Retailer when PENDING/AWAITING, or Super Admin before DELIVERED)
  * @access  Protected
  */
 router.post('/:id/cancel', validateBody(cancelOrderSchema), cancelOrder);
 router.patch('/:id/cancel', validateBody(cancelOrderSchema), cancelOrder);
 
 export default router;
+

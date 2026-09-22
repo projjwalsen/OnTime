@@ -1,7 +1,24 @@
 import { OrderStatus } from '../enums/order-status';
+import { UserRole } from '../enums/roles';
 import type { Organisation } from './organisation';
 import type { User } from './user';
 import type { Product, ProductVariant } from './product';
+
+/**
+ * Represents a timestamped audit trail entry for an order lifecycle event.
+ */
+export interface OrderHistory {
+  id: string;
+  orderId: string;
+  status: OrderStatus;
+  action: string;
+  note?: string | null;
+  performedByUserId?: string | null;
+  performedByUserName?: string | null;
+  performedByUserRole?: UserRole | null;
+  metadata?: Record<string, any> | null;
+  createdAt: Date | string;
+}
 
 /**
  * Represents a single item in an order with snapshot information.
@@ -16,6 +33,7 @@ export interface OrderItem {
   variantWeight?: string | null;
   unitPrice: number;
   quantity: number;
+  originalQuantity?: number | null;
   totalPrice: number;
   product?: Product | null;
   variant?: ProductVariant | null;
@@ -36,6 +54,8 @@ export interface Order {
   taxAmount: number;
   totalAmount: number;
   notes?: string | null;
+  modificationNote?: string | null;
+  modifiedAt?: Date | null;
   deliveryAddress?: string | null;
   cancellationReason?: string | null;
   cancelledAt?: Date | null;
@@ -43,6 +63,7 @@ export interface Order {
   organisation?: Organisation | null;
   createdBy?: User | null;
   items?: OrderItem[];
+  history?: OrderHistory[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +86,38 @@ export interface CreateOrderDto {
   deliveryAddress?: string | undefined;
   /** Required when placed by SUPER_ADMIN; automatically derived from token for ADMIN / STAFF */
   organisationId?: string | undefined;
+}
+
+/**
+ * DTO for modifying an item in an order (stock adjustment by Super Admin).
+ */
+export interface ModifyOrderItemDto {
+  productId: string;
+  variantId?: string | null | undefined;
+  quantity: number;
+}
+
+/**
+ * Request body payload for Super Admin modifying an order as per stock availability.
+ */
+export interface ModifyOrderDto {
+  items: ModifyOrderItemDto[];
+  modificationNote?: string | undefined;
+  status?: OrderStatus | undefined;
+}
+
+/**
+ * Request body payload for Retailer approving a partial/modified order.
+ */
+export interface ApprovePartialOrderDto {
+  notes?: string | undefined;
+}
+
+/**
+ * Request body payload for Retailer rejecting a partial/modified order.
+ */
+export interface RejectPartialOrderDto {
+  reason?: string | undefined;
 }
 
 /**
@@ -102,10 +155,13 @@ export interface OrderFilterParams {
 export interface OrderSummaryStats {
   totalOrders: number;
   pendingOrders: number;
+  awaitingOrders: number;
   confirmedOrders: number;
   processingOrders: number;
   dispatchedOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+  rejectedOrders: number;
   totalRevenue: number;
 }
+

@@ -62,8 +62,13 @@ export type {
 export type {
   OrderItem,
   Order,
+  OrderHistory,
   CreateOrderItemDto,
   CreateOrderDto,
+  ModifyOrderItemDto,
+  ModifyOrderDto,
+  ApprovePartialOrderDto,
+  RejectPartialOrderDto,
   UpdateOrderStatusDto,
   CancelOrderDto,
   OrderFilterParams,

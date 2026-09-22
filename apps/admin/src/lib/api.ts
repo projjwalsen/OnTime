@@ -29,7 +29,11 @@ import {
   type UpdateCategoryDto,
   type OrganisationStatus,
   type Order,
+  type OrderHistory,
   type CreateOrderDto,
+  type ModifyOrderDto,
+  type ApprovePartialOrderDto,
+  type RejectPartialOrderDto,
   type UpdateOrderStatusDto,
   type CancelOrderDto,
   type OrderFilterParams,
@@ -620,12 +624,50 @@ class ApiClient {
     return this.request(`/orders/${id}`);
   }
 
+  async getOrderHistory(id: string): Promise<{
+    success: boolean;
+    data?: { history: OrderHistory[] };
+    error?: string;
+  }> {
+    return this.request(`/orders/${id}/history`);
+  }
+
   async createOrder(
     dto: CreateOrderDto,
   ): Promise<{ success: boolean; data?: { order: Order }; error?: string }> {
     return this.request('/orders', {
       method: 'POST',
       body: JSON.stringify(dto),
+    });
+  }
+
+  async modifyOrder(
+    id: string,
+    dto: ModifyOrderDto,
+  ): Promise<{ success: boolean; message?: string; data?: { order: Order }; error?: string }> {
+    return this.request(`/orders/${id}/modify`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async approvePartialOrder(
+    id: string,
+    dto?: ApprovePartialOrderDto,
+  ): Promise<{ success: boolean; message?: string; data?: { order: Order }; error?: string }> {
+    return this.request(`/orders/${id}/approve-partial`, {
+      method: 'POST',
+      body: JSON.stringify(dto || {}),
+    });
+  }
+
+  async rejectPartialOrder(
+    id: string,
+    dto?: RejectPartialOrderDto,
+  ): Promise<{ success: boolean; message?: string; data?: { order: Order }; error?: string }> {
+    return this.request(`/orders/${id}/reject-partial`, {
+      method: 'POST',
+      body: JSON.stringify(dto || {}),
     });
   }
 

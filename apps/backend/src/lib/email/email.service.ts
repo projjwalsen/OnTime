@@ -16,6 +16,9 @@ import {
   renderOrderCancelledTemplate,
   renderOrderConfirmationTemplate,
   renderOrderStatusUpdateTemplate,
+  renderPartialOrderAwaitingTemplate,
+  renderPartialOrderApprovedTemplate,
+  renderPartialOrderRejectedTemplate,
   renderOrganisationInvitationTemplate,
   renderOrganisationStatusChangeTemplate,
   renderOrganisationWelcomeTemplate,
@@ -304,6 +307,58 @@ export class EmailService {
       html: rendered.html,
     });
   }
+
+  /**
+   * Send Partial / Modified Order Notification Email to Retailer.
+   */
+  public async sendPartialOrderAwaitingEmail(
+    email: string,
+    data: OrderEmailData,
+  ): Promise<void> {
+    const rendered = renderPartialOrderAwaitingTemplate(data);
+    this.enqueueEmail({
+      to: email,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send Partial Order Approved Notification to Super Admin.
+   */
+  public async sendPartialOrderApprovedEmail(
+    email: string | string[],
+    data: OrderEmailData,
+  ): Promise<void> {
+    const rendered = renderPartialOrderApprovedTemplate(data);
+    this.enqueueEmail({
+      to: email,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send Partial Order Rejected Notification to Super Admin.
+   */
+  public async sendPartialOrderRejectedEmail(
+    email: string | string[],
+    data: OrderEmailData,
+  ): Promise<void> {
+    const rendered = renderPartialOrderRejectedTemplate(data);
+    this.enqueueEmail({
+      to: email,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      priority: 'high',
+    });
+  }
+
 
   // ============================================================
   // ORGANISATION TRANSACTIONAL EMAILS

@@ -61,16 +61,15 @@ export default function ReportsPage() {
 
   // Compute calculated metrics
   const totalRevenue = useMemo(() => {
-    return filteredOrders.reduce((acc, o) => {
-      if (o.status !== OrderStatus.CANCELLED) {
-        return acc + Number(o.totalAmount || 0);
-      }
-      return acc;
-    }, 0);
+    return filteredOrders
+      .filter((o) => o.status !== OrderStatus.CANCELLED && o.status !== OrderStatus.REJECTED)
+      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
   }, [filteredOrders]);
 
   const avgOrderValue = useMemo(() => {
-    const validOrders = filteredOrders.filter((o) => o.status !== OrderStatus.CANCELLED);
+    const validOrders = filteredOrders.filter(
+      (o) => o.status !== OrderStatus.CANCELLED && o.status !== OrderStatus.REJECTED,
+    );
     if (validOrders.length === 0) return 0;
     return totalRevenue / validOrders.length;
   }, [filteredOrders, totalRevenue]);
@@ -78,11 +77,13 @@ export default function ReportsPage() {
   const statusBreakdown = useMemo(() => {
     const counts: Record<OrderStatus, number> = {
       [OrderStatus.PENDING]: 0,
+      [OrderStatus.AWAITING]: 0,
       [OrderStatus.CONFIRMED]: 0,
       [OrderStatus.PROCESSING]: 0,
       [OrderStatus.DISPATCHED]: 0,
       [OrderStatus.DELIVERED]: 0,
       [OrderStatus.CANCELLED]: 0,
+      [OrderStatus.REJECTED]: 0,
     };
     filteredOrders.forEach((o) => {
       counts[o.status] = (counts[o.status] || 0) + 1;
@@ -105,7 +106,7 @@ export default function ReportsPage() {
       };
 
       existing.count += 1;
-      if (order.status !== OrderStatus.CANCELLED) {
+      if (order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.REJECTED) {
         existing.totalSpent += Number(order.totalAmount || 0);
       }
       orgMap.set(order.organisationId, existing);
