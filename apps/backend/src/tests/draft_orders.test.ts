@@ -475,6 +475,27 @@ async function runTests() {
   console.log('✔ TEST 7 PASSED: Draft metadata updated successfully.\n');
 
   // ============================================================
+  // TEST 7b: Update draft items via PATCH /draft-orders/:id
+  // ============================================================
+  console.log('▶ TEST 7b: Update draft order items replacement...');
+  const patchItemsRes = await makeRequest(
+    'PATCH',
+    `/api/v1/draft-orders/${draft1.id}`,
+    {
+      items: [
+        { productId: product1.id, variantId: variant5kg.id, quantity: 5 },
+      ],
+      notes: 'Updated notes with items replacement',
+    },
+    tokenA,
+  );
+  assert(patchItemsRes.status === 200, `Patch items failed: ${JSON.stringify(patchItemsRes.body)}`);
+  updatedDraft = patchItemsRes.body.data.draftOrder;
+  assert(updatedDraft.items.length === 1, `Expected 1 item, got ${updatedDraft.items.length}`);
+  assert(updatedDraft.subtotal === 2500, `Expected subtotal 2500, got ${updatedDraft.subtotal}`);
+  console.log('✔ TEST 7b PASSED: Draft items replaced successfully.\n');
+
+  // ============================================================
   // TEST 8: Multi-tenant isolation (Retailer B cannot access Retailer A draft)
   // ============================================================
   console.log('▶ TEST 8: Multi-tenant isolation enforcement...');

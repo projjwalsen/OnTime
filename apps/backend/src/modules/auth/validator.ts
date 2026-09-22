@@ -164,6 +164,11 @@ export const verifyRegistrationOtpSchema = z.object({
     .max(10, 'OTP code must be at most 10 characters'),
 });
 
+export const toggleTwoFactorSchema = z.object({
+  enabled: z.boolean({ message: 'enabled boolean is required' }),
+  password: z.string().optional(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -178,3 +183,5 @@ export type VerifyForgotPasswordOtpInput = z.infer<typeof verifyForgotPasswordOt
 export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchema>;
 export type SendRegistrationOtpInput = z.infer<typeof sendRegistrationOtpSchema>;
 export type VerifyRegistrationOtpInput = z.infer<typeof verifyRegistrationOtpSchema>;
+export type ToggleTwoFactorInput = z.infer<typeof toggleTwoFactorSchema>;
+

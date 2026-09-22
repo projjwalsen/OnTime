@@ -27,7 +27,11 @@ enum UserRole {
   SUPER_ADMIN
   ADMIN
   STAFF
+  DISTRIBUTOR_ADMIN
+  ORGANISATION_ADMIN
+  ORGANISATION_STAFF
 }
+
 
 
 // Lifecycle states of an organisation invitation.
@@ -65,6 +69,23 @@ enum OrderStatus {
   REJECTED
 }
 
+// Support ticket category topic
+enum SupportTopic {
+  ORDER_DELIVERY
+  PAYMENTS_BILLING
+  PRODUCTS_STOCK
+  ACCOUNT_ACCESS
+  GENERAL_INQUIRY
+}
+
+// Support ticket status
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 // ============================================================
 // ORGANISATION
 // Represents a retailer/customer company onboarded by the platform.
@@ -89,10 +110,12 @@ model Organisation {
   updatedAt DateTime           @updatedAt
 
   // Relations
-  users       User[]
-  invitations OrganisationInvitation[]
-  orders      Order[]
-  draftOrders DraftOrder[]
+  users             User[]
+  invitations       OrganisationInvitation[]
+  orders            Order[]
+  draftOrders       DraftOrder[]
+  deliveryAddresses DeliveryAddress[]
+  supportTickets    SupportTicket[]
 
   @@map("organisations")
 }
@@ -123,16 +146,20 @@ model User {
 
   isActive           Boolean        @default(true)
   mustChangePassword Boolean        @default(false)
+  twoFactorEnabled   Boolean        @default(false)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   // Relations
-  organisation        Organisation?         @relation(fields: [organisationId], references: [id])
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  createdOrders       Order[]
-  createdDraftOrders  DraftOrder[]
-  orderHistoryEntries OrderHistory[]
+  organisation           Organisation?           @relation(fields: [organisationId], references: [id])
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
+  createdOrders          Order[]
+  createdDraftOrders     DraftOrder[]
+  orderHistoryEntries    OrderHistory[]
+  notificationPreference NotificationPreference?
+  supportTickets         SupportTicket[]
+  loginActivities        UserLoginActivity[]
 
   @@index([organisationId])
   @@index([role])
@@ -145,12 +172,16 @@ model User {
 // ============================================================
 
 model RefreshToken {
-  id        String    @id @default(uuid())
-  token     String    @unique
-  userId    String
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id           String    @id @default(uuid())
+  token        String    @unique
+  userId       String
+  ipAddress    String?
+  userAgent    String?
+  deviceInfo   String?
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -474,6 +505,116 @@ model DraftOrderItem {
   @@map("draft_order_items")
 }
 
+// ============================================================
+// DELIVERY ADDRESS
+// Saved delivery addresses for retailer organisations.
+// DATA OWNERSHIP: Retailer organisation-level entity.
+// ============================================================
 
+model DeliveryAddress {
+  id                   String       @id @default(uuid())
+  organisationId       String
+  label                String
+  streetAddress        String
+  city                 String
+  postalCode           String
+  deliveryInstructions String?
+  isDefault            Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
+  organisation         Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
+  @@index([organisationId])
+  @@map("delivery_addresses")
+}
+
+// ============================================================
+// NOTIFICATION PREFERENCE
+// Per-user notification settings and toggles.
+// ============================================================
+
+model NotificationPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  orderUpdates     Boolean  @default(true)
+  draftReminders   Boolean  @default(true)
+  marketingUpdates Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ============================================================
+// SUPPORT TICKET
+// Retailer customer support request tickets.
+// ============================================================
+
+model SupportTicket {
+  id             String        @id @default(uuid())
+  ticketNumber   String        @unique
+  organisationId String
+  userId         String
+  topic          SupportTopic
+  orderNumber    String?
+  subject        String
+  message        String        @db.Text
+  attachments    String[]      @default([])
+  status         TicketStatus  @default(OPEN)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organisation   Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+// ============================================================
+// HELP ARTICLE
+// Knowledge base and FAQ articles.
+// ============================================================
+
+model HelpArticle {
+  id        String       @id @default(uuid())
+  category  SupportTopic
+  title     String
+  slug      String       @unique
+  summary   String?
+  content   String       @db.Text
+  order     Int          @default(0)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([category])
+  @@map("help_articles")
+}
+
+// ============================================================
+// USER LOGIN ACTIVITY
+// Audit logging for sign-in attempts and security events.
+// ============================================================
+
+model UserLoginActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  ipAddress String?
+  userAgent String?
+  device    String?
+  location  String?
+  isSuccess Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("user_login_activities")
+}

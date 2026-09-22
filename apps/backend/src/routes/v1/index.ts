@@ -8,6 +8,10 @@ import { categoriesRoutes } from '../../modules/categories';
 import { ordersRoutes } from '../../modules/orders';
 import { draftOrdersRoutes } from '../../modules/draft-orders';
 import { mediaRoutes } from '../../modules/media';
+import { addressesRoutes } from '../../modules/addresses';
+import { notificationsRoutes } from '../../modules/notifications';
+import { supportRoutes } from '../../modules/support';
+import { helpRoutes } from '../../modules/help';
 
 const router = Router();
 
@@ -65,4 +69,29 @@ router.use('/draft-orders', draftOrdersRoutes);
  */
 router.use('/media', mediaRoutes);
 
+/**
+ * @route  /api/v1/addresses
+ * @desc   Retailer delivery address management endpoints
+ */
+router.use('/addresses', addressesRoutes);
+
+/**
+ * @route  /api/v1/notifications
+ * @desc   User notification preferences endpoints
+ */
+router.use('/notifications', notificationsRoutes);
+
+/**
+ * @route  /api/v1/support
+ * @desc   Customer support tickets & topics endpoints
+ */
+router.use('/support', supportRoutes);
+
+/**
+ * @route  /api/v1/help
+ * @desc   Help center categories and articles endpoints
+ */
+router.use('/help', helpRoutes);
+
 export default router;
+

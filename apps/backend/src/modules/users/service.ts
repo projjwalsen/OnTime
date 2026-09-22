@@ -300,6 +300,216 @@ export class UsersService {
       temporaryPassword: result.temporaryPassword,
     };
   }
+
+  /**
+   * Get complete team overview including active members, pending invitations, and team statistics.
+   */
+  async getTeamOverview(caller: AuthContext): Promise<{
+
+    members: User[];
+    invitations: Array<{
+      id: string;
+      email: string;
+      role: UserRole;
+      status: InvitationStatus;
+      createdAt: Date;
+      expiresAt: Date;
+    }>;
+    stats: {
+      totalMembers: number;
+      activeMembers: number;
+      pendingInvites: number;
+      rolesCount: number;
+    };
+  }> {
+    const organisationId = caller.organisationId;
+    if (!organisationId && caller.role !== UserRole.SUPER_ADMIN) {
+      throw new UserError('Organisation context required.', 400);
+    }
+
+    const where: any = {};
+    if (organisationId) {
+      where.organisationId = organisationId;
+    }
+
+    const [users, invitations] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        include: { organisation: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      organisationId
+        ? prisma.organisationInvitation.findMany({
+            where: {
+              organisationId,
+              status: InvitationStatus.PENDING,
+              expiresAt: { gt: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        : [],
+    ]);
+
+    const activeMembers = users.filter((u) => u.isActive).length;
+    const pendingInvites = invitations.length;
+
+    // Distinct roles present in team
+    const roleSet = new Set<string>();
+    users.forEach((u) => roleSet.add(u.role));
+    invitations.forEach((inv) => roleSet.add(inv.role));
+
+    return {
+      members: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        mobile: u.mobile,
+        role: u.role as UserRole,
+        organisationId: u.organisationId,
+        isActive: u.isActive,
+        mustChangePassword: u.mustChangePassword,
+        organisation: (u.organisation as unknown as Organisation) ?? null,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      })),
+      invitations: invitations.map((inv) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role as UserRole,
+        status: inv.status as InvitationStatus,
+        createdAt: inv.createdAt,
+        expiresAt: inv.expiresAt,
+      })),
+      stats: {
+        totalMembers: users.length,
+        activeMembers,
+        pendingInvites,
+        rolesCount: roleSet.size || 1,
+      },
+    };
+  }
+
+  /**
+   * Update a team member's role (ADMIN or STAFF).
+   */
+  async updateUserRole(
+    caller: AuthContext,
+    userId: string,
+    newRole: UserRole.ADMIN | UserRole.STAFF,
+  ): Promise<User> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { organisation: true },
+    });
+
+    if (!user) {
+      throw new UserError('User not found.', 404);
+    }
+
+    if (caller.role !== UserRole.SUPER_ADMIN && user.organisationId !== caller.organisationId) {
+      throw new UserError('Forbidden: Cannot update user from another organisation.', 403);
+    }
+
+    if (user.id === caller.userId && newRole !== UserRole.ADMIN) {
+      throw new UserError('Cannot demote your own admin account.', 400);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+      include: { organisation: true },
+    });
+
+    return {
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      mobile: updated.mobile,
+      role: updated.role as UserRole,
+      organisationId: updated.organisationId,
+      isActive: updated.isActive,
+      mustChangePassword: updated.mustChangePassword,
+      organisation: (updated.organisation as unknown as Organisation) ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  /**
+   * Activate or deactivate a team member.
+   */
+  async updateUserStatus(caller: AuthContext, userId: string, isActive: boolean): Promise<User> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { organisation: true },
+    });
+
+    if (!user) {
+      throw new UserError('User not found.', 404);
+    }
+
+    if (caller.role !== UserRole.SUPER_ADMIN && user.organisationId !== caller.organisationId) {
+      throw new UserError('Forbidden: Cannot modify user from another organisation.', 403);
+    }
+
+    if (user.id === caller.userId && !isActive) {
+      throw new UserError('Cannot deactivate your own account.', 400);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+      include: { organisation: true },
+    });
+
+    // If deactivating user, revoke all active sessions
+    if (!isActive) {
+      await prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+
+    return {
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      mobile: updated.mobile,
+      role: updated.role as UserRole,
+      organisationId: updated.organisationId,
+      isActive: updated.isActive,
+      mustChangePassword: updated.mustChangePassword,
+      organisation: (updated.organisation as unknown as Organisation) ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  /**
+   * Revoke a pending invitation.
+   */
+  async revokeInvitation(caller: AuthContext, invitationId: string): Promise<void> {
+    const invitation = await prisma.organisationInvitation.findUnique({
+      where: { id: invitationId },
+    });
+
+    if (!invitation) {
+      throw new UserError('Invitation not found.', 404);
+    }
+
+    if (
+      caller.role !== UserRole.SUPER_ADMIN &&
+      invitation.organisationId !== caller.organisationId
+    ) {
+      throw new UserError('Forbidden: Cannot revoke invitation for another organisation.', 403);
+    }
+
+    await prisma.organisationInvitation.update({
+      where: { id: invitationId },
+      data: { status: InvitationStatus.REVOKED },
+    });
+  }
 }
 
 export const usersService = new UsersService();
+

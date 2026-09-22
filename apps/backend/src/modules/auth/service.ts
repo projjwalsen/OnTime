@@ -84,7 +84,16 @@ export class AuthService {
   /**
    * Authenticate a user with email and password.
    */
-  async login(credentials: LoginCredentialsDto): Promise<AuthResponse> {
+  async login(
+    credentials: LoginCredentialsDto,
+    meta?: {
+      ipAddress?: string | undefined;
+      userAgent?: string | undefined;
+      deviceInfo?: string | undefined;
+      location?: string | undefined;
+    },
+  ): Promise<AuthResponse> {
+
     const email = credentials.email.toLowerCase().trim();
 
     const user = await prisma.user.findUnique({
@@ -99,12 +108,34 @@ export class AuthService {
     }
 
     if (!user.isActive) {
+      // Record failed sign-in attempt
+      await prisma.userLoginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: meta?.ipAddress || null,
+          userAgent: meta?.userAgent || null,
+          device: meta?.deviceInfo || null,
+          location: meta?.location || null,
+          isSuccess: false,
+        },
+      }).catch(() => {});
       throw new AuthError('Account is deactivated. Please contact your administrator.', 403);
     }
 
     // Verify password hash
     const isPasswordValid = await comparePassword(credentials.password, user.passwordHash);
     if (!isPasswordValid) {
+      // Record failed sign-in attempt
+      await prisma.userLoginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: meta?.ipAddress || null,
+          userAgent: meta?.userAgent || null,
+          device: meta?.deviceInfo || null,
+          location: meta?.location || null,
+          isSuccess: false,
+        },
+      }).catch(() => {});
       throw new AuthError('Invalid email or password.', 401);
     }
 
@@ -129,14 +160,29 @@ export class AuthService {
     const refreshToken = signRefreshToken({ userId: user.id });
     const refreshExpiresAt = calculateExpiryDate(config.jwtRefreshExpiresIn);
 
-    // Save refresh token to database
+    // Save refresh token with device/IP metadata to database
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
         userId: user.id,
+        ipAddress: meta?.ipAddress || null,
+        userAgent: meta?.userAgent || null,
+        deviceInfo: meta?.deviceInfo || null,
         expiresAt: refreshExpiresAt,
       },
     });
+
+    // Record successful login in activity log
+    await prisma.userLoginActivity.create({
+      data: {
+        userId: user.id,
+        ipAddress: meta?.ipAddress || null,
+        userAgent: meta?.userAgent || null,
+        device: meta?.deviceInfo || null,
+        location: meta?.location || null,
+        isSuccess: true,
+      },
+    }).catch(() => {});
 
     const expiresInSeconds = parseDurationToSeconds(config.jwtExpiresIn);
 
@@ -154,6 +200,7 @@ export class AuthService {
       mustChangePassword: user.mustChangePassword,
     };
   }
+
 
   /**
    * Refresh JWT access token using a valid refresh token.
@@ -1349,6 +1396,157 @@ export class AuthService {
       user: sanitizeUser(user),
     };
   }
+
+  // ── Session & Security Methods ─────────────────────────────
+
+  /**
+   * Get all active sessions for a user.
+   */
+  async getActiveSessions(
+    userId: string,
+    currentRefreshToken?: string,
+  ): Promise<
+    Array<{
+      id: string;
+      tokenPreview: string;
+      ipAddress: string | null;
+      userAgent: string | null;
+      deviceInfo: string | null;
+      isCurrentSession: boolean;
+      createdAt: Date;
+      lastActiveAt: Date;
+      expiresAt: Date;
+    }>
+  > {
+    const sessions = await prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return sessions.map((s) => ({
+      id: s.id,
+      tokenPreview: s.token.length > 10 ? `...${s.token.slice(-8)}` : s.token,
+      ipAddress: s.ipAddress,
+      userAgent: s.userAgent,
+      deviceInfo: s.deviceInfo,
+      isCurrentSession: currentRefreshToken ? s.token === currentRefreshToken : false,
+      createdAt: s.createdAt,
+      lastActiveAt: s.lastActiveAt,
+      expiresAt: s.expiresAt,
+    }));
+  }
+
+  /**
+   * Revoke a specific session by ID.
+   */
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const session = await prisma.refreshToken.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new AuthError('Session not found.', 404);
+    }
+
+    await prisma.refreshToken.update({
+      where: { id: sessionId },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /**
+   * Get recent login activity for a user.
+   */
+  async getSignInActivity(
+    userId: string,
+    limit: number = 20,
+  ): Promise<
+    Array<{
+      id: string;
+      userId: string;
+      ipAddress: string | null;
+      userAgent: string | null;
+      device: string | null;
+      location: string | null;
+      isSuccess: boolean;
+      createdAt: Date;
+    }>
+  > {
+    const activities = await prisma.userLoginActivity.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(100, Math.max(1, limit)),
+    });
+
+    return activities.map((a) => ({
+      id: a.id,
+      userId: a.userId,
+      ipAddress: a.ipAddress,
+      userAgent: a.userAgent,
+      device: a.device,
+      location: a.location,
+      isSuccess: a.isSuccess,
+      createdAt: a.createdAt,
+    }));
+  }
+
+  /**
+   * Get Two-Step Verification (2FA) status.
+   */
+  async getTwoFactorStatus(userId: string): Promise<{ enabled: boolean }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { twoFactorEnabled: true },
+    });
+
+    if (!user) {
+      throw new AuthError('User not found.', 404);
+    }
+
+    return {
+      enabled: user.twoFactorEnabled,
+    };
+  }
+
+  /**
+   * Toggle Two-Step Verification (2FA) status.
+   */
+  async toggleTwoFactor(
+    userId: string,
+    enabled: boolean,
+    password?: string,
+  ): Promise<{ enabled: boolean; message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AuthError('User not found.', 404);
+    }
+
+    // Require password confirmation when enabling/disabling 2FA
+    if (password) {
+      const isValid = await comparePassword(password, user.passwordHash);
+      if (!isValid) {
+        throw new AuthError('Incorrect password. Cannot change two-step verification.', 400);
+      }
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: enabled },
+    });
+
+    return {
+      enabled,
+      message: `Two-step verification has been ${enabled ? 'enabled' : 'disabled'} successfully.`,
+    };
+  }
 }
 
 export const authService = new AuthService();
+

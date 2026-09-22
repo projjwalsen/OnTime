@@ -29,6 +29,7 @@ export {
   isDistributorCancellable,
   ALLOWED_STATUS_TRANSITIONS,
 } from './enums/order-status';
+export { SupportTopic, TicketStatus } from './types/support';
 
 // Types
 export type { PaginationParams, PaginationMeta, PaginatedResult } from './types/pagination';
@@ -46,6 +47,10 @@ export type {
   OnboardUserResponse,
   InvitationResponse,
   UserFilterParams,
+  TeamInvitation,
+  TeamSummary,
+  UpdateUserRoleDto,
+  UpdateUserStatusDto,
 } from './types/user';
 export type {
   Product,
@@ -107,6 +112,27 @@ export type {
   VerifyRegistrationOtpDto,
 } from './types/auth';
 export type { UploadedMediaFile, UploadMediaResponse } from './types/media';
+export type { DeliveryAddress, CreateAddressDto, UpdateAddressDto } from './types/address';
+export type {
+  NotificationPreference,
+  UpdateNotificationPreferenceDto,
+} from './types/notification';
+export type {
+  SupportTicket,
+  CreateSupportTicketDto,
+  SupportTopicOption,
+} from './types/support';
+export type {
+  HelpArticle,
+  HelpCategorySummary,
+  HelpArticleFilterParams,
+} from './types/help';
+export type {
+  ActiveSession,
+  SignInActivityItem,
+  TwoFactorStatusResponse,
+  ToggleTwoFactorDto,
+} from './types/security';
 
 // Constants
 export {
@@ -117,3 +143,4 @@ export {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
 } from './constants/index';
+

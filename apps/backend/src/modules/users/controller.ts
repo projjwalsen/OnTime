@@ -110,3 +110,89 @@ export const onboardUser: RequestHandler = asyncHandler(
  * @access  Protected (Super Admin or Admin)
  */
 export const inviteUser: RequestHandler = onboardUser;
+
+/**
+ * @route   GET /api/v1/users/team
+ * @desc    Get complete team overview (active members, pending invites, statistics)
+ * @access  Protected (Org Admin or Super Admin)
+ */
+export const getTeamOverview: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const overview = await usersService.getTeamOverview(req.user);
+      successResponse(res, 'Team overview retrieved successfully', overview);
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   PATCH /api/v1/users/:id/role
+ * @desc    Update a team member's role (ADMIN or STAFF)
+ * @access  Protected (Org Admin or Super Admin)
+ */
+export const updateUserRole: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const id = req.params.id as string;
+      const { role } = req.body;
+      const user = await usersService.updateUserRole(req.user, id, role);
+      successResponse(res, 'User role updated successfully', { user });
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   PATCH /api/v1/users/:id/status
+ * @desc    Activate or deactivate a team member
+ * @access  Protected (Org Admin or Super Admin)
+ */
+export const updateUserStatus: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const id = req.params.id as string;
+      const { isActive } = req.body;
+      const user = await usersService.updateUserStatus(req.user, id, isActive);
+      successResponse(res, `User ${isActive ? 'activated' : 'deactivated'} successfully`, { user });
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   DELETE /api/v1/users/invitations/:id
+ * @desc    Revoke a pending organisation invitation
+ * @access  Protected (Org Admin or Super Admin)
+ */
+export const revokeInvitation: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const id = req.params.id as string;
+      await usersService.revokeInvitation(req.user, id);
+      successResponse(res, 'Invitation revoked successfully', null);
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+

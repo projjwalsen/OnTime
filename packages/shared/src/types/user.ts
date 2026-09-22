@@ -89,3 +89,32 @@ export interface UserFilterParams {
   page?: number | undefined;
   limit?: number | undefined;
 }
+
+export interface UpdateUserRoleDto {
+  role: UserRole.ADMIN | UserRole.STAFF;
+}
+
+export interface UpdateUserStatusDto {
+  isActive: boolean;
+}
+
+export interface TeamInvitation {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: InvitationStatus;
+  createdAt: Date | string;
+  expiresAt: Date | string;
+}
+
+export interface TeamSummary {
+  members: User[];
+  invitations: TeamInvitation[];
+  stats: {
+    totalMembers: number;
+    activeMembers: number;
+    pendingInvites: number;
+    rolesCount: number;
+  };
+}
+
