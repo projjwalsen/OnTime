@@ -19,18 +19,48 @@ export const createOrderSchema = z.object({
   organisationId: z.string().nullable().optional(),
 });
 
+export const modifyOrderItemSchema = z.object({
+  productId: z.string({ message: 'Product ID is required' }).min(1, 'Product ID is required'),
+  variantId: z.string().nullable().optional(),
+  quantity: z
+    .number({ message: 'Quantity is required' })
+    .int('Quantity must be an integer')
+    .min(0, 'Quantity must be 0 or more'),
+});
+
+export const modifyOrderSchema = z.object({
+  items: z
+    .array(modifyOrderItemSchema, { message: 'Items array is required' })
+    .min(1, 'Order must contain at least one item'),
+  modificationNote: z.string().trim().optional(),
+  status: z.enum([OrderStatus.AWAITING, OrderStatus.CONFIRMED]).optional(),
+});
+
+export const approvePartialOrderSchema = z.object({
+  notes: z.string().trim().optional(),
+  approvalNote: z.string().trim().optional(),
+});
+
+export const rejectPartialOrderSchema = z.object({
+  reason: z.string().trim().optional(),
+  rejectionReason: z.string().trim().optional(),
+});
+
 export const updateOrderStatusSchema = z.object({
   status: z.enum(
     [
+      OrderStatus.AWAITING,
       OrderStatus.CONFIRMED,
       OrderStatus.PROCESSING,
       OrderStatus.DISPATCHED,
       OrderStatus.DELIVERED,
       OrderStatus.CANCELLED,
+      OrderStatus.REJECTED,
     ],
     { message: 'Invalid order status transition' },
   ),
   cancellationReason: z.string().trim().optional(),
+  modificationNote: z.string().trim().optional(),
 });
 
 export const cancelOrderSchema = z.object({
@@ -42,11 +72,13 @@ export const orderFilterQuerySchema = z.object({
   status: z
     .enum([
       OrderStatus.PENDING,
+      OrderStatus.AWAITING,
       OrderStatus.CONFIRMED,
       OrderStatus.PROCESSING,
       OrderStatus.DISPATCHED,
       OrderStatus.DELIVERED,
       OrderStatus.CANCELLED,
+      OrderStatus.REJECTED,
     ])
     .optional(),
   organisationId: z.string().optional(),
@@ -59,6 +91,11 @@ export const orderFilterQuerySchema = z.object({
 
 export type CreateOrderItemInput = z.infer<typeof createOrderItemSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type ModifyOrderItemInput = z.infer<typeof modifyOrderItemSchema>;
+export type ModifyOrderInput = z.infer<typeof modifyOrderSchema>;
+export type ApprovePartialOrderInput = z.infer<typeof approvePartialOrderSchema>;
+export type RejectPartialOrderInput = z.infer<typeof rejectPartialOrderSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type OrderFilterInput = z.infer<typeof orderFilterQuerySchema>;
+

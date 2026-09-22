@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, RefreshCw, Eye, XCircle, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Search, Filter, RefreshCw, Eye, ArrowUpRight, Clock, CheckCircle2, AlertCircle, Package } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { OrderStatusBadge } from '../../../components/orders/OrderStatusBadge';
 import {
   type Order,
   type OrderSummaryStats,
   type Organisation,
   OrderStatus,
-  ALLOWED_STATUS_TRANSITIONS,
 } from '@ontime/shared';
 
 function formatCurrency(amount: number): string {
@@ -33,25 +35,9 @@ function formatDate(dateInput?: string | Date): string {
   });
 }
 
-function renderStatusBadge(status: OrderStatus) {
-  switch (status) {
-    case OrderStatus.PROCESSING:
-      return <span className="badge badge-figma-processing">Processing</span>;
-    case OrderStatus.DELIVERED:
-      return <span className="badge badge-figma-delivered">Delivered</span>;
-    case OrderStatus.CONFIRMED:
-      return <span className="badge badge-figma-processing">Confirmed</span>;
-    case OrderStatus.DISPATCHED:
-      return <span className="badge badge-figma-dispatched">Dispatched</span>;
-    case OrderStatus.CANCELLED:
-      return <span className="badge badge-figma-cancelled">Cancelled</span>;
-    case OrderStatus.PENDING:
-    default:
-      return <span className="badge badge-figma-pending">Pending</span>;
-  }
-}
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderSummaryStats | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
@@ -65,16 +51,6 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-
-  // Selected Order for Modal
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [statusModalOpen, setStatusModalOpen] = useState(false);
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [nextStatus, setNextStatus] = useState<OrderStatus | ''>('');
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   async function loadData() {
     try {
@@ -122,51 +98,6 @@ export default function OrdersPage() {
     loadData();
   }
 
-  async function handleUpdateStatus() {
-    if (!selectedOrder || !nextStatus) return;
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      const res = await api.updateOrderStatus(selectedOrder.id, {
-        status: nextStatus,
-      });
-      if (res.success) {
-        setStatusModalOpen(false);
-        loadData();
-      } else {
-        setActionError(res.error || 'Failed to update order status');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An error occurred';
-      setActionError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleCancelOrder() {
-    if (!selectedOrder) return;
-    setSubmitting(true);
-    setActionError(null);
-    try {
-      const res = await api.cancelOrder(selectedOrder.id, {
-        cancellationReason: cancellationReason.trim() || 'Cancelled by Distributor Admin',
-      });
-      if (res.success) {
-        setCancelModalOpen(false);
-        setCancellationReason('');
-        loadData();
-      } else {
-        setActionError(res.error || 'Failed to cancel order');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An error occurred';
-      setActionError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
     <div>
       {/* ── Header ── */}
@@ -184,7 +115,7 @@ export default function OrdersPage() {
               Wholesale Orders
             </h1>
             <p style={{ fontSize: '0.9375rem', color: '#64748b', marginTop: '4px' }}>
-              Track retail orders, fulfill shipment stages, and manage cancellations.
+              Review retail store orders, adjust stock quantities, and track fulfillment stages.
             </p>
           </div>
 
@@ -214,7 +145,7 @@ export default function OrdersPage() {
 
       {/* ── KPI Stat Cards ── */}
       {stats && (
-        <div className="kpi-grid-5">
+        <div className="kpi-grid-5" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
           <div className="figma-kpi-card">
             <span className="figma-kpi-title">Total Orders</span>
             <span className="figma-kpi-value">{Number(stats.totalOrders).toLocaleString()}</span>
@@ -223,34 +154,79 @@ export default function OrdersPage() {
             </span>
           </div>
 
-          <div className="figma-kpi-card">
+          <div
+            className="figma-kpi-card"
+            style={{ cursor: 'pointer', borderTop: statusFilter === 'PENDING' ? '3px solid #3b82f6' : undefined }}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'PENDING' ? '' : 'PENDING');
+              setPage(1);
+            }}
+          >
             <span className="figma-kpi-title">New (Pending)</span>
-            <span className="figma-kpi-value">{Number(stats.pendingOrders).toLocaleString()}</span>
-            <span className="figma-kpi-subtitle">Awaiting Confirmation</span>
+            <span className="figma-kpi-value" style={{ color: '#2563eb' }}>
+              {Number(stats.pendingOrders).toLocaleString()}
+            </span>
+            <span className="figma-kpi-subtitle">Needs Stock Review</span>
           </div>
 
-          <div className="figma-kpi-card">
-            <span className="figma-kpi-title">Processing</span>
-            <span className="figma-kpi-value">
+          <div
+            className="figma-kpi-card"
+            style={{ cursor: 'pointer', borderTop: statusFilter === 'AWAITING' ? '3px solid #f59e0b' : undefined }}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'AWAITING' ? '' : 'AWAITING');
+              setPage(1);
+            }}
+          >
+            <span className="figma-kpi-title">Awaiting Approval</span>
+            <span className="figma-kpi-value" style={{ color: '#d97706' }}>
+              {Number(stats.awaitingOrders || 0).toLocaleString()}
+            </span>
+            <span className="figma-kpi-subtitle">Modified / Partial</span>
+          </div>
+
+          <div
+            className="figma-kpi-card"
+            style={{ cursor: 'pointer', borderTop: statusFilter === 'PROCESSING' ? '3px solid #8b5cf6' : undefined }}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'PROCESSING' ? '' : 'PROCESSING');
+              setPage(1);
+            }}
+          >
+            <span className="figma-kpi-title">In Processing</span>
+            <span className="figma-kpi-value" style={{ color: '#7c3aed' }}>
               {Number(stats.processingOrders).toLocaleString()}
             </span>
             <span className="figma-kpi-subtitle">Warehouse Packing</span>
           </div>
 
-          <div className="figma-kpi-card">
+          <div
+            className="figma-kpi-card"
+            style={{ cursor: 'pointer', borderTop: statusFilter === 'DISPATCHED' ? '3px solid #06b6d4' : undefined }}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'DISPATCHED' ? '' : 'DISPATCHED');
+              setPage(1);
+            }}
+          >
             <span className="figma-kpi-title">Dispatched</span>
-            <span className="figma-kpi-value">
+            <span className="figma-kpi-value" style={{ color: '#0891b2' }}>
               {Number(stats.dispatchedOrders).toLocaleString()}
             </span>
-            <span className="figma-kpi-subtitle">Out for Delivery</span>
+            <span className="figma-kpi-subtitle">In Transit</span>
           </div>
 
-          <div className="figma-kpi-card">
+          <div
+            className="figma-kpi-card"
+            style={{ cursor: 'pointer', borderTop: statusFilter === 'DELIVERED' ? '3px solid #10b981' : undefined }}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'DELIVERED' ? '' : 'DELIVERED');
+              setPage(1);
+            }}
+          >
             <span className="figma-kpi-title">Delivered</span>
-            <span className="figma-kpi-value">
+            <span className="figma-kpi-value" style={{ color: '#059669' }}>
               {Number(stats.deliveredOrders).toLocaleString()}
             </span>
-            <span className="figma-kpi-subtitle">Fulfillment Complete</span>
+            <span className="figma-kpi-subtitle">Completed</span>
           </div>
         </div>
       )}
@@ -293,11 +269,13 @@ export default function OrdersPage() {
             }}
           >
             <option value="">All Statuses</option>
-            <option value="PENDING">PENDING</option>
+            <option value="PENDING">PENDING (New)</option>
+            <option value="AWAITING">AWAITING (Modified / Partial)</option>
             <option value="CONFIRMED">CONFIRMED</option>
             <option value="PROCESSING">PROCESSING</option>
             <option value="DISPATCHED">DISPATCHED</option>
             <option value="DELIVERED">DELIVERED</option>
+            <option value="REJECTED">REJECTED</option>
             <option value="CANCELLED">CANCELLED</option>
           </select>
 
@@ -331,6 +309,9 @@ export default function OrdersPage() {
       <div className="figma-table-card">
         <div className="figma-table-header">
           <h2 className="figma-table-title">Order Records ({totalCount})</h2>
+          <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+            Click any order to view details and edit stock
+          </span>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -363,14 +344,18 @@ export default function OrdersPage() {
                     order.items?.length ||
                     0;
 
-                  const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[order.status] || [];
-
                   return (
-                    <tr key={order.id}>
+                    <tr
+                      key={order.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => router.push(`/orders/${order.id}`)}
+                    >
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                          {order.orderNumber}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#2563eb' }}>
+                            {order.orderNumber}
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <div>
@@ -402,73 +387,28 @@ export default function OrdersPage() {
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>
                         {formatCurrency(Number(order.totalAmount))}
                       </td>
-                      <td>{renderStatusBadge(order.status)}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div
-                          style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}
+                      <td><OrderStatusBadge status={order.status} /></td>
+                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="btn-secondary"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            height: '32px',
+                            padding: '0 10px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            color: '#2563eb',
+                            backgroundColor: '#eff6ff',
+                            borderColor: '#bfdbfe',
+                          }}
                         >
-                          <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setDetailModalOpen(true);
-                            }}
-                            className="btn-secondary"
-                            style={{ height: '32px', padding: '0 8px' }}
-                            title="Inspect Order Details"
-                          >
-                            <Eye size={14} />
-                          </button>
-
-                          {allowedNextStatuses.length > 0 &&
-                            order.status !== OrderStatus.DELIVERED &&
-                            order.status !== OrderStatus.CANCELLED && (
-                              <button
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  const firstValid = allowedNextStatuses.find(
-                                    (s) => s !== OrderStatus.CANCELLED,
-                                  );
-                                  setNextStatus(firstValid || '');
-                                  setActionError(null);
-                                  setStatusModalOpen(true);
-                                }}
-                                className="btn-secondary"
-                                style={{
-                                  height: '32px',
-                                  padding: '0 10px',
-                                  backgroundColor: '#eff6ff',
-                                  borderColor: '#bfdbfe',
-                                  color: '#2563eb',
-                                  fontWeight: 600,
-                                }}
-                                title="Update Status"
-                              >
-                                <ChevronRight size={14} />
-                                <span>Status</span>
-                              </button>
-                            )}
-
-                          {order.status !== OrderStatus.DELIVERED &&
-                            order.status !== OrderStatus.CANCELLED && (
-                              <button
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setActionError(null);
-                                  setCancelModalOpen(true);
-                                }}
-                                className="btn-secondary"
-                                style={{
-                                  height: '32px',
-                                  padding: '0 8px',
-                                  color: '#dc2626',
-                                  borderColor: '#fecaca',
-                                }}
-                                title="Cancel Order"
-                              >
-                                <XCircle size={14} />
-                              </button>
-                            )}
-                        </div>
+                          <Eye size={13} />
+                          <span>View & Manage</span>
+                          <ArrowUpRight size={12} />
+                        </Link>
                       </td>
                     </tr>
                   );
@@ -515,280 +455,6 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-
-      {/* ── Order Detail Modal ── */}
-      {detailModalOpen && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setDetailModalOpen(false)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: '650px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div>
-                <h3 className="modal-title">Order Details: {selectedOrder.orderNumber}</h3>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                  Placed on {formatDate(selectedOrder.createdAt)}
-                </span>
-              </div>
-              <div>{renderStatusBadge(selectedOrder.status)}</div>
-            </div>
-
-            <div className="modal-body">
-              {/* Customer & Delivery Information */}
-              <div
-                style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid var(--border-figma)',
-                  borderRadius: '8px',
-                  padding: '1rem',
-                  marginBottom: '1.25rem',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '0.75rem',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  <div>
-                    <span style={{ color: '#64748b', display: 'block' }}>Customer Store:</span>
-                    <strong style={{ color: '#0f172a' }}>
-                      {selectedOrder.organisation?.name || 'Retailer Organisation'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ color: '#64748b', display: 'block' }}>Contact Email:</span>
-                    <span>{selectedOrder.organisation?.email || '—'}</span>
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <span style={{ color: '#64748b', display: 'block' }}>Delivery Address:</span>
-                    <span>{selectedOrder.deliveryAddress || 'Standard Warehouse Delivery'}</span>
-                  </div>
-                  {selectedOrder.notes && (
-                    <div style={{ gridColumn: 'span 2' }}>
-                      <span style={{ color: '#64748b', display: 'block' }}>Delivery Notes:</span>
-                      <span style={{ fontStyle: 'italic', color: '#334155' }}>
-                        "{selectedOrder.notes}"
-                      </span>
-                    </div>
-                  )}
-                  {selectedOrder.cancellationReason && (
-                    <div
-                      style={{
-                        gridColumn: 'span 2',
-                        backgroundColor: '#fef2f2',
-                        padding: '8px',
-                        borderRadius: '6px',
-                        color: '#991b1b',
-                      }}
-                    >
-                      <strong>Cancellation Reason:</strong> {selectedOrder.cancellationReason}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Items Table */}
-              <h4
-                style={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                Line Items
-              </h4>
-              <table className="figma-data-table" style={{ marginBottom: '1rem' }}>
-                <thead>
-                  <tr>
-                    <th>Item Description</th>
-                    <th>Weight / Variant</th>
-                    <th>Unit Price</th>
-                    <th>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedOrder.items?.map((item, idx) => (
-                    <tr key={item.id || idx}>
-                      <td>
-                        <strong>{item.productName}</strong>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          SKU: {item.productSku}
-                        </div>
-                      </td>
-                      <td>{item.variantWeight || 'Standard'}</td>
-                      <td>{formatCurrency(Number(item.unitPrice))}</td>
-                      <td>{item.quantity}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(Number(item.totalPrice))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Total Summary */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  borderTop: '1px solid var(--border-figma)',
-                  paddingTop: '0.75rem',
-                }}
-              >
-                <div style={{ width: '220px', textAlign: 'right', fontSize: '0.9rem' }}>
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}
-                  >
-                    <span>Subtotal:</span>
-                    <span>
-                      {formatCurrency(Number(selectedOrder.subtotal || selectedOrder.totalAmount))}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontWeight: 700,
-                      color: '#0f172a',
-                      fontSize: '1.1rem',
-                      marginTop: '6px',
-                    }}
-                  >
-                    <span>Total Amount:</span>
-                    <span>{formatCurrency(Number(selectedOrder.totalAmount))}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button onClick={() => setDetailModalOpen(false)} className="btn-secondary">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Status Transition Modal ── */}
-      {statusModalOpen && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setStatusModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Update Fulfillment Status</h3>
-            </div>
-
-            <div className="modal-body">
-              <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1.25rem' }}>
-                Advance order <strong>{selectedOrder.orderNumber}</strong> from current status{' '}
-                <span style={{ fontWeight: 600 }}>{selectedOrder.status}</span>.
-              </p>
-
-              {actionError && (
-                <div className="alert-banner alert-danger" style={{ marginBottom: '1rem' }}>
-                  {actionError}
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Select Next Status</label>
-                <select
-                  className="form-input"
-                  value={nextStatus}
-                  onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
-                >
-                  <option value="">Select status transition...</option>
-                  {(ALLOWED_STATUS_TRANSITIONS[selectedOrder.status] || []).map((st) => (
-                    <option key={st} value={st}>
-                      {st}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                onClick={() => setStatusModalOpen(false)}
-                className="btn-secondary"
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleUpdateStatus}
-                className="btn-action-primary"
-                disabled={!nextStatus || submitting}
-              >
-                {submitting ? 'Updating...' : 'Confirm Update'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Cancel Order Modal ── */}
-      {cancelModalOpen && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setCancelModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title" style={{ color: '#dc2626' }}>
-                Cancel Order: {selectedOrder.orderNumber}
-              </h3>
-            </div>
-
-            <div className="modal-body">
-              <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '1.25rem' }}>
-                Are you sure you want to cancel this wholesale order? This action is permanent.
-              </p>
-
-              {actionError && (
-                <div className="alert-banner alert-danger" style={{ marginBottom: '1rem' }}>
-                  {actionError}
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Cancellation Reason</label>
-                <textarea
-                  className="form-input"
-                  style={{ height: '80px', paddingTop: '8px' }}
-                  placeholder="Specify why this order is being cancelled..."
-                  value={cancellationReason}
-                  onChange={(e) => setCancellationReason(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                onClick={() => setCancelModalOpen(false)}
-                className="btn-secondary"
-                disabled={submitting}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelOrder}
-                className="btn-danger"
-                disabled={submitting}
-              >
-                {submitting ? 'Cancelling...' : 'Cancel Order'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

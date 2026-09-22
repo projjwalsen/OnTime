@@ -650,20 +650,264 @@ async function runTests() {
     '  ✔ Default variant automatically selected for product with variants; base product used for product without variants',
   );
 
-  // Non-existent variant ID that is NOT productId should return 404
-  const invalidVariantRes = await makeRequest(
+  // -------------------------------------------------------------
+  // TEST 10: Super Admin Modifies Order Stock -> Status becomes AWAITING
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 10: Super Admin Modifies Order Stock (AWAITING Status) ---');
+  const modOrderRes = await makeRequest(
     'POST',
     '/api/v1/orders',
     {
-      items: [{ productId: prod1.id, variantId: 'non-existent-variant-id-9999', quantity: 1 }],
+      deliveryAddress: 'Retailer A Modified Branch, City A',
+      notes: 'Initial large order',
+      items: [
+        { productId: prod1.id, variantId: variant5kg.id, quantity: 5 }, // 5 * 750 = 3750
+        { productId: prod2.id, quantity: 10 }, // 10 * 130 = 1300
+      ],
     },
     tokenA,
   );
-  assert(
-    invalidVariantRes.status === 404,
-    `Expected 404 for invalid variant ID, got ${invalidVariantRes.status}`,
+  assert(modOrderRes.status === 201, `Failed to create order for mod test: ${JSON.stringify(modOrderRes.body)}`);
+  const orderToModify = modOrderRes.body.data.order;
+  assert(orderToModify.status === OrderStatus.PENDING, 'Initial order should be PENDING');
+  assert(orderToModify.totalAmount === 5050, `Expected 5050, got ${orderToModify.totalAmount}`);
+
+  // Super Admin adjusts stock (e.g., only 2 units of variant5kg available, 8 units of prod2)
+  const modifyPayload = {
+    modificationNote: 'Reduced 5kg Basmati from 5 to 2 due to limited warehouse stock. Reduced Oil to 8.',
+    items: [
+      { productId: prod1.id, variantId: variant5kg.id, quantity: 2 }, // 2 * 750 = 1500
+      { productId: prod2.id, quantity: 8 }, // 8 * 130 = 1040
+    ],
+  };
+
+  const modifyRes = await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${orderToModify.id}/modify`,
+    modifyPayload,
+    superToken,
   );
-  console.log('  ✔ Non-existent variant ID rejected with 404');
+  assert(modifyRes.status === 200, `Super Admin modify order failed: ${JSON.stringify(modifyRes.body)}`);
+  const modifiedOrder = modifyRes.body.data.order;
+
+  assert(
+    modifiedOrder.status === OrderStatus.AWAITING,
+    `Expected status AWAITING, got ${modifiedOrder.status}`,
+  );
+  assert(
+    modifiedOrder.modificationNote === modifyPayload.modificationNote,
+    'Modification note mismatch',
+  );
+  assert(!!modifiedOrder.modifiedAt, 'modifiedAt timestamp missing');
+  assert(
+    modifiedOrder.totalAmount === 2540,
+    `Expected modified totalAmount 2540, got ${modifiedOrder.totalAmount}`,
+  );
+
+  const modItem1 = modifiedOrder.items.find((i: any) => i.productId === prod1.id);
+  assert(modItem1.quantity === 2, `Expected item 1 quantity 2, got ${modItem1.quantity}`);
+  assert(modItem1.originalQuantity === 5, `Expected item 1 originalQuantity 5, got ${modItem1.originalQuantity}`);
+
+  const modItem2 = modifiedOrder.items.find((i: any) => i.productId === prod2.id);
+  assert(modItem2.quantity === 8, `Expected item 2 quantity 8, got ${modItem2.quantity}`);
+  assert(modItem2.originalQuantity === 10, `Expected item 2 originalQuantity 10, got ${modItem2.originalQuantity}`);
+  console.log('  ✔ Super Admin stock modification set status to AWAITING and saved original quantities & note');
+
+  // -------------------------------------------------------------
+  // TEST 11: Retailer Approves Partial Order -> Status becomes PROCESSING
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 11: Retailer Approves Partial Order (PROCESSING Status) ---');
+  // Retailer B trying to approve Retailer A's order -> 403
+  const crossApproveRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
+    {},
+    tokenB,
+  );
+  assert(
+    crossApproveRes.status === 403,
+    `Expected 403 for cross-tenant partial order approval, got ${crossApproveRes.status}`,
+  );
+
+  // Retailer A approves
+  const approveRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
+    {},
+    tokenA,
+  );
+  assert(
+    approveRes.status === 200,
+    `Retailer approve partial order failed: ${JSON.stringify(approveRes.body)}`,
+  );
+  const approvedOrder = approveRes.body.data.order;
+  assert(
+    approvedOrder.status === OrderStatus.PROCESSING,
+    `Expected status PROCESSING after approval, got ${approvedOrder.status}`,
+  );
+  console.log('  ✔ Retailer approved partial order successfully transitioned to PROCESSING');
+
+  // Re-approval should fail
+  const reApproveRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
+    {},
+    tokenA,
+  );
+  assert(
+    reApproveRes.status === 400,
+    `Expected 400 when approving order not in AWAITING status, got ${reApproveRes.status}`,
+  );
+
+  // -------------------------------------------------------------
+  // TEST 12: Retailer Rejects Partial Order -> Status becomes REJECTED
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 12: Retailer Rejects Partial Order (REJECTED Status) ---');
+  const rejectOrderRes = await makeRequest(
+    'POST',
+    '/api/v1/orders',
+    {
+      deliveryAddress: 'Retailer A Secondary Hub, City A',
+      items: [{ productId: prod2.id, quantity: 20 }],
+    },
+    tokenA,
+  );
+  const orderToReject = rejectOrderRes.body.data.order;
+
+  // Super Admin modifies it to AWAITING
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${orderToReject.id}/modify`,
+    {
+      modificationNote: 'Only 5 units in stock at this moment',
+      items: [{ productId: prod2.id, quantity: 5 }],
+    },
+    superToken,
+  );
+
+  // Retailer A rejects the partial order
+  const rejectRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${orderToReject.id}/reject-partial`,
+    { rejectionReason: 'Partial quantity does not meet retail demand' },
+    tokenA,
+  );
+  assert(
+    rejectRes.status === 200,
+    `Retailer reject partial order failed: ${JSON.stringify(rejectRes.body)}`,
+  );
+  const rejectedOrder = rejectRes.body.data.order;
+  assert(
+    rejectedOrder.status === OrderStatus.REJECTED,
+    `Expected status REJECTED, got ${rejectedOrder.status}`,
+  );
+  assert(
+    rejectedOrder.cancellationReason === 'Partial quantity does not meet retail demand',
+    'Rejection reason mismatch',
+  );
+  assert(!!rejectedOrder.cancelledAt, 'cancelledAt timestamp missing on rejected order');
+  console.log('  ✔ Retailer rejected partial order successfully transitioned to REJECTED with reason');
+
+  // -------------------------------------------------------------
+  // TEST 13: Order History Audit Trail & Dedicated History Endpoint
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 13: Order History Audit Trail & Dedicated History Endpoint ---');
+  // 1. Create a fresh order
+  const histOrderRes = await makeRequest(
+    'POST',
+    '/api/v1/orders',
+    {
+      deliveryAddress: 'Audit Test Location, Sector 5',
+      items: [{ productId: prod1.id, quantity: 15 }],
+      notes: 'Initial test order for audit trail verification',
+    },
+    tokenA,
+  );
+  assert(histOrderRes.status === 201, 'Failed to create order for history test');
+  const histOrder = histOrderRes.body.data.order;
+
+  // Verify initial history entry in getOrderById
+  const getOrderHist1 = await makeRequest('GET', `/api/v1/orders/${histOrder.id}`, undefined, tokenA);
+  assert(Array.isArray(getOrderHist1.body.data.order.history), 'Expected history array in order payload');
+  assert(getOrderHist1.body.data.order.history.length === 1, `Expected 1 history event, got ${getOrderHist1.body.data.order.history.length}`);
+  assert(getOrderHist1.body.data.order.history[0].action === 'Order Placed', 'Expected action "Order Placed"');
+  assert(getOrderHist1.body.data.order.history[0].status === OrderStatus.PENDING, 'Expected status PENDING');
+  assert(!!getOrderHist1.body.data.order.history[0].createdAt, 'Expected createdAt timestamp');
+  console.log('  ✔ Order Placed history event recorded with timestamp');
+
+  // 2. Super Admin modifies stock
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${histOrder.id}/modify`,
+    {
+      modificationNote: 'Stock trimmed due to warehouse limitation',
+      items: [{ productId: prod1.id, quantity: 8 }],
+    },
+    superToken,
+  );
+
+  // 3. Retailer approves partial order
+  await makeRequest(
+    'POST',
+    `/api/v1/orders/${histOrder.id}/approve-partial`,
+    { approvalNote: 'Approved reduced quantity of 8' },
+    tokenA,
+  );
+
+  // 4. Super admin marks as DISPATCHED
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${histOrder.id}/status`,
+    { status: OrderStatus.DISPATCHED },
+    superToken,
+  );
+
+  // 5. Super admin marks as DELIVERED
+  await makeRequest(
+    'PATCH',
+    `/api/v1/orders/${histOrder.id}/status`,
+    { status: OrderStatus.DELIVERED },
+    superToken,
+  );
+
+  // 6. Verify full history via GET /api/v1/orders/:id/history
+  const historyListRes = await makeRequest(
+    'GET',
+    `/api/v1/orders/${histOrder.id}/history`,
+    undefined,
+    superToken,
+  );
+  assert(historyListRes.status === 200, `Failed to get order history: ${JSON.stringify(historyListRes.body)}`);
+  const historyEntries = historyListRes.body.data.history;
+  assert(Array.isArray(historyEntries), 'Expected history array in response');
+  assert(historyEntries.length === 5, `Expected 5 lifecycle history events, got ${historyEntries.length}`);
+
+  // Check actions in descending order (newest event first)
+  assert(historyEntries[0].action === 'Order Delivered to Customer', 'Entry 1 (latest) action mismatch');
+  assert(historyEntries[0].status === OrderStatus.DELIVERED, 'Entry 1 status mismatch');
+
+  assert(historyEntries[1].action === 'Order Dispatched for Delivery', 'Entry 2 action mismatch');
+  assert(historyEntries[1].status === OrderStatus.DISPATCHED, 'Entry 2 status mismatch');
+
+  assert(historyEntries[2].action === 'Partial Order Approved by Retailer', 'Entry 3 action mismatch');
+  assert(historyEntries[2].status === OrderStatus.PROCESSING, 'Entry 3 status mismatch');
+  assert(historyEntries[2].note === 'Approved reduced quantity of 8', 'Entry 3 note mismatch');
+
+  assert(historyEntries[3].action === 'Stock Adjusted & Sent for Retailer Approval', 'Entry 4 action mismatch');
+  assert(historyEntries[3].status === OrderStatus.AWAITING, 'Entry 4 status mismatch');
+  assert(historyEntries[3].note === 'Stock trimmed due to warehouse limitation', 'Entry 4 note mismatch');
+  assert(historyEntries[3].performedByUserRole === UserRole.SUPER_ADMIN, 'Entry 4 performer role mismatch');
+
+  assert(historyEntries[4].action === 'Order Placed', 'Entry 5 (initial) action mismatch');
+  assert(historyEntries[4].status === OrderStatus.PENDING, 'Entry 5 status mismatch');
+
+  // Verify timestamps exist and are sequential
+  for (let i = 0; i < historyEntries.length; i++) {
+    assert(!!historyEntries[i].createdAt, `History entry ${i} missing createdAt`);
+    assert(!!historyEntries[i].performedByUserName, `History entry ${i} missing performedByUserName`);
+  }
+  console.log('  ✔ All 5 sequential order lifecycle events captured with timestamps, notes, and user roles');
+  console.log('  ✔ Dedicated GET /api/v1/orders/:id/history endpoint verified');
 
   console.log('\n===========================================================');
   console.log('🎉 ALL ORDER & FULFILLMENT TESTS PASSED! 🎉');

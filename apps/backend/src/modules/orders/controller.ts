@@ -4,6 +4,9 @@ import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
 import {
   type CreateOrderInput,
+  type ModifyOrderInput,
+  type ApprovePartialOrderInput,
+  type RejectPartialOrderInput,
   type UpdateOrderStatusInput,
   type CancelOrderInput,
   type OrderFilterInput,
@@ -92,6 +95,27 @@ export const getOrderById: RequestHandler = asyncHandler(
 );
 
 /**
+ * @route   GET /api/v1/orders/:id/history
+ * @desc    Get timestamped audit history for an order
+ * @access  Protected (Admin, Staff, Super Admin)
+ */
+export const getOrderHistory: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Order ID is required', 400);
+        return;
+      }
+      const history = await ordersService.getOrderHistory(req.user!, id);
+      successResponse(res, 'Order history retrieved successfully', { history });
+    } catch (error) {
+      handleOrderError(res, error);
+    }
+  },
+);
+
+/**
  * @route   PATCH /api/v1/orders/:id/status
  * @desc    Update order status (Distributor Super Admin)
  * @access  Protected (Super Admin)
@@ -114,8 +138,78 @@ export const updateOrderStatus: RequestHandler = asyncHandler(
 );
 
 /**
+ * @route   PATCH /api/v1/orders/:id/modify or PUT /api/v1/orders/:id/modify
+ * @desc    Modify order items as per warehouse stock availability (Super Admin)
+ * @access  Protected (Super Admin only)
+ */
+export const modifyOrderStock: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Order ID is required', 400);
+        return;
+      }
+      const dto = req.body as ModifyOrderInput;
+      const order = await ordersService.modifyOrderStock(req.user!, id, dto);
+      successResponse(res, 'Order modified as per stock successfully', { order });
+    } catch (error) {
+      handleOrderError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/orders/:id/approve-partial or PATCH /api/v1/orders/:id/approve
+ * @desc    Approve partial/modified order (Retailer Admin/Staff or Super Admin)
+ * @access  Protected (Retailer Admin, Staff, Super Admin)
+ */
+export const approvePartialOrder: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Order ID is required', 400);
+        return;
+      }
+      const body = req.body as any;
+      const notes = body?.notes || body?.approvalNote;
+      const order = await ordersService.approvePartialOrder(req.user!, id, notes);
+      successResponse(res, 'Partial order approved successfully. Order is now in PROCESSING.', {
+        order,
+      });
+    } catch (error) {
+      handleOrderError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/orders/:id/reject-partial or PATCH /api/v1/orders/:id/reject
+ * @desc    Reject partial/modified order (Retailer Admin/Staff or Super Admin)
+ * @access  Protected (Retailer Admin, Staff, Super Admin)
+ */
+export const rejectPartialOrder: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Order ID is required', 400);
+        return;
+      }
+      const body = req.body as RejectPartialOrderInput;
+      const reason = body?.reason || body?.rejectionReason;
+      const order = await ordersService.rejectPartialOrder(req.user!, id, reason);
+      successResponse(res, 'Partial order rejected successfully', { order });
+    } catch (error) {
+      handleOrderError(res, error);
+    }
+  },
+);
+
+/**
  * @route   POST /api/v1/orders/:id/cancel
- * @desc    Cancel an order (Retailer while PENDING, or Super Admin before DELIVERED)
+ * @desc    Cancel an order (Retailer while PENDING/AWAITING, or Super Admin before DELIVERED)
  * @access  Protected (Admin, Staff, Super Admin)
  */
 export const cancelOrder: RequestHandler = asyncHandler(
@@ -135,3 +229,4 @@ export const cancelOrder: RequestHandler = asyncHandler(
     }
   },
 );
+
