@@ -82,6 +82,7 @@ export type {
   UpdateDraftOrderDto,
   AddDraftOrderItemDto,
   UpdateDraftOrderItemDto,
+  BulkRemoveDraftOrderItemsDto,
   DraftOrderFilterParams,
 } from './types/draft-order';
 export type {

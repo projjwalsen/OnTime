@@ -865,6 +865,67 @@ export class DraftOrdersService {
   }
 
   /**
+   * Bulk remove line items from a draft order.
+   */
+  async bulkRemoveItemsFromDraft(
+    caller: AuthContext,
+    draftOrderId: string,
+    itemIds: string[],
+  ): Promise<DraftOrder> {
+    const organisationId = this.assertRetailerAccess(caller);
+
+    const draft = await prisma.draftOrder.findUnique({
+      where: { id: draftOrderId },
+    });
+
+    if (!draft) {
+      throw new DraftOrderError('Draft order not found', 404);
+    }
+
+    if (draft.organisationId !== organisationId) {
+      throw new DraftOrderError(
+        'Forbidden: Cannot modify draft orders belonging to another organisation',
+        403,
+      );
+    }
+
+    if (!itemIds || itemIds.length === 0) {
+      return this.getDraftOrderById(caller, draftOrderId);
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      await tx.draftOrderItem.deleteMany({
+        where: {
+          draftOrderId,
+          id: { in: itemIds },
+        },
+      });
+
+      const allItems = await tx.draftOrderItem.findMany({
+        where: { draftOrderId },
+      });
+      const subtotal = allItems.reduce((acc, curr) => acc + Number(curr.totalPrice), 0);
+      const totalAmount = subtotal;
+
+      const updated = await tx.draftOrder.update({
+        where: { id: draftOrderId },
+        data: { subtotal, totalAmount },
+        include: {
+          items: {
+            include: { product: true, variant: true },
+            orderBy: { createdAt: 'asc' },
+          },
+          organisation: true,
+          createdBy: true,
+        },
+      });
+
+      return formatDraftOrder(updated);
+    });
+  }
+
+
+  /**
    * Delete / discard a draft order.
    */
   async deleteDraftOrder(caller: AuthContext, id: string): Promise<void> {

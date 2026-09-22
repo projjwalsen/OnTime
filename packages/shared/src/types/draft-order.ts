@@ -89,6 +89,13 @@ export interface UpdateDraftOrderItemDto {
 }
 
 /**
+ * Payload for bulk removing items from a draft order.
+ */
+export interface BulkRemoveDraftOrderItemsDto {
+  itemIds: string[];
+}
+
+/**
  * Query parameters for filtering draft orders.
  */
 export interface DraftOrderFilterParams {
@@ -98,3 +105,4 @@ export interface DraftOrderFilterParams {
   startDate?: string;
   endDate?: string;
 }
+

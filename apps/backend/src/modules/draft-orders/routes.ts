@@ -7,6 +7,7 @@ import {
   addItemToDraft,
   updateDraftItem,
   removeItemFromDraft,
+  bulkRemoveItemsFromDraft,
   deleteDraftOrder,
   convertDraftOrder,
 } from './controller';
@@ -18,6 +19,7 @@ import {
   updateDraftOrderSchema,
   addDraftOrderItemSchema,
   updateDraftOrderItemSchema,
+  bulkRemoveDraftOrderItemsSchema,
   convertDraftOrderSchema,
   draftOrderFilterQuerySchema,
 } from './validator';
@@ -72,6 +74,24 @@ router.delete('/:id', deleteDraftOrder);
 router.post('/:id/items', validateBody(addDraftOrderItemSchema), addItemToDraft);
 
 /**
+ * @route   DELETE /api/v1/draft-orders/:id/items
+ * @desc    Bulk remove line items from a draft order
+ * @access  Protected (Retailer Admin / Staff only)
+ */
+router.delete('/:id/items', validateBody(bulkRemoveDraftOrderItemsSchema), bulkRemoveItemsFromDraft);
+
+/**
+ * @route   POST /api/v1/draft-orders/:id/items/bulk-remove
+ * @desc    Bulk remove line items from a draft order (POST alias for clients with DELETE body restrictions)
+ * @access  Protected (Retailer Admin / Staff only)
+ */
+router.post(
+  '/:id/items/bulk-remove',
+  validateBody(bulkRemoveDraftOrderItemsSchema),
+  bulkRemoveItemsFromDraft,
+);
+
+/**
  * @route   PATCH /api/v1/draft-orders/:id/items/:itemId
  * @desc    Update quantity or variant of an item in a draft order
  * @access  Protected (Retailer Admin / Staff only)
@@ -84,6 +104,7 @@ router.patch('/:id/items/:itemId', validateBody(updateDraftOrderItemSchema), upd
  * @access  Protected (Retailer Admin / Staff only)
  */
 router.delete('/:id/items/:itemId', removeItemFromDraft);
+
 
 /**
  * @route   POST /api/v1/draft-orders/:id/convert
