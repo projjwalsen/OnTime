@@ -45,6 +45,7 @@ import {
   type UpdateDraftOrderDto,
   type AddDraftOrderItemDto,
   type UpdateDraftOrderItemDto,
+  type BulkRemoveDraftOrderItemsDto,
   type DraftOrderFilterParams,
   UserRole,
 } from '@ontime/shared';
@@ -873,6 +874,20 @@ class ApiClient {
       },
     );
   }
+
+  async bulkRemoveDraftOrderItems(
+    draftOrderId: string,
+    dto: BulkRemoveDraftOrderItemsDto,
+  ): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>(
+      `/v1/draft-orders/${draftOrderId}/items/bulk-remove`,
+      {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      },
+    );
+  }
+
 
   async deleteDraftOrder(id: string): Promise<ApiResponse<null>> {
     return this.request<null>(`/v1/draft-orders/${id}`, {

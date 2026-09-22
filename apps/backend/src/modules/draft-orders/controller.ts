@@ -7,6 +7,7 @@ import {
   type UpdateDraftOrderInput,
   type AddDraftOrderItemInput,
   type UpdateDraftOrderItemInput,
+  type BulkRemoveDraftOrderItemsInput,
   type ConvertDraftOrderInput,
   type DraftOrderFilterInput,
 } from './validator';
@@ -164,6 +165,33 @@ export const removeItemFromDraft: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * @route   DELETE /api/v1/draft-orders/:id/items or POST /api/v1/draft-orders/:id/items/bulk-remove
+ * @desc    Bulk remove line items from a draft order
+ * @access  Protected
+ */
+export const bulkRemoveItemsFromDraft: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Draft order ID is required', 400);
+        return;
+      }
+      const dto = req.body as BulkRemoveDraftOrderItemsInput;
+      const draftOrder = await draftOrdersService.bulkRemoveItemsFromDraft(
+        req.user!,
+        id,
+        dto.itemIds,
+      );
+      successResponse(res, 'Items removed from draft order successfully', { draftOrder });
+    } catch (error) {
+      handleDraftOrderError(res, error);
+    }
+  },
+);
+
 
 /**
  * @route   DELETE /api/v1/draft-orders/:id
