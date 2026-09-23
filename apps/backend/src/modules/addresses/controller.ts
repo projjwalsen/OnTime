@@ -11,9 +11,12 @@ import { type CreateAddressInput, type UpdateAddressInput } from './validator';
  */
 export const listAddresses: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const organisationId = req.user?.organisationId;
+    const organisationId =
+      req.user?.organisationId ||
+      (req.query.organisationId as string | undefined);
+
     if (!organisationId) {
-      errorResponse(res, 'Organisation context required', 400);
+      errorResponse(res, 'Organisation context required. Provide a retailer user token or organisationId query parameter.', 400);
       return;
     }
 
@@ -29,13 +32,16 @@ export const listAddresses: RequestHandler = asyncHandler(
  */
 export const createAddress: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const organisationId = req.user?.organisationId;
+    const dto = req.body as CreateAddressInput;
+    const organisationId =
+      req.user?.organisationId ||
+      (req.body.organisationId as string | undefined);
+
     if (!organisationId) {
-      errorResponse(res, 'Organisation context required', 400);
+      errorResponse(res, 'Organisation context required. Provide a retailer user token or organisationId in request body.', 400);
       return;
     }
 
-    const dto = req.body as CreateAddressInput;
     const address = await addressesService.createAddress(organisationId, dto);
     successResponse(res, 'Address created successfully', { address }, 201);
   },

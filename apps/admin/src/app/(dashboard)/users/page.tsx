@@ -6,6 +6,7 @@ import { api } from '../../../lib/api';
 import { User, Organisation, UserRole } from '@ontime/shared';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
+import { Pagination } from '../../../components/ui/Pagination';
 
 export default function UsersPage() {
   const { error: toastError } = useToast();
@@ -14,21 +15,31 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.getUsers({
+        page,
+        limit,
         ...(search.trim() ? { search: search.trim() } : {}),
       });
       if (res.success && res.data) {
         setUsers(res.data.users);
+        setTotalPages(res.data.pagination?.totalPages || 1);
+        setTotalCount(res.data.pagination?.total || 0);
       }
     } catch {
       toastError('Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, [search, toastError]);
+  }, [page, limit, search, toastError]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -79,7 +90,10 @@ export default function UsersPage() {
             style={{ paddingLeft: '38px', height: '40px' }}
             placeholder="Search by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -209,6 +223,21 @@ export default function UsersPage() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination ── */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          isLoading={loading}
+        />
       </div>
     </div>
   );

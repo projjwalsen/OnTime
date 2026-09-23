@@ -9,6 +9,7 @@ export class AddressError extends Error {
   ) {
     super(message);
     this.name = 'AddressError';
+    Object.setPrototypeOf(this, AddressError.prototype);
   }
 }
 
