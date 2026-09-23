@@ -163,8 +163,7 @@ export default function ProductsPage() {
           images: [...prev.images, ...newUrls],
         }));
         success(
-          `Uploaded ${res.data.files.length} ${
-            res.data.files.length === 1 ? 'image' : 'images'
+          `Uploaded ${res.data.files.length} ${res.data.files.length === 1 ? 'image' : 'images'
           } to Supabase bucket!`,
         );
       } else {
@@ -275,13 +274,13 @@ export default function ProductsPage() {
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
         ...(formData.variants.length > 0
           ? {
-              variants: formData.variants.map((v): ProductVariantDto => ({
-                weight: v.weight.trim() || undefined,
-                description: v.description.trim() || undefined,
-                image: v.image.trim() || undefined,
-                price: parseFloat(v.price) || 0,
-              })),
-            }
+            variants: formData.variants.map((v): ProductVariantDto => ({
+              weight: v.weight.trim() || undefined,
+              description: v.description.trim() || undefined,
+              image: v.image.trim() || undefined,
+              price: parseFloat(v.price) || 0,
+            })),
+          }
           : {}),
       };
 
@@ -936,7 +935,7 @@ export default function ProductsPage() {
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>Product Catalog</h1>
           <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '2px' }}>
-            Manage distributor products, Supabase S3 photos, variants, and packaging notes
+            Manage distributor products, photos, variants, and packaging notes
           </p>
         </div>
 
