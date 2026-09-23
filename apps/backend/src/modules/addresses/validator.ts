@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const createAddressSchema = z.object({
+  organisationId: z.string().optional(),
   label: z.string({ message: 'Address label is required' }).min(1, 'Label cannot be empty').trim(),
   streetAddress: z.string({ message: 'Street address is required' }).min(2, 'Street address is required').trim(),
   city: z.string({ message: 'City is required' }).min(1, 'City is required').trim(),

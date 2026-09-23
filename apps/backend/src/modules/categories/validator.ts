@@ -13,7 +13,7 @@ export const updateCategorySchema = createCategorySchema.partial();
 export const categoryFilterQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(100).default(20).optional(),
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
