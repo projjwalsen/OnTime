@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Filter, RefreshCw, Eye, ArrowUpRight, Clock, CheckCircle2, AlertCircle, Package } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { OrderStatusBadge } from '../../../components/orders/OrderStatusBadge';
+import { Pagination } from '../../../components/ui/Pagination';
 import {
   type Order,
   type OrderSummaryStats,
@@ -49,6 +50,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [orgFilter, setOrgFilter] = useState<string>('');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -58,7 +60,7 @@ export default function OrdersPage() {
       const [ordersRes, statsRes, orgsRes] = await Promise.all([
         api.getOrders({
           page,
-          limit: 15,
+          limit,
           search: search.trim() || undefined,
           status: (statusFilter as OrderStatus) || undefined,
           organisationId: orgFilter || undefined,
@@ -90,7 +92,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     loadData();
-  }, [page, statusFilter, orgFilter]);
+  }, [page, limit, statusFilter, orgFilter]);
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -419,41 +421,19 @@ export default function OrdersPage() {
         </div>
 
         {/* ── Pagination ── */}
-        {totalPages > 1 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid var(--border-figma)',
-            }}
-          >
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-              Page {page} of {totalPages}
-            </span>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="btn-secondary"
-                style={{ height: '34px', padding: '0 12px' }}
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="btn-secondary"
-                style={{ height: '34px', padding: '0 12px' }}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 15, 25, 50]}
+          isLoading={loading}
+        />
       </div>
     </div>
   );

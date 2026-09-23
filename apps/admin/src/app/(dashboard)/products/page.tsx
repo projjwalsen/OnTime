@@ -30,6 +30,7 @@ import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
+import { Pagination } from '../../../components/ui/Pagination';
 
 interface VariantFormItem {
   id?: string;
@@ -47,6 +48,12 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -80,6 +87,8 @@ export default function ProductsPage() {
     try {
       const [prodsRes, catsRes] = await Promise.all([
         api.getProducts({
+          page,
+          limit,
           ...(search.trim() ? { search: search.trim() } : {}),
           ...(categoryFilter ? { categoryId: categoryFilter } : {}),
         }),
@@ -88,6 +97,8 @@ export default function ProductsPage() {
 
       if (prodsRes.success && prodsRes.data) {
         setProducts(prodsRes.data.products);
+        setTotalPages(prodsRes.data.pagination?.totalPages || 1);
+        setTotalCount(prodsRes.data.pagination?.total || 0);
       }
       if (catsRes.success && catsRes.data) {
         setCategories(catsRes.data.categories);
@@ -97,7 +108,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, categoryFilter, toastError]);
+  }, [page, limit, search, categoryFilter, toastError]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -163,7 +174,8 @@ export default function ProductsPage() {
           images: [...prev.images, ...newUrls],
         }));
         success(
-          `Uploaded ${res.data.files.length} ${res.data.files.length === 1 ? 'image' : 'images'
+          `Uploaded ${res.data.files.length} ${
+            res.data.files.length === 1 ? 'image' : 'images'
           } to Supabase bucket!`,
         );
       } else {
@@ -274,13 +286,13 @@ export default function ProductsPage() {
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
         ...(formData.variants.length > 0
           ? {
-            variants: formData.variants.map((v): ProductVariantDto => ({
-              weight: v.weight.trim() || undefined,
-              description: v.description.trim() || undefined,
-              image: v.image.trim() || undefined,
-              price: parseFloat(v.price) || 0,
-            })),
-          }
+              variants: formData.variants.map((v): ProductVariantDto => ({
+                weight: v.weight.trim() || undefined,
+                description: v.description.trim() || undefined,
+                image: v.image.trim() || undefined,
+                price: parseFloat(v.price) || 0,
+              })),
+            }
           : {}),
       };
 
@@ -977,7 +989,10 @@ export default function ProductsPage() {
               style={{ paddingLeft: '38px', height: '40px' }}
               placeholder="Search by product name or SKU..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </div>
@@ -988,7 +1003,10 @@ export default function ProductsPage() {
             className="form-input"
             style={{ width: 'auto', height: '40px', padding: '0 10px', fontSize: '0.85rem' }}
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
@@ -1270,6 +1288,21 @@ export default function ProductsPage() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination ── */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          isLoading={loading}
+        />
       </div>
 
       {/* Create Product Modal */}

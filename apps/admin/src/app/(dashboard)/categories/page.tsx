@@ -8,15 +8,20 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { useToast } from '../../../components/ui/Toast';
+import { Pagination } from '../../../components/ui/Pagination';
 
 export default function CategoriesPage() {
   const { success, error: toastError } = useToast();
 
-  const [categories, setCategories] = useState<Category[]>(
-    [],
-  );
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -33,16 +38,22 @@ export default function CategoriesPage() {
   const loadCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.getCategories({ search: search || undefined });
+      const res = await api.getCategories({
+        page,
+        limit,
+        search: search || undefined,
+      });
       if (res.success && res.data) {
         setCategories(res.data.categories);
+        setTotalPages(res.data.pagination?.totalPages || 1);
+        setTotalCount(res.data.pagination?.total || res.data.categories.length);
       }
     } catch {
       toastError('Failed to load categories');
     } finally {
       setLoading(false);
     }
-  }, [search, toastError]);
+  }, [page, limit, search, toastError]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -183,7 +194,10 @@ export default function CategoriesPage() {
             style={{ paddingLeft: '38px', height: '40px' }}
             placeholder="Search categories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -295,6 +309,21 @@ export default function CategoriesPage() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination ── */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50]}
+          isLoading={loading}
+        />
       </div>
 
       {/* Create Modal */}

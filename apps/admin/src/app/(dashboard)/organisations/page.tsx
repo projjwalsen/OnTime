@@ -9,6 +9,7 @@ import { Input } from '../../../components/ui/Input';
 import { Modal } from '../../../components/ui/Modal';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
+import { Pagination } from '../../../components/ui/Pagination';
 
 export default function OrganisationsPage() {
   const { success, error: toastError } = useToast();
@@ -17,6 +18,12 @@ export default function OrganisationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrganisationStatus | ''>('');
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Create Org Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,12 +42,16 @@ export default function OrganisationsPage() {
     setLoading(true);
     try {
       const res = await api.getOrganisations({
+        page,
+        limit,
         ...(search.trim() ? { search: search.trim() } : {}),
         ...(statusFilter ? { status: statusFilter } : {}),
       });
 
       if (res.success && res.data) {
         setOrganisations(res.data.organisations);
+        setTotalPages(res.data.pagination?.totalPages || 1);
+        setTotalCount(res.data.pagination?.total || 0);
       } else {
         toastError(res.error || 'Failed to load organisations');
       }
@@ -49,7 +60,7 @@ export default function OrganisationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, toastError]);
+  }, [page, limit, search, statusFilter, toastError]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -180,7 +191,10 @@ export default function OrganisationsPage() {
               style={{ paddingLeft: '38px', height: '40px' }}
               placeholder="Search by organisation name, email or city..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </div>
@@ -191,7 +205,10 @@ export default function OrganisationsPage() {
             className="form-input"
             style={{ width: 'auto', height: '40px', padding: '0 10px', fontSize: '0.85rem' }}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as OrganisationStatus | '')}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as OrganisationStatus | '');
+              setPage(1);
+            }}
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -367,6 +384,21 @@ export default function OrganisationsPage() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination ── */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          isLoading={loading}
+        />
       </div>
 
       {/* Onboard Organisation Modal */}
