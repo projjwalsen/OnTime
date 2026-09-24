@@ -18,16 +18,35 @@ export const createOrganisationSchema = z.object({
   taxNumber: z.string().optional(),
 });
 
+export const updateBusinessDetailsSchema = z.object({
+  name: z.string().min(2, 'Business name must be at least 2 characters').trim().optional(),
+  contactPerson: z.string().min(2, 'Contact person name must be at least 2 characters').trim().optional(),
+  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
+  mobile: z.string().trim().optional(),
+  taxNumber: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  area: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+});
+
 export const updateOrganisationSchema = z.object({
-  name: z.string().min(2).trim().optional(),
-  mobile: z.string().optional(),
-  address: z.string().optional(),
-  area: z.string().optional(),
-  city: z.string().optional(),
-  taxNumber: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters').trim().optional(),
+  contactPerson: z.string().min(2, 'Contact person must be at least 2 characters').trim().optional(),
+  email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
+  mobile: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  area: z.string().trim().optional(),
+  city: z.string().trim().optional(),
+  taxNumber: z.string().trim().optional(),
   status: z
     .enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED])
     .optional(),
+});
+
+export const updateOrganisationStatusSchema = z.object({
+  status: z.enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED], {
+    message: 'Valid status (ACTIVE, INACTIVE, SUSPENDED) is required',
+  }),
 });
 
 export const organisationFilterQuerySchema = z.object({
@@ -42,4 +61,6 @@ export const organisationFilterQuerySchema = z.object({
 
 export type CreateOrganisationInput = z.infer<typeof createOrganisationSchema>;
 export type UpdateOrganisationInput = z.infer<typeof updateOrganisationSchema>;
+export type UpdateBusinessDetailsInput = z.infer<typeof updateBusinessDetailsSchema>;
+export type UpdateOrganisationStatusInput = z.infer<typeof updateOrganisationStatusSchema>;
 export type OrganisationFilterInput = z.infer<typeof organisationFilterQuerySchema>;

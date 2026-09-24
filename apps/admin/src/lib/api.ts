@@ -19,8 +19,10 @@ import {
   type InviteUserDto,
   type User,
   type Organisation,
+  type BusinessDetails,
   type CreateOrganisationDto,
   type UpdateOrganisationDto,
+  type UpdateBusinessDetailsDto,
   type Product,
   type CreateProductDto,
   type UpdateProductDto,
@@ -460,6 +462,24 @@ class ApiClient {
     return this.request(`/organisations/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  async getBusinessDetails(
+    organisationId?: string,
+  ): Promise<{ success: boolean; data?: { businessDetails: BusinessDetails }; error?: string }> {
+    const query = organisationId ? `?organisationId=${organisationId}` : '';
+    return this.request(`/organisations/business-details${query}`);
+  }
+
+  async updateBusinessDetails(
+    dto: UpdateBusinessDetailsDto,
+    organisationId?: string,
+  ): Promise<{ success: boolean; data?: { businessDetails: BusinessDetails }; error?: string }> {
+    const query = organisationId ? `?organisationId=${organisationId}` : '';
+    return this.request(`/organisations/business-details${query}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
     });
   }
 

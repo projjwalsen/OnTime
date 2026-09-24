@@ -24,7 +24,8 @@
     "test:orders": "tsx src/tests/orders.test.ts",
     "test:draft-orders": "tsx src/tests/draft_orders.test.ts",
     "test:pagination": "tsx src/tests/pagination_and_filters.test.ts",
-    "test:media": "tsx src/tests/media_upload.test.ts"
+    "test:media": "tsx src/tests/media_upload.test.ts",
+    "test:business-details": "tsx src/tests/business_details.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
