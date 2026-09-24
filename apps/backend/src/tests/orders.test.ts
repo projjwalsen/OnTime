@@ -909,6 +909,123 @@ async function runTests() {
   console.log('  ✔ All 5 sequential order lifecycle events captured with timestamps, notes, and user roles');
   console.log('  ✔ Dedicated GET /api/v1/orders/:id/history endpoint verified');
 
+  // -------------------------------------------------------------
+  // TEST 13: Multiple Order Statuses Filtering
+  // -------------------------------------------------------------
+  console.log('\n--- TEST 13: Multiple Order Statuses Filtering (GET /api/v1/orders) ---');
+  
+  // 1. Comma-separated statuses (status=DELIVERED,CANCELLED)
+  const multiCommaRes = await makeRequest(
+    'GET',
+    '/api/v1/orders?status=DELIVERED,CANCELLED',
+    undefined,
+    superToken,
+  );
+  assert(
+    multiCommaRes.status === 200,
+    `Multi-status comma query failed: ${JSON.stringify(multiCommaRes.body)}`,
+  );
+  const commaOrders = multiCommaRes.body.data.orders;
+  assert(commaOrders.length > 0, 'Expected at least one DELIVERED or CANCELLED order');
+  assert(
+    commaOrders.every(
+      (o: any) => o.status === OrderStatus.DELIVERED || o.status === OrderStatus.CANCELLED,
+    ),
+    'All returned orders must be DELIVERED or CANCELLED',
+  );
+  console.log('  ✔ Comma-separated statuses (?status=DELIVERED,CANCELLED) correctly filtered');
+
+  // 2. Multiple query parameters (status=PENDING&status=DELIVERED)
+  const multiParamRes = await makeRequest(
+    'GET',
+    '/api/v1/orders?status=PENDING&status=DELIVERED',
+    undefined,
+    superToken,
+  );
+  assert(
+    multiParamRes.status === 200,
+    `Multi-status query param failed: ${JSON.stringify(multiParamRes.body)}`,
+  );
+  const paramOrders = multiParamRes.body.data.orders;
+  assert(paramOrders.length > 0, 'Expected at least one PENDING or DELIVERED order');
+  assert(
+    paramOrders.every(
+      (o: any) => o.status === OrderStatus.PENDING || o.status === OrderStatus.DELIVERED,
+    ),
+    'All returned orders must be PENDING or DELIVERED',
+  );
+  assert(
+    !paramOrders.some((o: any) => o.status === OrderStatus.CANCELLED),
+    'Must not include CANCELLED orders',
+  );
+  console.log('  ✔ Repeated status parameters (?status=PENDING&status=DELIVERED) correctly filtered');
+
+  // 3. Plural statuses parameter (statuses=DELIVERED,CANCELLED)
+  const pluralRes = await makeRequest(
+    'GET',
+    '/api/v1/orders?statuses=DELIVERED,CANCELLED',
+    undefined,
+    superToken,
+  );
+  assert(
+    pluralRes.status === 200,
+    `Plural statuses query failed: ${JSON.stringify(pluralRes.body)}`,
+  );
+  const pluralOrders = pluralRes.body.data.orders;
+  assert(
+    pluralOrders.every(
+      (o: any) => o.status === OrderStatus.DELIVERED || o.status === OrderStatus.CANCELLED,
+    ),
+    'All returned orders must be DELIVERED or CANCELLED for statuses param',
+  );
+  console.log('  ✔ Plural parameter (?statuses=DELIVERED,CANCELLED) correctly filtered');
+
+  // 4. Case-insensitive and whitespace handling (?status=pending,  delivered)
+  const caseRes = await makeRequest(
+    'GET',
+    `/api/v1/orders?status=${encodeURIComponent('pending, delivered')}`,
+    undefined,
+    superToken,
+  );
+  assert(
+    caseRes.status === 200,
+    `Case-insensitive multi-status query failed: ${JSON.stringify(caseRes.body)}`,
+  );
+  const caseOrders = caseRes.body.data.orders;
+  assert(
+    caseOrders.every(
+      (o: any) => o.status === OrderStatus.PENDING || o.status === OrderStatus.DELIVERED,
+    ),
+    'All returned orders must be PENDING or DELIVERED for case-insensitive query',
+  );
+  console.log('  ✔ Case-insensitivity and whitespace (?status=pending, delivered) correctly handled');
+
+  // 5. Invalid status rejection (?status=INVALID_STATUS)
+  const invalidRes = await makeRequest(
+    'GET',
+    '/api/v1/orders?status=INVALID_STATUS',
+    undefined,
+    superToken,
+  );
+  assert(
+    invalidRes.status === 400,
+    `Expected 400 for invalid status, got ${invalidRes.status}`,
+  );
+  console.log('  ✔ Invalid status rejected with 400 Bad Request');
+
+  // 6. Invalid status mixed in list (?status=PENDING,INVALID_STATUS)
+  const mixedInvalidRes = await makeRequest(
+    'GET',
+    '/api/v1/orders?status=PENDING,INVALID_STATUS',
+    undefined,
+    superToken,
+  );
+  assert(
+    mixedInvalidRes.status === 400,
+    `Expected 400 for invalid status in list, got ${mixedInvalidRes.status}`,
+  );
+  console.log('  ✔ Invalid status in multi-status list rejected with 400 Bad Request');
+
   console.log('\n===========================================================');
   console.log('🎉 ALL ORDER & FULFILLMENT TESTS PASSED! 🎉');
   console.log('===========================================================');
