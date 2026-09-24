@@ -922,8 +922,29 @@ export class OrdersService {
       where.organisationId = filters.organisationId;
     }
 
-    if (filters.status) {
-      where.status = filters.status;
+    const rawStatus = (filters as any).status ?? (filters as any).statuses;
+    if (rawStatus) {
+      if (Array.isArray(rawStatus)) {
+        const statuses = rawStatus
+          .flatMap((s: any) => (typeof s === 'string' ? s.split(',') : s))
+          .map((s: any) => (typeof s === 'string' ? s.trim().toUpperCase() : s))
+          .filter(Boolean) as OrderStatus[];
+        if (statuses.length === 1) {
+          where.status = statuses[0];
+        } else if (statuses.length > 1) {
+          where.status = { in: statuses };
+        }
+      } else if (typeof rawStatus === 'string') {
+        const statuses = rawStatus
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean) as OrderStatus[];
+        if (statuses.length === 1) {
+          where.status = statuses[0];
+        } else if (statuses.length > 1) {
+          where.status = { in: statuses };
+        }
+      }
     }
 
     if (filters.search && filters.search.trim()) {

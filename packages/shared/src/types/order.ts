@@ -140,7 +140,8 @@ export interface CancelOrderDto {
  * Filter parameters for querying orders.
  */
 export interface OrderFilterParams {
-  status?: OrderStatus | undefined;
+  status?: OrderStatus | OrderStatus[] | string | string[] | undefined;
+  statuses?: OrderStatus[] | string[] | undefined;
   organisationId?: string | undefined;
   search?: string | undefined;
   page?: number | undefined;

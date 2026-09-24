@@ -626,7 +626,20 @@ class ApiClient {
     const query = new URLSearchParams();
     if (params?.page !== undefined) query.set('page', params.page.toString());
     if (params?.limit !== undefined) query.set('limit', params.limit.toString());
-    if (params?.status) query.set('status', params.status);
+    if (params?.status) {
+      if (Array.isArray(params.status)) {
+        query.set('status', params.status.join(','));
+      } else {
+        query.set('status', params.status);
+      }
+    }
+    if (params?.statuses) {
+      if (Array.isArray(params.statuses)) {
+        query.set('statuses', params.statuses.join(','));
+      } else {
+        query.set('statuses', params.statuses);
+      }
+    }
     if (params?.organisationId) query.set('organisationId', params.organisationId);
     if (params?.search) query.set('search', params.search);
     if (params?.startDate) query.set('startDate', params.startDate);
