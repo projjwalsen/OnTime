@@ -35,8 +35,10 @@ export { SupportTopic, TicketStatus } from './types/support';
 export type { PaginationParams, PaginationMeta, PaginatedResult } from './types/pagination';
 export type {
   Organisation,
+  BusinessDetails,
   CreateOrganisationDto,
   UpdateOrganisationDto,
+  UpdateBusinessDetailsDto,
   OrganisationFilterParams,
 } from './types/organisation';
 export type {
