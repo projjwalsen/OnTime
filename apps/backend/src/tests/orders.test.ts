@@ -714,10 +714,34 @@ async function runTests() {
   console.log('  ✔ Super Admin stock modification set status to AWAITING and saved original quantities & note');
 
   // -------------------------------------------------------------
-  // TEST 11: Retailer Approves Partial Order -> Status becomes PROCESSING
+  // TEST 11: Retailer Admin Approves Partial Order -> Status becomes PROCESSING
   // -------------------------------------------------------------
-  console.log('\n--- TEST 11: Retailer Approves Partial Order (PROCESSING Status) ---');
-  // Retailer B trying to approve Retailer A's order -> 403
+  console.log('\n--- TEST 11: Retailer Admin Approves Partial Order (PROCESSING Status) ---');
+  // Super Admin trying to approve -> 403 (Only Retailer Admin allowed)
+  const superApproveRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
+    {},
+    superToken,
+  );
+  assert(
+    superApproveRes.status === 403,
+    `Expected 403 for Super Admin partial order approval, got ${superApproveRes.status}`,
+  );
+
+  // Staff trying to approve -> 403 (Only Retailer Admin allowed)
+  const staffApproveRes = await makeRequest(
+    'POST',
+    `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
+    {},
+    tokenAStaff,
+  );
+  assert(
+    staffApproveRes.status === 403,
+    `Expected 403 for Retailer Staff partial order approval, got ${staffApproveRes.status}`,
+  );
+
+  // Retailer B Admin trying to approve Retailer A's order -> 403
   const crossApproveRes = await makeRequest(
     'POST',
     `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
@@ -729,7 +753,7 @@ async function runTests() {
     `Expected 403 for cross-tenant partial order approval, got ${crossApproveRes.status}`,
   );
 
-  // Retailer A approves
+  // Retailer A Admin approves
   const approveRes = await makeRequest(
     'POST',
     `/api/v1/orders/${modifiedOrder.id}/approve-partial`,
