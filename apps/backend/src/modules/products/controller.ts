@@ -19,6 +19,23 @@ function handleProductError(res: Response, error: unknown): void {
 }
 
 /**
+ * @route   GET /api/v1/products/recent-purchases
+ * @desc    Get recently purchased products for authenticated retailer organisation / user
+ * @access  Protected
+ */
+export const getRecentPurchases: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const filters = req.query as unknown as ProductFilterInput;
+      const result = await productsService.getRecentPurchases(req.user!, filters);
+      successResponse(res, 'Recent purchased products retrieved successfully', result);
+    } catch (error) {
+      handleProductError(res, error);
+    }
+  },
+);
+
+/**
  * @route   GET /api/v1/products
  * @desc    List and search products in catalog with multi-field search, filters, and pagination
  * @access  Protected

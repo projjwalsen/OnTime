@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { listProducts, createProduct, getProductById, updateProduct } from './controller';
+import {
+  listProducts,
+  createProduct,
+  getProductById,
+  updateProduct,
+  getRecentPurchases,
+} from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
@@ -12,6 +18,32 @@ import {
 const router = Router();
 
 router.use(authMiddleware);
+
+/**
+ * @route   GET /api/v1/products/recent-purchases (and /recent-purchase, /recent-purchased, /recent)
+ * @desc    Get recently purchased products for authenticated retailer organisation / user
+ * @access  Protected
+ */
+router.get(
+  '/recent-purchases',
+  validateRequest({ query: productFilterQuerySchema }),
+  getRecentPurchases,
+);
+router.get(
+  '/recent-purchase',
+  validateRequest({ query: productFilterQuerySchema }),
+  getRecentPurchases,
+);
+router.get(
+  '/recent-purchased',
+  validateRequest({ query: productFilterQuerySchema }),
+  getRecentPurchases,
+);
+router.get(
+  '/recent',
+  validateRequest({ query: productFilterQuerySchema }),
+  getRecentPurchases,
+);
 
 /**
  * @route   GET /api/v1/products
