@@ -160,9 +160,9 @@ export const modifyOrderStock: RequestHandler = asyncHandler(
 );
 
 /**
- * @route   POST /api/v1/orders/:id/approve-partial or PATCH /api/v1/orders/:id/approve
- * @desc    Approve partial/modified order (Retailer Admin/Staff or Super Admin)
- * @access  Protected (Retailer Admin, Staff, Super Admin)
+ * @route   POST /api/v1/orders/:id/approve-partial or POST /api/v1/orders/:id/approve
+ * @desc    Approve partial/modified order (Retailer Admin only)
+ * @access  Protected (Retailer Admin only)
  */
 export const approvePartialOrder: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {

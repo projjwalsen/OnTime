@@ -12,7 +12,7 @@ import {
   cancelOrder,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
-import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
+import { requireDistributorAdmin, requireRetailerAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
 import {
   createOrderSchema,
@@ -86,16 +86,18 @@ router.put(
 
 /**
  * @route   POST /api/v1/orders/:id/approve-partial, POST /api/v1/orders/:id/approve
- * @desc    Approve partial/modified order (Retailer Admin/Staff or Super Admin)
- * @access  Protected
+ * @desc    Approve partial/modified order (Retailer Admin only)
+ * @access  Protected (Retailer Admin only)
  */
 router.post(
   '/:id/approve-partial',
+  requireRetailerAdmin,
   validateBody(approvePartialOrderSchema),
   approvePartialOrder,
 );
 router.post(
   '/:id/approve',
+  requireRetailerAdmin,
   validateBody(approvePartialOrderSchema),
   approvePartialOrder,
 );

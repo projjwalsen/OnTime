@@ -50,6 +50,14 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 }
 
 /**
+ * Retailer Admin (Organisation Admin) only access guard.
+ * Allows only ADMIN (Super Admin and Staff are forbidden).
+ */
+export function requireRetailerAdmin(req: Request, res: Response, next: NextFunction): void {
+  return requireRoles([UserRole.ADMIN])(req, res, next);
+}
+
+/**
  * Organisation member access guard.
  * Allows any authenticated user belonging to an organisation (ADMIN or STAFF).
  */

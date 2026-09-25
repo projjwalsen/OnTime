@@ -679,7 +679,7 @@ export class OrdersService {
   }
 
   /**
-   * Approve Partial / Modified Order (Retailer or Super Admin on retailer's behalf).
+   * Approve Partial / Modified Order (Retailer Admin only).
    * Transitions the order into PROCESSING and dispatches notification to Super Admin.
    */
   async approvePartialOrder(
@@ -703,8 +703,16 @@ export class OrdersService {
       throw new OrderError('Order not found', 404);
     }
 
+    // Role authorization: Only Retailer Admin can approve partial orders
+    if (caller.role !== UserRole.ADMIN) {
+      throw new OrderError(
+        'Forbidden: Only Retailer Admin can approve partial orders',
+        403,
+      );
+    }
+
     // Tenant authorization
-    if (caller.role !== UserRole.SUPER_ADMIN && existing.organisationId !== caller.organisationId) {
+    if (existing.organisationId !== caller.organisationId) {
       throw new OrderError(
         'Forbidden: Cannot approve orders belonging to another organisation',
         403,
