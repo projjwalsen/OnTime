@@ -1,5 +1,11 @@
 import { prisma } from '../../lib/prisma';
-import { type Product, type ProductVariant, type PaginationMeta } from '@ontime/shared';
+import {
+  type Product,
+  type ProductVariant,
+  type PaginationMeta,
+  type AuthContext,
+  OrderStatus,
+} from '@ontime/shared';
 import {
   type CreateProductInput,
   type UpdateProductInput,
@@ -397,6 +403,208 @@ export class ProductsService {
     });
 
     return formatProduct(p);
+  }
+
+  /**
+   * Get recently purchased products for the authenticated organisation or user.
+   */
+  async getRecentPurchases(
+    authContext: AuthContext,
+    filters?: ProductFilterInput,
+  ): Promise<ListProductsResult> {
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.min(100, Math.max(1, filters?.limit || 20));
+    const skip = (page - 1) * limit;
+
+    // Filter orders by organisation if present (for retailer users), otherwise for super admin across all orders
+    const orderWhere: any = {
+      status: {
+        notIn: [OrderStatus.CANCELLED, OrderStatus.REJECTED],
+      },
+    };
+
+    if (authContext.organisationId) {
+      orderWhere.organisationId = authContext.organisationId;
+    }
+
+    // Build product filter conditions if search/filters provided
+    const productWhere: any = {};
+    const andConditions: any[] = [];
+
+    if (filters?.isActive !== undefined) {
+      andConditions.push({ isActive: filters.isActive });
+    } else {
+      andConditions.push({ isActive: true });
+    }
+
+    const searchTerm = (filters?.search || filters?.q)?.trim();
+    if (searchTerm) {
+      const orConditions: any[] = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { sku: { contains: searchTerm, mode: 'insensitive' } },
+        { id: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } },
+        { unit: { contains: searchTerm, mode: 'insensitive' } },
+        { packagingNote: { contains: searchTerm, mode: 'insensitive' } },
+        { category: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { category: { description: { contains: searchTerm, mode: 'insensitive' } } },
+        {
+          variants: {
+            some: {
+              OR: [
+                { weight: { contains: searchTerm, mode: 'insensitive' } },
+                { description: { contains: searchTerm, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
+      ];
+
+      const numericVal = Number(searchTerm);
+      if (!isNaN(numericVal) && numericVal > 0) {
+        orConditions.push({ price: numericVal });
+        orConditions.push({
+          variants: {
+            some: {
+              price: numericVal,
+            },
+          },
+        });
+      }
+
+      andConditions.push({ OR: orConditions });
+    }
+
+    if (filters?.id && filters.id.trim()) {
+      andConditions.push({ id: { contains: filters.id.trim(), mode: 'insensitive' } });
+    }
+
+    if (filters?.name && filters.name.trim()) {
+      andConditions.push({ name: { contains: filters.name.trim(), mode: 'insensitive' } });
+    }
+
+    if (filters?.sku && filters.sku.trim()) {
+      andConditions.push({ sku: { contains: filters.sku.trim(), mode: 'insensitive' } });
+    }
+
+    if (filters?.description && filters.description.trim()) {
+      andConditions.push({
+        description: { contains: filters.description.trim(), mode: 'insensitive' },
+      });
+    }
+
+    if (filters?.unit && filters.unit.trim()) {
+      andConditions.push({ unit: { contains: filters.unit.trim(), mode: 'insensitive' } });
+    }
+
+    if (filters?.packagingNote && filters.packagingNote.trim()) {
+      andConditions.push({
+        packagingNote: { contains: filters.packagingNote.trim(), mode: 'insensitive' },
+      });
+    }
+
+    if (filters?.categoryName && filters.categoryName.trim()) {
+      andConditions.push({
+        category: {
+          name: { contains: filters.categoryName.trim(), mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (filters?.categoryId && filters.categoryId.trim()) {
+      andConditions.push({ categoryId: filters.categoryId.trim() });
+    }
+
+    if (filters?.price !== undefined) {
+      andConditions.push({ price: filters.price });
+    }
+
+    if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
+      const priceFilter: any = {};
+      if (filters.minPrice !== undefined) {
+        priceFilter.gte = filters.minPrice;
+      }
+      if (filters.maxPrice !== undefined) {
+        priceFilter.lte = filters.maxPrice;
+      }
+      andConditions.push({ price: priceFilter });
+    }
+
+    if (andConditions.length > 0) {
+      productWhere.AND = andConditions;
+    }
+
+    // Fetch recent order items ordered by order creation date descending
+    const orderItems = await prisma.orderItem.findMany({
+      where: {
+        order: orderWhere,
+        product: productWhere,
+      },
+      orderBy: [
+        { order: { createdAt: 'desc' } },
+        { createdAt: 'desc' },
+      ],
+      select: {
+        productId: true,
+      },
+      take: 2000,
+    });
+
+    // Deduplicate product IDs while preserving the most recent purchase order
+    const seenProductIds = new Set<string>();
+    const uniqueProductIds: string[] = [];
+
+    for (const item of orderItems) {
+      if (item.productId && !seenProductIds.has(item.productId)) {
+        seenProductIds.add(item.productId);
+        uniqueProductIds.push(item.productId);
+      }
+    }
+
+    const total = uniqueProductIds.length;
+    const pageProductIds = uniqueProductIds.slice(skip, skip + limit);
+
+    if (pageProductIds.length === 0) {
+      return {
+        products: [],
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit) || 1,
+        },
+      };
+    }
+
+    // Fetch full product details for the paginated product IDs
+    const products = await prisma.product.findMany({
+      where: {
+        id: { in: pageProductIds },
+      },
+      include: {
+        category: true,
+        variants: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    // Restore the recency order since SQL `IN` does not guarantee order
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const orderedProducts = pageProductIds
+      .map((id) => productMap.get(id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+      .map(formatProduct);
+
+    return {
+      products: orderedProducts,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 }
 

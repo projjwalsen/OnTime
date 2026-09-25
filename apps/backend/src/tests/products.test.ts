@@ -478,6 +478,218 @@ async function runTests() {
   );
   console.log('  ✔ Specific field filters (categoryName, unit, sku, minPrice, maxPrice) verified');
 
+  // Test 9: Recent Product Purchases API
+  console.log('\n--- TEST 9: Recent Product Purchases API (/api/v1/products/recent-purchases) ---');
+  const orgName = `Recent Test Store ${Date.now()}`;
+  const org = await prisma.organisation.create({
+    data: {
+      name: orgName,
+      email: `retailer.recent.${Date.now()}@example.com`,
+      status: 'ACTIVE',
+    },
+  });
+
+  const retailerUserEmail = `retailer.admin.${Date.now()}@example.com`;
+  const retailerUser = await prisma.user.create({
+    data: {
+      email: retailerUserEmail,
+      name: 'Retailer Admin Tester',
+      passwordHash,
+      role: UserRole.ADMIN,
+      organisationId: org.id,
+      isActive: true,
+    },
+  });
+
+  const retailerLoginRes = await makeRequest('POST', '/api/v1/auth/login', {
+    email: retailerUserEmail,
+    password,
+  });
+  assert(retailerLoginRes.status === 200, 'Retailer login failed');
+  const retailerToken = retailerLoginRes.body.data.tokens.accessToken;
+
+  // 9a: Empty recent purchases when no orders placed
+  const emptyRecentRes = await makeRequest(
+    'GET',
+    '/api/v1/products/recent-purchases',
+    undefined,
+    retailerToken,
+  );
+  assert(emptyRecentRes.status === 200, 'Empty recent purchases request failed');
+  assert(
+    Array.isArray(emptyRecentRes.body.data.products) &&
+      emptyRecentRes.body.data.products.length === 0,
+    'Expected empty products list for new retailer',
+  );
+  assert(
+    emptyRecentRes.body.data.pagination.total === 0,
+    'Expected total 0 in pagination for new retailer',
+  );
+  console.log('  ✔ Empty recent purchases for new retailer verified');
+
+  // Create test products for orders
+  const prodA = await prisma.product.create({
+    data: {
+      name: `Recent Item Alpha ${Date.now()}`,
+      sku: `SKU-ALPHA-${Date.now()}`,
+      price: 50.0,
+      unit: 'piece',
+      isActive: true,
+      categoryId,
+    },
+  });
+  const prodB = await prisma.product.create({
+    data: {
+      name: `Recent Item Beta ${Date.now()}`,
+      sku: `SKU-BETA-${Date.now()}`,
+      price: 75.0,
+      unit: 'kg',
+      isActive: true,
+      categoryId,
+    },
+  });
+  const prodC = await prisma.product.create({
+    data: {
+      name: `Recent Item Gamma ${Date.now()}`,
+      sku: `SKU-GAMMA-${Date.now()}`,
+      price: 120.0,
+      unit: 'bottle',
+      isActive: true,
+      categoryId,
+    },
+  });
+
+  // Create Order 1 (older): Item A and Item B
+  const order1 = await prisma.order.create({
+    data: {
+      orderNumber: `ORD-REC-1-${Date.now()}`,
+      organisationId: org.id,
+      createdByUserId: retailerUser.id,
+      status: 'CONFIRMED',
+      subtotal: 125.0,
+      totalAmount: 125.0,
+      createdAt: new Date(Date.now() - 100000),
+      items: {
+        create: [
+          {
+            productId: prodA.id,
+            productName: prodA.name,
+            productSku: prodA.sku,
+            unitPrice: 50.0,
+            quantity: 2,
+            totalPrice: 100.0,
+          },
+          {
+            productId: prodB.id,
+            productName: prodB.name,
+            productSku: prodB.sku,
+            unitPrice: 75.0,
+            quantity: 1,
+            totalPrice: 75.0,
+          },
+        ],
+      },
+    },
+  });
+
+  // Create Order 2 (newer): Item C and Item A
+  const order2 = await prisma.order.create({
+    data: {
+      orderNumber: `ORD-REC-2-${Date.now()}`,
+      organisationId: org.id,
+      createdByUserId: retailerUser.id,
+      status: 'CONFIRMED',
+      subtotal: 170.0,
+      totalAmount: 170.0,
+      createdAt: new Date(Date.now() - 50000),
+      items: {
+        create: [
+          {
+            productId: prodC.id,
+            productName: prodC.name,
+            productSku: prodC.sku,
+            unitPrice: 120.0,
+            quantity: 1,
+            totalPrice: 120.0,
+          },
+          {
+            productId: prodA.id,
+            productName: prodA.name,
+            productSku: prodA.sku,
+            unitPrice: 50.0,
+            quantity: 1,
+            totalPrice: 50.0,
+          },
+        ],
+      },
+    },
+  });
+
+  // 9b: Fetch recent purchases and verify order & deduplication
+  const recentPurchasesRes = await makeRequest(
+    'GET',
+    '/api/v1/products/recent-purchases',
+    undefined,
+    retailerToken,
+  );
+  assert(recentPurchasesRes.status === 200, 'Recent purchases request failed');
+  const recentProds = recentPurchasesRes.body.data.products;
+  assert(recentProds.length === 3, `Expected 3 distinct recent products, got ${recentProds.length}`);
+  // Order 2 is newer (C, A), Order 1 is older (A, B) -> first items should be from Order 2
+  const recentIds = recentProds.map((p: any) => p.id);
+  assert(
+    recentIds[0] === prodC.id || recentIds[0] === prodA.id,
+    'Most recent order products should appear first',
+  );
+  assert(recentIds.includes(prodB.id), 'Product B should be in recent purchases');
+  console.log('  ✔ Recent purchased products deduplication & ordering verified');
+
+  // 9c: Pagination test
+  const paginatedRecentRes = await makeRequest(
+    'GET',
+    '/api/v1/products/recent-purchases?limit=2&page=1',
+    undefined,
+    retailerToken,
+  );
+  assert(paginatedRecentRes.status === 200, 'Paginated recent purchases failed');
+  assert(
+    paginatedRecentRes.body.data.products.length === 2,
+    `Expected 2 items with limit=2, got ${paginatedRecentRes.body.data.products.length}`,
+  );
+  assert(
+    paginatedRecentRes.body.data.pagination.total === 3,
+    `Expected total 3, got ${paginatedRecentRes.body.data.pagination.total}`,
+  );
+  assert(
+    paginatedRecentRes.body.data.pagination.totalPages === 2,
+    `Expected totalPages 2, got ${paginatedRecentRes.body.data.pagination.totalPages}`,
+  );
+  console.log('  ✔ Recent purchases pagination verified');
+
+  // 9d: Search filter within recent purchases
+  const searchRecentRes = await makeRequest(
+    'GET',
+    `/api/v1/products/recent-purchases?search=${encodeURIComponent('Recent Item Gamma')}`,
+    undefined,
+    retailerToken,
+  );
+  assert(searchRecentRes.status === 200, 'Search recent purchases failed');
+  assert(
+    searchRecentRes.body.data.products.length === 1 &&
+      searchRecentRes.body.data.products[0].id === prodC.id,
+    'Expected only Product C to match search',
+  );
+  console.log('  ✔ Search within recent purchases verified');
+
+  // 9e: Route aliases (/recent-purchase, /recent-purchased, /recent)
+  const aliasRes1 = await makeRequest('GET', '/api/v1/products/recent-purchase', undefined, retailerToken);
+  assert(aliasRes1.status === 200 && aliasRes1.body.data.products.length === 3, 'Alias /recent-purchase failed');
+  const aliasRes2 = await makeRequest('GET', '/api/v1/products/recent-purchased', undefined, retailerToken);
+  assert(aliasRes2.status === 200 && aliasRes2.body.data.products.length === 3, 'Alias /recent-purchased failed');
+  const aliasRes3 = await makeRequest('GET', '/api/v1/products/recent', undefined, retailerToken);
+  assert(aliasRes3.status === 200 && aliasRes3.body.data.products.length === 3, 'Alias /recent failed');
+  console.log('  ✔ All route aliases (/recent-purchase, /recent-purchased, /recent) verified');
+
   console.log('\n===========================================================');
   console.log('🎉 ALL PRODUCT & VARIANT TESTS PASSED! 🎉');
   console.log('===========================================================');
