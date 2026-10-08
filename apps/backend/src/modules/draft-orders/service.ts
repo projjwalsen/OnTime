@@ -955,7 +955,6 @@ export class DraftOrdersService {
     });
   }
 
-
   /**
    * Delete / discard a draft order.
    */

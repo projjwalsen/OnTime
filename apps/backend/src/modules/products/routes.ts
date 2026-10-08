@@ -9,11 +9,7 @@ import {
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requireDistributorAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
-import {
-  createProductSchema,
-  updateProductSchema,
-  productFilterQuerySchema,
-} from './validator';
+import { createProductSchema, updateProductSchema, productFilterQuerySchema } from './validator';
 
 const router = Router();
 
@@ -39,11 +35,7 @@ router.get(
   validateRequest({ query: productFilterQuerySchema }),
   getRecentPurchases,
 );
-router.get(
-  '/recent',
-  validateRequest({ query: productFilterQuerySchema }),
-  getRecentPurchases,
-);
+router.get('/recent', validateRequest({ query: productFilterQuerySchema }), getRecentPurchases);
 
 /**
  * @route   GET /api/v1/products

@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 
 async function migrateOrderHistory() {
   console.log('🔄 Applying OrderHistory table migration...');
-  
+
   // 1. Create order_history table if not exists
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "order_history" (

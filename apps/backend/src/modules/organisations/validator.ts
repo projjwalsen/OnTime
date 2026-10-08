@@ -20,7 +20,11 @@ export const createOrganisationSchema = z.object({
 
 export const updateBusinessDetailsSchema = z.object({
   name: z.string().min(2, 'Business name must be at least 2 characters').trim().optional(),
-  contactPerson: z.string().min(2, 'Contact person name must be at least 2 characters').trim().optional(),
+  contactPerson: z
+    .string()
+    .min(2, 'Contact person name must be at least 2 characters')
+    .trim()
+    .optional(),
   email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
   mobile: z.string().trim().optional(),
   taxNumber: z.string().trim().optional(),
@@ -31,7 +35,11 @@ export const updateBusinessDetailsSchema = z.object({
 
 export const updateOrganisationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').trim().optional(),
-  contactPerson: z.string().min(2, 'Contact person must be at least 2 characters').trim().optional(),
+  contactPerson: z
+    .string()
+    .min(2, 'Contact person must be at least 2 characters')
+    .trim()
+    .optional(),
   email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
   mobile: z.string().trim().optional(),
   address: z.string().trim().optional(),
@@ -44,9 +52,12 @@ export const updateOrganisationSchema = z.object({
 });
 
 export const updateOrganisationStatusSchema = z.object({
-  status: z.enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED], {
-    message: 'Valid status (ACTIVE, INACTIVE, SUSPENDED) is required',
-  }),
+  status: z.enum(
+    [OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED],
+    {
+      message: 'Valid status (ACTIVE, INACTIVE, SUSPENDED) is required',
+    },
+  ),
 });
 
 export const organisationFilterQuerySchema = z.object({

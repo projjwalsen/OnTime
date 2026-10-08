@@ -107,16 +107,8 @@ router.post(
  * @desc    Reject partial/modified order (Retailer Admin/Staff or Super Admin)
  * @access  Protected
  */
-router.post(
-  '/:id/reject-partial',
-  validateBody(rejectPartialOrderSchema),
-  rejectPartialOrder,
-);
-router.post(
-  '/:id/reject',
-  validateBody(rejectPartialOrderSchema),
-  rejectPartialOrder,
-);
+router.post('/:id/reject-partial', validateBody(rejectPartialOrderSchema), rejectPartialOrder);
+router.post('/:id/reject', validateBody(rejectPartialOrderSchema), rejectPartialOrder);
 
 /**
  * @route   PATCH /api/v1/orders/:id/status
@@ -139,4 +131,3 @@ router.post('/:id/cancel', validateBody(cancelOrderSchema), cancelOrder);
 router.patch('/:id/cancel', validateBody(cancelOrderSchema), cancelOrder);
 
 export default router;
-

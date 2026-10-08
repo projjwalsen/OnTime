@@ -78,7 +78,11 @@ router.post('/:id/items', validateBody(addDraftOrderItemSchema), addItemToDraft)
  * @desc    Bulk remove line items from a draft order
  * @access  Protected (Retailer Admin / Staff only)
  */
-router.delete('/:id/items', validateBody(bulkRemoveDraftOrderItemsSchema), bulkRemoveItemsFromDraft);
+router.delete(
+  '/:id/items',
+  validateBody(bulkRemoveDraftOrderItemsSchema),
+  bulkRemoveItemsFromDraft,
+);
 
 /**
  * @route   POST /api/v1/draft-orders/:id/items/bulk-remove
@@ -104,7 +108,6 @@ router.patch('/:id/items/:itemId', validateBody(updateDraftOrderItemSchema), upd
  * @access  Protected (Retailer Admin / Staff only)
  */
 router.delete('/:id/items/:itemId', removeItemFromDraft);
-
 
 /**
  * @route   POST /api/v1/draft-orders/:id/convert

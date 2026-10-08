@@ -28,7 +28,11 @@ export function formatCurrency(amount: number, currency = '₹'): string {
 /**
  * Render an OTP code display card.
  */
-export function renderOtpCard(otp: string, expiresInMinutes: number, variant: 'primary' | 'danger' | 'success' = 'primary'): string {
+export function renderOtpCard(
+  otp: string,
+  expiresInMinutes: number,
+  variant: 'primary' | 'danger' | 'success' = 'primary',
+): string {
   const styles = {
     primary: {
       bg: '#eff6ff',
@@ -153,7 +157,9 @@ export function renderAlertBox(
 /**
  * Render a key-value detail list/table.
  */
-export function renderDetailGrid(items: Array<{ label: string; value: string; isMono?: boolean; isHighlight?: boolean }>): string {
+export function renderDetailGrid(
+  items: Array<{ label: string; value: string; isMono?: boolean; isHighlight?: boolean }>,
+): string {
   const rows = items
     .map(
       (item) => `

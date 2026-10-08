@@ -93,7 +93,6 @@ export class AuthService {
       location?: string | undefined;
     },
   ): Promise<AuthResponse> {
-
     const email = credentials.email.toLowerCase().trim();
 
     const user = await prisma.user.findUnique({
@@ -109,16 +108,18 @@ export class AuthService {
 
     if (!user.isActive) {
       // Record failed sign-in attempt
-      await prisma.userLoginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: meta?.ipAddress || null,
-          userAgent: meta?.userAgent || null,
-          device: meta?.deviceInfo || null,
-          location: meta?.location || null,
-          isSuccess: false,
-        },
-      }).catch(() => {});
+      await prisma.userLoginActivity
+        .create({
+          data: {
+            userId: user.id,
+            ipAddress: meta?.ipAddress || null,
+            userAgent: meta?.userAgent || null,
+            device: meta?.deviceInfo || null,
+            location: meta?.location || null,
+            isSuccess: false,
+          },
+        })
+        .catch(() => {});
       throw new AuthError('Account is deactivated. Please contact your administrator.', 403);
     }
 
@@ -126,16 +127,18 @@ export class AuthService {
     const isPasswordValid = await comparePassword(credentials.password, user.passwordHash);
     if (!isPasswordValid) {
       // Record failed sign-in attempt
-      await prisma.userLoginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: meta?.ipAddress || null,
-          userAgent: meta?.userAgent || null,
-          device: meta?.deviceInfo || null,
-          location: meta?.location || null,
-          isSuccess: false,
-        },
-      }).catch(() => {});
+      await prisma.userLoginActivity
+        .create({
+          data: {
+            userId: user.id,
+            ipAddress: meta?.ipAddress || null,
+            userAgent: meta?.userAgent || null,
+            device: meta?.deviceInfo || null,
+            location: meta?.location || null,
+            isSuccess: false,
+          },
+        })
+        .catch(() => {});
       throw new AuthError('Invalid email or password.', 401);
     }
 
@@ -173,16 +176,18 @@ export class AuthService {
     });
 
     // Record successful login in activity log
-    await prisma.userLoginActivity.create({
-      data: {
-        userId: user.id,
-        ipAddress: meta?.ipAddress || null,
-        userAgent: meta?.userAgent || null,
-        device: meta?.deviceInfo || null,
-        location: meta?.location || null,
-        isSuccess: true,
-      },
-    }).catch(() => {});
+    await prisma.userLoginActivity
+      .create({
+        data: {
+          userId: user.id,
+          ipAddress: meta?.ipAddress || null,
+          userAgent: meta?.userAgent || null,
+          device: meta?.deviceInfo || null,
+          location: meta?.location || null,
+          isSuccess: true,
+        },
+      })
+      .catch(() => {});
 
     const expiresInSeconds = parseDurationToSeconds(config.jwtExpiresIn);
 
@@ -200,7 +205,6 @@ export class AuthService {
       mustChangePassword: user.mustChangePassword,
     };
   }
-
 
   /**
    * Refresh JWT access token using a valid refresh token.
@@ -1549,4 +1553,3 @@ export class AuthService {
 }
 
 export const authService = new AuthService();
-

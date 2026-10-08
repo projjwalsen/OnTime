@@ -90,10 +90,7 @@ export class EmailService {
   /**
    * Immediate email dispatch with automatic retries and timeout protection.
    */
-  public async sendMailImmediate(
-    options: SendEmailOptions,
-    retries = 2,
-  ): Promise<SentEmailRecord> {
+  public async sendMailImmediate(options: SendEmailOptions, retries = 2): Promise<SentEmailRecord> {
     const toAddress = Array.isArray(options.to) ? options.to.join(', ') : options.to;
     const record: SentEmailRecord = {
       to: toAddress,
@@ -138,7 +135,10 @@ export class EmailService {
         }
       }
 
-      console.error('[EmailService] Failed to send email via SMTP transporter after retries:', lastError);
+      console.error(
+        '[EmailService] Failed to send email via SMTP transporter after retries:',
+        lastError,
+      );
 
       if (!config.isProduction) {
         console.warn('[EmailService] Development fallback: email captured in memory / console.');
@@ -311,10 +311,7 @@ export class EmailService {
   /**
    * Send Partial / Modified Order Notification Email to Retailer.
    */
-  public async sendPartialOrderAwaitingEmail(
-    email: string,
-    data: OrderEmailData,
-  ): Promise<void> {
+  public async sendPartialOrderAwaitingEmail(email: string, data: OrderEmailData): Promise<void> {
     const rendered = renderPartialOrderAwaitingTemplate(data);
     this.enqueueEmail({
       to: email,
@@ -358,7 +355,6 @@ export class EmailService {
       priority: 'high',
     });
   }
-
 
   // ============================================================
   // ORGANISATION TRANSACTIONAL EMAILS

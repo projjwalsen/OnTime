@@ -75,7 +75,10 @@ export async function verifySmtpConnection(
 
   try {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('SMTP connection verification timed out after 2000ms')), 2000),
+      setTimeout(
+        () => reject(new Error('SMTP connection verification timed out after 2000ms')),
+        2000,
+      ),
     );
     await Promise.race([transporter.verify(), timeoutPromise]);
     return {

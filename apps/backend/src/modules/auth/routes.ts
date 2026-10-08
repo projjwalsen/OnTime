@@ -44,7 +44,6 @@ import {
   toggleTwoFactorSchema,
 } from './validator';
 
-
 const router = Router();
 
 // ── Public Routes ──────────────────────────────────────────
@@ -225,4 +224,3 @@ router.get('/2fa/status', authMiddleware, getTwoFactorStatus);
 router.post('/2fa/toggle', authMiddleware, validateBody(toggleTwoFactorSchema), toggleTwoFactor);
 
 export default router;
-

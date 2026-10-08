@@ -66,7 +66,10 @@ async function main() {
       body: JSON.stringify({ role: UserRole.ADMIN }),
     });
     const updateRoleData: any = await updateRoleRes.json();
-    console.assert(updateRoleData.data.user.role === UserRole.ADMIN, 'Expected updated role to be ADMIN');
+    console.assert(
+      updateRoleData.data.user.role === UserRole.ADMIN,
+      'Expected updated role to be ADMIN',
+    );
     console.log('  ✅ Updated staff role to ADMIN');
 
     // 5. Test Update User Status - PATCH /api/v1/users/:id/status
@@ -118,8 +121,9 @@ async function main() {
     console.log('  ✅ Verified and toggled 2-Step Verification');
 
     // Cleanup
-    await prisma.organisation.delete({ where: { id: regData.data.user.organisationId } }).catch(() => {});
-
+    await prisma.organisation
+      .delete({ where: { id: regData.data.user.organisationId } })
+      .catch(() => {});
 
     console.log('🎉 All Security, Sessions & Team tests passed successfully!\n');
   } finally {

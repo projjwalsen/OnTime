@@ -115,20 +115,9 @@ export type {
 } from './types/auth';
 export type { UploadedMediaFile, UploadMediaResponse } from './types/media';
 export type { DeliveryAddress, CreateAddressDto, UpdateAddressDto } from './types/address';
-export type {
-  NotificationPreference,
-  UpdateNotificationPreferenceDto,
-} from './types/notification';
-export type {
-  SupportTicket,
-  CreateSupportTicketDto,
-  SupportTopicOption,
-} from './types/support';
-export type {
-  HelpArticle,
-  HelpCategorySummary,
-  HelpArticleFilterParams,
-} from './types/help';
+export type { NotificationPreference, UpdateNotificationPreferenceDto } from './types/notification';
+export type { SupportTicket, CreateSupportTicketDto, SupportTopicOption } from './types/support';
+export type { HelpArticle, HelpCategorySummary, HelpArticleFilterParams } from './types/help';
 export type {
   ActiveSession,
   SignInActivityItem,
@@ -145,4 +134,3 @@ export {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
 } from './constants/index';
-

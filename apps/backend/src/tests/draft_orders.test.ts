@@ -434,7 +434,9 @@ async function runTests() {
     tokenA,
   );
   assert(addOilRes.status === 200, `Add oil failed: ${JSON.stringify(addOilRes.body)}`);
-  const oilItem = addOilRes.body.data.draftOrder.items.find((i: any) => i.productId === product2.id)!;
+  const oilItem = addOilRes.body.data.draftOrder.items.find(
+    (i: any) => i.productId === product2.id,
+  )!;
 
   // Bulk remove olive oil item using POST /items/bulk-remove
   const bulkRemoveRes = await makeRequest(
@@ -443,15 +445,11 @@ async function runTests() {
     { itemIds: [oilItem.id] },
     tokenA,
   );
-  assert(
-    bulkRemoveRes.status === 200,
-    `Bulk remove failed: ${JSON.stringify(bulkRemoveRes.body)}`,
-  );
+  assert(bulkRemoveRes.status === 200, `Bulk remove failed: ${JSON.stringify(bulkRemoveRes.body)}`);
   updatedDraft = bulkRemoveRes.body.data.draftOrder;
   assert(updatedDraft.items.length === 1, 'Draft should now have 1 line item after bulk remove');
   assert(updatedDraft.subtotal === 2500, `Expected subtotal 2500, got ${updatedDraft.subtotal}`);
   console.log('✔ TEST 6b PASSED: Bulk remove items succeeded and subtotal updated.\n');
-
 
   // ============================================================
   // TEST 7: Update draft metadata (title, notes, deliveryAddress)
@@ -482,9 +480,7 @@ async function runTests() {
     'PATCH',
     `/api/v1/draft-orders/${draft1.id}`,
     {
-      items: [
-        { productId: product1.id, variantId: variant5kg.id, quantity: 5 },
-      ],
+      items: [{ productId: product1.id, variantId: variant5kg.id, quantity: 5 }],
       notes: 'Updated notes with items replacement',
     },
     tokenA,

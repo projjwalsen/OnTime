@@ -1,16 +1,16 @@
 import { renderBaseTemplate } from './base.template';
-import {
-  escapeHtml,
-  formatCurrency,
-  renderAlertBox,
-  renderDetailGrid,
-} from './components';
+import { escapeHtml, formatCurrency, renderAlertBox, renderDetailGrid } from './components';
 import type { OrderEmailData, RenderedEmail } from '../email.types';
 
 /**
  * Render order items HTML table.
  */
-function renderOrderItemsTable(items: OrderEmailData['items'], subtotal: number, tax: number, total: number): string {
+function renderOrderItemsTable(
+  items: OrderEmailData['items'],
+  subtotal: number,
+  tax: number,
+  total: number,
+): string {
   const rows = items
     .map(
       (item) => `
@@ -81,9 +81,7 @@ export function renderOrderConfirmationTemplate(data: OrderEmailData): RenderedE
     { label: 'Order Number', value: `#${data.orderNumber}`, isMono: true, isHighlight: true },
     { label: 'Organisation', value: data.organisationName },
     { label: 'Placed By', value: data.customerName },
-    ...(data.deliveryAddress
-      ? [{ label: 'Delivery Address', value: data.deliveryAddress }]
-      : []),
+    ...(data.deliveryAddress ? [{ label: 'Delivery Address', value: data.deliveryAddress }] : []),
     ...(data.notes ? [{ label: 'Order Notes', value: data.notes }] : []),
   ];
 
@@ -116,7 +114,10 @@ export function renderOrderConfirmationTemplate(data: OrderEmailData): RenderedE
   `;
 
   const itemsText = data.items
-    .map((item) => ` - ${item.name} (${item.quantity}x) @ ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.totalPrice)}`)
+    .map(
+      (item) =>
+        ` - ${item.name} (${item.quantity}x) @ ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.totalPrice)}`,
+    )
     .join('\n');
 
   const text = `Order Confirmation #${data.orderNumber}\n\nHello ${data.customerName},\n\nThank you for placing your order with OnTime for ${data.organisationName}.\n\nOrder Number: #${data.orderNumber}\nTotal Amount: ${formatCurrency(data.totalAmount)}\n\nItems:\n${itemsText}\n\nSubtotal: ${formatCurrency(data.subtotal)}\nTax: ${formatCurrency(data.taxAmount)}\nGrand Total: ${formatCurrency(data.totalAmount)}\n\nBest regards,\nOnTime Distribution Team`;
@@ -266,11 +267,7 @@ export function renderPartialOrderAwaitingTemplate(data: OrderEmailData): Render
 
     ${
       data.modificationNote
-        ? renderAlertBox(
-            'Distributor Stock Note',
-            escapeHtml(data.modificationNote),
-            'warning',
-          )
+        ? renderAlertBox('Distributor Stock Note', escapeHtml(data.modificationNote), 'warning')
         : ''
     }
 
@@ -462,5 +459,3 @@ export function renderOrderCancelledTemplate(data: OrderEmailData): RenderedEmai
 
   return { subject, html, text };
 }
-
-

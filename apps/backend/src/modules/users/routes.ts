@@ -73,7 +73,12 @@ router.patch('/profile', validateBody(updateUserProfileSchema), updateProfile);
  * @desc    Update user role (ADMIN or STAFF)
  * @access  Protected (Admin only)
  */
-router.patch('/:id/role', requireOrganisationAdmin, validateBody(updateUserRoleSchema), updateUserRole);
+router.patch(
+  '/:id/role',
+  requireOrganisationAdmin,
+  validateBody(updateUserRoleSchema),
+  updateUserRole,
+);
 
 /**
  * @route   PATCH /api/v1/users/:id/status
@@ -102,4 +107,3 @@ router.delete('/invitations/:id', requireOrganisationAdmin, revokeInvitation);
 router.get('/:id', getUserById);
 
 export default router;
-

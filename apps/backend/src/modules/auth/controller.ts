@@ -55,7 +55,6 @@ export const login: RequestHandler = asyncHandler(
   },
 );
 
-
 /**
  * @route   POST /api/v1/auth/refresh
  * @desc    Refresh access token using a valid refresh token
@@ -453,4 +452,3 @@ export const toggleTwoFactor: RequestHandler = asyncHandler(
     }
   },
 );
-

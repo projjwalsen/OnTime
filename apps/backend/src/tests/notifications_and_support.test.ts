@@ -39,8 +39,14 @@ async function main() {
       headers: authHeaders,
     });
     const getPrefData: any = await getPrefRes.json();
-    console.assert(getPrefData.data.preferences.orderUpdates === true, 'Default orderUpdates should be true');
-    console.assert(getPrefData.data.preferences.marketingUpdates === false, 'Default marketingUpdates should be false');
+    console.assert(
+      getPrefData.data.preferences.orderUpdates === true,
+      'Default orderUpdates should be true',
+    );
+    console.assert(
+      getPrefData.data.preferences.marketingUpdates === false,
+      'Default marketingUpdates should be false',
+    );
     console.log('  ✅ Fetched default notification preferences');
 
     // 3. Test Notification Preferences - PUT
@@ -52,7 +58,10 @@ async function main() {
       }),
     });
     const putPrefData: any = await putPrefRes.json();
-    console.assert(putPrefData.data.preferences.marketingUpdates === true, 'marketingUpdates should be updated to true');
+    console.assert(
+      putPrefData.data.preferences.marketingUpdates === true,
+      'marketingUpdates should be updated to true',
+    );
     console.log('  ✅ Updated notification preferences');
 
     // 4. Test Support Topics - GET
@@ -74,7 +83,10 @@ async function main() {
     });
     const ticketData: any = await ticketRes.json();
     console.assert(ticketRes.status === 201, 'Expected 201 for ticket creation');
-    console.assert(ticketData.data.ticket.ticketNumber.startsWith('TKT-'), 'Ticket number should start with TKT-');
+    console.assert(
+      ticketData.data.ticket.ticketNumber.startsWith('TKT-'),
+      'Ticket number should start with TKT-',
+    );
     const ticketId = ticketData.data.ticket.id;
     console.log(`  ✅ Created support ticket (${ticketData.data.ticket.ticketNumber})`);
 
@@ -91,7 +103,10 @@ async function main() {
       headers: authHeaders,
     });
     const getTicketData: any = await getTicketRes.json();
-    console.assert(getTicketData.data.ticket.subject === 'Delivery delay inquiry', 'Subject should match');
+    console.assert(
+      getTicketData.data.ticket.subject === 'Delivery delay inquiry',
+      'Subject should match',
+    );
     console.log('  ✅ Listed and retrieved support ticket details');
 
     // 7. Test Help Center - Categories & Articles
@@ -100,14 +115,20 @@ async function main() {
     console.assert(helpCatData.data.categories.length === 4, 'Expected 4 help categories');
     console.log('  ✅ Retrieved help categories');
 
-    const helpArticlesRes = await fetch(`${baseUrl}/help/articles?category=${SupportTopic.ORDER_DELIVERY}`);
+    const helpArticlesRes = await fetch(
+      `${baseUrl}/help/articles?category=${SupportTopic.ORDER_DELIVERY}`,
+    );
     const helpArticlesData: any = await helpArticlesRes.json();
-    console.assert(helpArticlesData.data.articles.length >= 1, 'Expected articles in Order & delivery category');
+    console.assert(
+      helpArticlesData.data.articles.length >= 1,
+      'Expected articles in Order & delivery category',
+    );
     console.log('  ✅ Filtered help articles by category');
 
     // Cleanup
-    await prisma.organisation.delete({ where: { id: regData.data.user.organisationId } }).catch(() => {});
-
+    await prisma.organisation
+      .delete({ where: { id: regData.data.user.organisationId } })
+      .catch(() => {});
 
     console.log('🎉 All Notifications, Support & Help tests passed successfully!\n');
   } finally {

@@ -104,7 +104,10 @@ async function main() {
       headers: authHeaders,
     });
     const setDefaultData: any = await setDefaultRes.json();
-    console.assert(setDefaultData.data.address.isDefault === true, 'Address 1 should be set back to default');
+    console.assert(
+      setDefaultData.data.address.isDefault === true,
+      'Address 1 should be set back to default',
+    );
     console.log('  ✅ Set address 1 as default');
 
     // 7. Test delete address
@@ -117,7 +120,9 @@ async function main() {
     console.log('  ✅ Deleted address 2');
 
     // Cleanup test data
-    await prisma.organisation.delete({ where: { id: regData.data.user.organisationId } }).catch(() => {});
+    await prisma.organisation
+      .delete({ where: { id: regData.data.user.organisationId } })
+      .catch(() => {});
 
     console.log('🎉 All Delivery Address tests passed successfully!\n');
   } finally {

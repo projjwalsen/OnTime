@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft,
   RefreshCw,
@@ -20,23 +20,12 @@ import {
   FileText,
   User as UserIcon,
   Send,
-  AlertCircle,
   History,
   Calendar,
   Shield,
-  ToggleLeft,
-  ToggleRight,
-  Info,
 } from 'lucide-react';
 import { api } from '../../../../lib/api';
-import {
-  type Order,
-  type OrderHistory,
-  type Product,
-  OrderStatus,
-  UserRole,
-  ALLOWED_STATUS_TRANSITIONS,
-} from '@ontime/shared';
+import { type Order, type Product, OrderStatus, UserRole } from '@ontime/shared';
 import { OrderStatusBadge } from '../../../../components/orders/OrderStatusBadge';
 
 function formatCurrency(amount: number): string {
@@ -91,10 +80,18 @@ interface EditLineItem {
   totalPrice: number;
 }
 
+interface HistorySnapItem {
+  productName?: string;
+  productId?: string;
+  variantWeight?: string | null;
+  quantity?: number;
+  totalPrice?: number;
+  unitPrice?: number;
+}
+
 export default function OrderDetailPage({ params }: { params?: { id: string } }) {
   const routeParams = useParams();
-  const orderId = (params?.id || (routeParams?.id as string)) || '';
-  const router = useRouter();
+  const orderId = params?.id || (routeParams?.id as string) || '';
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -220,7 +217,10 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
   }
 
   // Calculate live totals
-  const subtotal = editableItems.reduce((sum, it) => sum + (it.quantity > 0 ? it.totalPrice : 0), 0);
+  const subtotal = editableItems.reduce(
+    (sum, it) => sum + (it.quantity > 0 ? it.totalPrice : 0),
+    0,
+  );
   const totalAmount = subtotal;
 
   const hasItemsChanged = () => {
@@ -344,31 +344,6 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
     }
   }
 
-  // Reject Partial Order (Retailer)
-  async function handleRejectPartial() {
-    if (!order) return;
-    setSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const res = await api.rejectPartialOrder(order.id, {
-        reason: cancellationReason.trim() || 'Declined partial order stock adjustment',
-      });
-      if (res.success) {
-        setActionSuccess('Partial order rejected and marked as REJECTED.');
-        setShowCancelSection(false);
-        await loadOrder();
-      } else {
-        setActionError(res.error || 'Failed to reject partial order');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error rejecting order';
-      setActionError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   // Advance Lifecycle Status (Super Admin)
   async function handleAdvanceStatus(nextStatus: OrderStatus) {
     if (!order) return;
@@ -430,25 +405,41 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
   if (!order) {
     return (
       <div style={{ padding: '2rem' }}>
-        <Link href="/orders" className="btn-secondary" style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <Link
+          href="/orders"
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            gap: '6px',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+          }}
+        >
           <ArrowLeft size={14} /> Back to Wholesale Orders
         </Link>
-        <div className="alert-banner alert-danger">
-          {actionError || 'Order not found.'}
-        </div>
+        <div className="alert-banner alert-danger">{actionError || 'Order not found.'}</div>
       </div>
     );
   }
 
   const isEditable = order.status === OrderStatus.PENDING || order.status === OrderStatus.AWAITING;
   const isAwaitingApproval = order.status === OrderStatus.AWAITING;
-  const isTerminated = order.status === OrderStatus.CANCELLED || order.status === OrderStatus.REJECTED || order.status === OrderStatus.DELIVERED;
-  const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[order.status] || [];
+  const isTerminated =
+    order.status === OrderStatus.CANCELLED ||
+    order.status === OrderStatus.REJECTED ||
+    order.status === OrderStatus.DELIVERED;
 
   return (
     <div style={{ paddingBottom: '3rem' }}>
       {/* ── Breadcrumb & Top Controls ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Link
             href="/orders"
@@ -466,7 +457,14 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
             <span>Orders List</span>
           </Link>
           <span style={{ color: '#cbd5e1' }}>/</span>
-          <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.1rem', color: '#0f172a' }}>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              fontSize: '1.1rem',
+              color: '#0f172a',
+            }}
+          >
             {order.orderNumber}
           </span>
           <OrderStatusBadge status={order.status} />
@@ -534,7 +532,13 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
           <button
             onClick={loadOrder}
             className="btn-secondary"
-            style={{ height: '36px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
             title="Refresh order data"
           >
             <RefreshCw size={13} />
@@ -591,7 +595,14 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
           backgroundColor: '#ffffff',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
+          }}
+        >
           {/* Step 1: PENDING */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
             <div
@@ -611,12 +622,21 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               1
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Pending Review</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                Pending Review
+              </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Created by retailer</div>
             </div>
           </div>
 
-          <div style={{ flex: 1, height: '2px', backgroundColor: order.status !== OrderStatus.PENDING ? '#10b981' : '#e2e8f0', margin: '0 12px' }} />
+          <div
+            style={{
+              flex: 1,
+              height: '2px',
+              backgroundColor: order.status !== OrderStatus.PENDING ? '#10b981' : '#e2e8f0',
+              margin: '0 12px',
+            }}
+          />
 
           {/* Step 2: Awaiting Approval (if partial) / Confirmed */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', zIndex: 1 }}>
@@ -629,9 +649,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   order.status === OrderStatus.AWAITING
                     ? '#f59e0b'
                     : order.status === OrderStatus.CONFIRMED ||
-                      order.status === OrderStatus.PROCESSING ||
-                      order.status === OrderStatus.DISPATCHED ||
-                      order.status === OrderStatus.DELIVERED
+                        order.status === OrderStatus.PROCESSING ||
+                        order.status === OrderStatus.DISPATCHED ||
+                        order.status === OrderStatus.DELIVERED
                       ? '#10b981'
                       : '#e2e8f0',
                 color: order.status === OrderStatus.PENDING ? '#64748b' : '#ffffff',
@@ -658,8 +678,8 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               height: '2px',
               backgroundColor:
                 order.status === OrderStatus.PROCESSING ||
-                  order.status === OrderStatus.DISPATCHED ||
-                  order.status === OrderStatus.DELIVERED
+                order.status === OrderStatus.DISPATCHED ||
+                order.status === OrderStatus.DELIVERED
                   ? '#10b981'
                   : '#e2e8f0',
               margin: '0 12px',
@@ -676,13 +696,14 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                 backgroundColor:
                   order.status === OrderStatus.PROCESSING
                     ? '#7c3aed'
-                    : order.status === OrderStatus.DISPATCHED || order.status === OrderStatus.DELIVERED
+                    : order.status === OrderStatus.DISPATCHED ||
+                        order.status === OrderStatus.DELIVERED
                       ? '#10b981'
                       : '#e2e8f0',
                 color:
                   order.status === OrderStatus.PROCESSING ||
-                    order.status === OrderStatus.DISPATCHED ||
-                    order.status === OrderStatus.DELIVERED
+                  order.status === OrderStatus.DISPATCHED ||
+                  order.status === OrderStatus.DELIVERED
                     ? '#ffffff'
                     : '#64748b',
                 display: 'flex',
@@ -695,7 +716,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               3
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>In Processing</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                In Processing
+              </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Warehouse packing</div>
             </div>
           </div>
@@ -739,7 +762,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               4
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Dispatched</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                Dispatched
+              </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Out for delivery</div>
             </div>
           </div>
@@ -772,7 +797,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               5
             </div>
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Delivered</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                Delivered
+              </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Order complete</div>
             </div>
           </div>
@@ -823,7 +850,8 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   </h2>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, marginTop: '2px' }}>
-                  Complete chronological audit log capturing what happened, who performed it, and exact timestamps.
+                  Complete chronological audit log capturing what happened, who performed it, and
+                  exact timestamps.
                 </p>
               </div>
             </div>
@@ -846,8 +874,13 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
           <div style={{ padding: '1.5rem' }}>
             {!order.history || order.history.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
-                <History size={36} style={{ color: '#94a3b8', margin: '0 auto 8px auto', display: 'block' }} />
-                <p style={{ fontWeight: 600, color: '#475569', marginBottom: '4px' }}>No history records found</p>
+                <History
+                  size={36}
+                  style={{ color: '#94a3b8', margin: '0 auto 8px auto', display: 'block' }}
+                />
+                <p style={{ fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                  No history records found
+                </p>
                 <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
                   Lifecycle events and modifications will appear here automatically as they occur.
                 </p>
@@ -940,8 +973,17 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                               marginBottom: '8px',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span
+                                style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}
+                              >
                                 {item.action}
                               </span>
                               <OrderStatusBadge status={item.status} />
@@ -980,7 +1022,8 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                               fontSize: '0.825rem',
                               color: '#475569',
                               marginBottom:
-                                item.note || (item.metadata && Object.keys(item.metadata).length > 0)
+                                item.note ||
+                                (item.metadata && Object.keys(item.metadata).length > 0)
                                   ? '8px'
                                   : '0',
                             }}
@@ -998,15 +1041,22 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                               <span
                                 style={{
                                   backgroundColor:
-                                    item.performedByUserRole === UserRole.SUPER_ADMIN ? '#f5f3ff' : '#f1f5f9',
+                                    item.performedByUserRole === UserRole.SUPER_ADMIN
+                                      ? '#f5f3ff'
+                                      : '#f1f5f9',
                                   color:
-                                    item.performedByUserRole === UserRole.SUPER_ADMIN ? '#6d28d9' : '#475569',
+                                    item.performedByUserRole === UserRole.SUPER_ADMIN
+                                      ? '#6d28d9'
+                                      : '#475569',
                                   fontSize: '0.725rem',
                                   fontWeight: 600,
                                   padding: '1px 6px',
                                   borderRadius: '4px',
-                                  border: `1px solid ${item.performedByUserRole === UserRole.SUPER_ADMIN ? '#ddd6fe' : '#e2e8f0'
-                                    }`,
+                                  border: `1px solid ${
+                                    item.performedByUserRole === UserRole.SUPER_ADMIN
+                                      ? '#ddd6fe'
+                                      : '#e2e8f0'
+                                  }`,
                                 }}
                               >
                                 {item.performedByUserRole.replace('_', ' ')}
@@ -1048,7 +1098,8 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                           {item.metadata &&
                             (item.metadata.itemsCount !== undefined ||
                               item.metadata.totalAmount !== undefined ||
-                              (Array.isArray(item.metadata.items) && item.metadata.items.length > 0)) && (
+                              (Array.isArray(item.metadata.items) &&
+                                item.metadata.items.length > 0)) && (
                               <div
                                 style={{
                                   marginTop: '8px',
@@ -1072,7 +1123,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                                   {item.metadata.itemsCount !== undefined && (
                                     <span>
                                       Line Items:{' '}
-                                      <strong style={{ color: '#0f172a' }}>{item.metadata.itemsCount}</strong>
+                                      <strong style={{ color: '#0f172a' }}>
+                                        {item.metadata.itemsCount}
+                                      </strong>
                                     </span>
                                   )}
                                   {item.metadata.totalAmount !== undefined && (
@@ -1085,47 +1138,58 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                                   )}
                                 </div>
 
-                                {Array.isArray(item.metadata.items) && item.metadata.items.length > 0 && (
-                                  <div
-                                    style={{
-                                      marginTop: '6px',
-                                      paddingTop: '6px',
-                                      borderTop: '1px solid #f1f5f9',
-                                    }}
-                                  >
+                                {Array.isArray(item.metadata.items) &&
+                                  item.metadata.items.length > 0 && (
                                     <div
                                       style={{
-                                        fontSize: '0.75rem',
-                                        color: '#64748b',
-                                        marginBottom: '4px',
-                                        fontWeight: 600,
+                                        marginTop: '6px',
+                                        paddingTop: '6px',
+                                        borderTop: '1px solid #f1f5f9',
                                       }}
                                     >
-                                      Snapshot of Confirmed Stock Quantities:
+                                      <div
+                                        style={{
+                                          fontSize: '0.75rem',
+                                          color: '#64748b',
+                                          marginBottom: '4px',
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        Snapshot of Confirmed Stock Quantities:
+                                      </div>
+                                      <div
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '3px',
+                                        }}
+                                      >
+                                        {(item.metadata.items as HistorySnapItem[]).map(
+                                          (snapItem: HistorySnapItem, snapIdx: number) => (
+                                            <div
+                                              key={snapIdx}
+                                              style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: '0.775rem',
+                                                color: '#334155',
+                                              }}
+                                            >
+                                              <span>
+                                                • {snapItem.productName || snapItem.productId}{' '}
+                                                {snapItem.variantWeight
+                                                  ? `(${snapItem.variantWeight})`
+                                                  : ''}
+                                              </span>
+                                              <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                                                Qty: {snapItem.quantity}
+                                              </span>
+                                            </div>
+                                          ),
+                                        )}
+                                      </div>
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                      {item.metadata.items.map((snapItem: any, snapIdx: number) => (
-                                        <div
-                                          key={snapIdx}
-                                          style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            fontSize: '0.775rem',
-                                            color: '#334155',
-                                          }}
-                                        >
-                                          <span>
-                                            • {snapItem.productName || snapItem.productId}{' '}
-                                            {snapItem.variantWeight ? `(${snapItem.variantWeight})` : ''}
-                                          </span>
-                                          <span style={{ fontWeight: 600, color: '#0f172a' }}>
-                                            Qty: {snapItem.quantity}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             )}
                         </div>
@@ -1155,15 +1219,34 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 700, fontSize: '0.95rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#b45309',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+              }}
+            >
               <Clock size={18} />
               <span>Awaiting Retailer Approval</span>
             </div>
             <p style={{ fontSize: '0.875rem', color: '#78350f', marginTop: '4px' }}>
-              Super Admin modified this order as per available warehouse stock. The retailer must approve the updated quantities to proceed.
+              Super Admin modified this order as per available warehouse stock. The retailer must
+              approve the updated quantities to proceed.
             </p>
             {order.modificationNote && (
-              <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#92400e', backgroundColor: '#fef3c7', padding: '6px 12px', borderRadius: '6px' }}>
+              <div
+                style={{
+                  marginTop: '8px',
+                  fontSize: '0.85rem',
+                  color: '#92400e',
+                  backgroundColor: '#fef3c7',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                }}
+              >
                 <strong>Stock Note:</strong> {order.modificationNote}
               </div>
             )}
@@ -1193,11 +1276,21 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
       )}
 
       {/* ── Grid: Order Editor (Left) & Summary / Actions (Right) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr',
+          gap: '1.5rem',
+          alignItems: 'start',
+        }}
+      >
         {/* ── Left Column: Line Items & Stock Editor ── */}
         <div>
           <div className="figma-table-card" style={{ marginBottom: '1.5rem' }}>
-            <div className="figma-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              className="figma-table-header"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
               <div>
                 <h2 className="figma-table-title">Ordered Products & Quantities</h2>
                 <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
@@ -1208,7 +1301,16 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               </div>
 
               {isEditable && (
-                <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600, backgroundColor: '#eff6ff', padding: '4px 10px', borderRadius: '6px' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#2563eb',
+                    fontWeight: 600,
+                    backgroundColor: '#eff6ff',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                  }}
+                >
                   Stock Edit Mode Active
                 </span>
               )}
@@ -1231,7 +1333,10 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                 <tbody>
                   {editableItems.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                      <td
+                        colSpan={6}
+                        style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}
+                      >
                         No items in this order. Add items from the catalog below.
                       </td>
                     </tr>
@@ -1246,7 +1351,13 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                         <tr key={item.id || `${item.productId}-${item.variantId}-${idx}`}>
                           <td>
                             <strong style={{ color: '#0f172a' }}>{item.productName}</strong>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
+                            <div
+                              style={{
+                                fontSize: '0.75rem',
+                                color: '#64748b',
+                                fontFamily: 'monospace',
+                              }}
+                            >
                               SKU: {item.productSku}
                             </div>
                           </td>
@@ -1259,7 +1370,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                           {/* Editable Quantity Controls */}
                           <td style={{ textAlign: 'center' }}>
                             {isEditable ? (
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <div
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                              >
                                 <button
                                   type="button"
                                   onClick={() => handleItemQtyChange(idx, item.quantity - 1)}
@@ -1283,7 +1396,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                                   type="number"
                                   min={0}
                                   value={item.quantity}
-                                  onChange={(e) => handleItemQtyChange(idx, parseInt(e.target.value) || 0)}
+                                  onChange={(e) =>
+                                    handleItemQtyChange(idx, parseInt(e.target.value) || 0)
+                                  }
                                   style={{
                                     width: '50px',
                                     height: '28px',
@@ -1330,7 +1445,13 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                               <div>
                                 <strong style={{ fontSize: '0.9rem' }}>{item.quantity}</strong>
                                 {wasModified && (
-                                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textDecoration: 'line-through' }}>
+                                  <div
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      color: '#94a3b8',
+                                      textDecoration: 'line-through',
+                                    }}
+                                  >
                                     Req: {item.originalQuantity}
                                   </div>
                                 )}
@@ -1374,10 +1495,25 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   backgroundColor: '#f8fafc',
                 }}
               >
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+                <span
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    color: '#334155',
+                    display: 'block',
+                    marginBottom: '8px',
+                  }}
+                >
                   + Add Additional / Alternative Product to Order
                 </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px auto', gap: '8px', alignItems: 'center' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 80px auto',
+                    gap: '8px',
+                    alignItems: 'center',
+                  }}
+                >
                   <select
                     className="form-input"
                     style={{ height: '36px' }}
@@ -1427,7 +1563,13 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                     onClick={handleAddCatalogItem}
                     disabled={!selectedAddProductId}
                     className="btn-secondary"
-                    style={{ height: '36px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    style={{
+                      height: '36px',
+                      padding: '0 14px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
                   >
                     <Plus size={14} /> Add
                   </button>
@@ -1437,7 +1579,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
 
             {/* ── Stock Modification Note (Super Admin) ── */}
             {isEditable && (
-              <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border-figma)' }}>
+              <div
+                style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid var(--border-figma)' }}
+              >
                 <label className="form-label" style={{ fontWeight: 600, color: '#0f172a' }}>
                   Stock Adjustment Note for Retailer (Optional)
                 </label>
@@ -1449,7 +1593,14 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   value={modificationNote}
                   onChange={(e) => setModificationNote(e.target.value)}
                 />
-                <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#64748b',
+                    marginTop: '4px',
+                    display: 'block',
+                  }}
+                >
                   This note will be included in the email notification sent to the retailer.
                 </span>
               </div>
@@ -1460,11 +1611,18 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
         {/* ── Right Column: Order Summary, Customer Details & Actions ── */}
         <div>
           {/* Order Financial Totals */}
-          <div className="figma-table-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}>
+          <div
+            className="figma-table-card"
+            style={{ padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}
+          >
+            <h3
+              style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}
+            >
               Order Amount Summary
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem' }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Subtotal:</span>
                 <span>{formatCurrency(subtotal)}</span>
@@ -1492,11 +1650,20 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
 
             {/* ── Action Buttons for Super Admin ── */}
             {isEditable && (
-              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
                 <button
                   type="button"
                   onClick={handleSubmitForRetailerApproval}
-                  disabled={submitting || editableItems.filter((it) => it.quantity > 0).length === 0}
+                  disabled={
+                    submitting || editableItems.filter((it) => it.quantity > 0).length === 0
+                  }
                   className="btn-action-primary"
                   style={{
                     height: '42px',
@@ -1515,7 +1682,9 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                 <button
                   type="button"
                   onClick={handleConfirmFullOrder}
-                  disabled={submitting || editableItems.filter((it) => it.quantity > 0).length === 0}
+                  disabled={
+                    submitting || editableItems.filter((it) => it.quantity > 0).length === 0
+                  }
                   className="btn-secondary"
                   style={{
                     height: '42px',
@@ -1556,7 +1725,12 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   onClick={() => handleAdvanceStatus(OrderStatus.DISPATCHED)}
                   disabled={submitting}
                   className="btn-action-primary"
-                  style={{ height: '42px', width: '100%', justifyContent: 'center', backgroundColor: '#0891b2' }}
+                  style={{
+                    height: '42px',
+                    width: '100%',
+                    justifyContent: 'center',
+                    backgroundColor: '#0891b2',
+                  }}
                 >
                   <Truck size={15} />
                   <span>Mark as Dispatched (In Transit)</span>
@@ -1571,7 +1745,12 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   onClick={() => handleAdvanceStatus(OrderStatus.DELIVERED)}
                   disabled={submitting}
                   className="btn-action-primary"
-                  style={{ height: '42px', width: '100%', justifyContent: 'center', backgroundColor: '#059669' }}
+                  style={{
+                    height: '42px',
+                    width: '100%',
+                    justifyContent: 'center',
+                    backgroundColor: '#059669',
+                  }}
                 >
                   <CheckCircle2 size={15} />
                   <span>Mark as Delivered (Complete)</span>
@@ -1580,13 +1759,24 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
             )}
 
             {!isTerminated && (
-              <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-figma)', paddingTop: '1rem' }}>
+              <div
+                style={{
+                  marginTop: '1rem',
+                  borderTop: '1px solid var(--border-figma)',
+                  paddingTop: '1rem',
+                }}
+              >
                 {!showCancelSection ? (
                   <button
                     type="button"
                     onClick={() => setShowCancelSection(true)}
                     className="btn-secondary"
-                    style={{ width: '100%', color: '#dc2626', borderColor: '#fecaca', fontSize: '0.8125rem' }}
+                    style={{
+                      width: '100%',
+                      color: '#dc2626',
+                      borderColor: '#fecaca',
+                      fontSize: '0.8125rem',
+                    }}
                   >
                     Cancel / Terminate Order
                   </button>
@@ -1629,13 +1819,25 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
 
           {/* Customer & Delivery Information Card */}
           <div className="figma-table-card" style={{ padding: '1.25rem 1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}>
+            <h3
+              style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}
+            >
               Customer & Store Details
             </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}
+            >
               <div>
-                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginBottom: '2px',
+                  }}
+                >
                   <Building2 size={13} /> Retailer Organisation:
                 </span>
                 <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>
@@ -1647,7 +1849,15 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               </div>
 
               <div>
-                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginBottom: '2px',
+                  }}
+                >
                   <UserIcon size={13} /> Placed By:
                 </span>
                 <span style={{ color: '#0f172a', fontWeight: 500 }}>
@@ -1656,7 +1866,15 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               </div>
 
               <div>
-                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginBottom: '2px',
+                  }}
+                >
                   <MapPin size={13} /> Delivery Address:
                 </span>
                 <span style={{ color: '#334155' }}>
@@ -1666,22 +1884,42 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
 
               {order.notes && (
                 <div>
-                  <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                  <span
+                    style={{
+                      color: '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginBottom: '2px',
+                    }}
+                  >
                     <FileText size={13} /> Retailer Order Notes:
                   </span>
-                  <span style={{ fontStyle: 'italic', color: '#334155' }}>
-                    "{order.notes}"
-                  </span>
+                  <span style={{ fontStyle: 'italic', color: '#334155' }}>"{order.notes}"</span>
                 </div>
               )}
 
               {order.cancellationReason && (
-                <div style={{ backgroundColor: '#fef2f2', padding: '8px 12px', borderRadius: '6px', color: '#991b1b' }}>
+                <div
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    color: '#991b1b',
+                  }}
+                >
                   <strong>Cancellation/Rejection:</strong> {order.cancellationReason}
                 </div>
               )}
 
-              <div style={{ borderTop: '1px solid var(--border-figma)', paddingTop: '8px', color: '#64748b', fontSize: '0.75rem' }}>
+              <div
+                style={{
+                  borderTop: '1px solid var(--border-figma)',
+                  paddingTop: '8px',
+                  color: '#64748b',
+                  fontSize: '0.75rem',
+                }}
+              >
                 <div>Placed on: {formatDate(order.createdAt)}</div>
                 {order.modifiedAt && <div>Last modified: {formatDate(order.modifiedAt)}</div>}
                 {order.cancelledAt && <div>Cancelled on: {formatDate(order.cancelledAt)}</div>}

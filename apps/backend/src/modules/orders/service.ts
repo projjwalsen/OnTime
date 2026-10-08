@@ -448,11 +448,7 @@ export class OrdersService {
    * Modify Order Items as per warehouse stock availability (Super Admin).
    * Transitions the order to AWAITING and dispatches notification to retailer.
    */
-  async modifyOrderStock(
-    caller: AuthContext,
-    id: string,
-    data: ModifyOrderInput,
-  ): Promise<Order> {
+  async modifyOrderStock(caller: AuthContext, id: string, data: ModifyOrderInput): Promise<Order> {
     if (caller.role !== UserRole.SUPER_ADMIN) {
       throw new OrderError(
         'Forbidden: Only platform administrators can modify orders as per stock',
@@ -474,10 +470,7 @@ export class OrdersService {
     }
 
     const currentStatus = existing.status as OrderStatus;
-    if (
-      currentStatus !== OrderStatus.PENDING &&
-      currentStatus !== OrderStatus.AWAITING
-    ) {
+    if (currentStatus !== OrderStatus.PENDING && currentStatus !== OrderStatus.AWAITING) {
       throw new OrderError(
         `Cannot modify order with status "${currentStatus}". Order modifications are only permitted while PENDING or AWAITING.`,
         400,
@@ -682,11 +675,7 @@ export class OrdersService {
    * Approve Partial / Modified Order (Retailer Admin only).
    * Transitions the order into PROCESSING and dispatches notification to Super Admin.
    */
-  async approvePartialOrder(
-    caller: AuthContext,
-    id: string,
-    notes?: string,
-  ): Promise<Order> {
+  async approvePartialOrder(caller: AuthContext, id: string, notes?: string): Promise<Order> {
     const existing = await prisma.order.findUnique({
       where: { id },
       include: {
@@ -705,10 +694,7 @@ export class OrdersService {
 
     // Role authorization: Only Retailer Admin can approve partial orders
     if (caller.role !== UserRole.ADMIN) {
-      throw new OrderError(
-        'Forbidden: Only Retailer Admin can approve partial orders',
-        403,
-      );
+      throw new OrderError('Forbidden: Only Retailer Admin can approve partial orders', 403);
     }
 
     // Tenant authorization
@@ -800,11 +786,7 @@ export class OrdersService {
    * Reject Partial / Modified Order (Retailer).
    * Transitions the order into REJECTED and dispatches notification to Super Admin.
    */
-  async rejectPartialOrder(
-    caller: AuthContext,
-    id: string,
-    reason?: string,
-  ): Promise<Order> {
+  async rejectPartialOrder(caller: AuthContext, id: string, reason?: string): Promise<Order> {
     const existing = await prisma.order.findUnique({
       where: { id },
       include: {
@@ -1129,14 +1111,14 @@ export class OrdersService {
       nextStatus === OrderStatus.CONFIRMED
         ? 'Order Confirmed by Super Admin'
         : nextStatus === OrderStatus.PROCESSING
-        ? 'Order Processing Started'
-        : nextStatus === OrderStatus.DISPATCHED
-        ? 'Order Dispatched for Delivery'
-        : nextStatus === OrderStatus.DELIVERED
-        ? 'Order Delivered to Customer'
-        : nextStatus === OrderStatus.CANCELLED
-        ? 'Order Cancelled'
-        : `Status updated from ${currentStatus} to ${nextStatus}`;
+          ? 'Order Processing Started'
+          : nextStatus === OrderStatus.DISPATCHED
+            ? 'Order Dispatched for Delivery'
+            : nextStatus === OrderStatus.DELIVERED
+              ? 'Order Delivered to Customer'
+              : nextStatus === OrderStatus.CANCELLED
+                ? 'Order Cancelled'
+                : `Status updated from ${currentStatus} to ${nextStatus}`;
 
     const updated = await prisma.$transaction(
       async (tx) => {
@@ -1388,4 +1370,3 @@ export class OrdersService {
 }
 
 export const ordersService = new OrdersService();
-

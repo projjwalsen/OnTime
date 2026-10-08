@@ -110,7 +110,10 @@ async function runTests() {
   await test('Password Changed Template renders security alert', () => {
     const rendered = renderPasswordChangedTemplate('Jane Doe');
     assert(rendered.subject.includes('password was changed'), 'Subject should alert user');
-    assert(rendered.html.includes('Password Changed Successfully'), 'HTML should have alert heading');
+    assert(
+      rendered.html.includes('Password Changed Successfully'),
+      'HTML should have alert heading',
+    );
     assert(rendered.text.includes('Jane Doe'), 'Plaintext must greet user');
   });
 
@@ -154,7 +157,10 @@ async function runTests() {
     assert(rendered.html.includes('Premium Basmati Rice 5kg'), 'HTML must list line items');
     assert(rendered.html.includes('Refined Sunflower Oil 1L'), 'HTML must list line items');
     assert(rendered.html.includes('13,125.00'), 'HTML must display formatted total');
-    assert(rendered.html.includes('123 Market St, Mumbai, MH'), 'HTML must display delivery address');
+    assert(
+      rendered.html.includes('123 Market St, Mumbai, MH'),
+      'HTML must display delivery address',
+    );
     assert(rendered.text.includes('ORD-20260921-8841'), 'Plaintext must contain order number');
   });
 
@@ -172,20 +178,30 @@ async function runTests() {
     };
 
     const updateRendered = renderOrderStatusUpdateTemplate(orderData, 'PROCESSING', 'DISPATCHED');
-    assert(updateRendered.subject.includes('DISPATCHED'), 'Status update subject must have new status');
+    assert(
+      updateRendered.subject.includes('DISPATCHED'),
+      'Status update subject must have new status',
+    );
     assert(updateRendered.html.includes('DISPATCHED'), 'HTML must have new status badge');
     assert(updateRendered.html.includes('PROCESSING'), 'HTML must reference previous status');
 
     const cancelRendered = renderOrderCancelledTemplate(orderData);
     assert(cancelRendered.subject.includes('Cancelled'), 'Cancel subject must mention cancelled');
-    assert(cancelRendered.html.includes('Out of stock at central warehouse'), 'HTML must show reason');
+    assert(
+      cancelRendered.html.includes('Out of stock at central warehouse'),
+      'HTML must show reason',
+    );
   });
 
   // -------------------------------------------------------------
   // Test 4: Organisation Templates Rendering
   // -------------------------------------------------------------
   await test('Organisation Welcome, Status, and Invitation Templates', () => {
-    const welcome = renderOrganisationWelcomeTemplate('Apex Wholesale', 'Mr. Apex', 'https://portal.ontime.com');
+    const welcome = renderOrganisationWelcomeTemplate(
+      'Apex Wholesale',
+      'Mr. Apex',
+      'https://portal.ontime.com',
+    );
     assert(welcome.html.includes('Apex Wholesale'), 'Welcome must contain org name');
     assert(welcome.html.includes('https://portal.ontime.com'), 'Welcome must contain portal URL');
 
