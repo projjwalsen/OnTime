@@ -195,7 +195,9 @@ async function runBusinessDetailsTests() {
       staffUpdateRes.status === 403,
       `Expected 403 Forbidden for staff PATCH business-details, got ${staffUpdateRes.status}`,
     );
-    console.log('  ✅ [TEST 4] Retailer Staff blocked from changing business details (403 Forbidden)');
+    console.log(
+      '  ✅ [TEST 4] Retailer Staff blocked from changing business details (403 Forbidden)',
+    );
 
     // ============================================================
     // TEST 5: Retailer Staff CANNOT update via /organisations/:id (403 Forbidden)
@@ -211,7 +213,9 @@ async function runBusinessDetailsTests() {
       staffOrgUpdateRes.status === 403,
       `Expected 403 Forbidden for staff PATCH /:id, got ${staffOrgUpdateRes.status}`,
     );
-    console.log('  ✅ [TEST 5] Retailer Staff blocked from changing organisation by ID (403 Forbidden)');
+    console.log(
+      '  ✅ [TEST 5] Retailer Staff blocked from changing organisation by ID (403 Forbidden)',
+    );
 
     // ============================================================
     // TEST 6: Retailer Admin B cannot update Retailer Org A (403 Forbidden)

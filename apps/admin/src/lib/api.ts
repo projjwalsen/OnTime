@@ -940,7 +940,6 @@ class ApiClient {
     );
   }
 
-
   async deleteDraftOrder(id: string): Promise<ApiResponse<null>> {
     return this.request<null>(`/v1/draft-orders/${id}`, {
       method: 'DELETE',
@@ -967,9 +966,7 @@ class ApiClient {
     return this.request<{ address: DeliveryAddress }>(`/v1/addresses/${id}`);
   }
 
-  async createAddress(
-    dto: CreateAddressDto,
-  ): Promise<ApiResponse<{ address: DeliveryAddress }>> {
+  async createAddress(dto: CreateAddressDto): Promise<ApiResponse<{ address: DeliveryAddress }>> {
     return this.request<{ address: DeliveryAddress }>('/v1/addresses', {
       method: 'POST',
       body: JSON.stringify(dto),
@@ -1125,4 +1122,3 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
-

@@ -318,8 +318,10 @@ async function runTests() {
   console.log('  ✔ Foreign key cascade deletion verified for product_variants');
 
   // Test 7: Global Search across Category Name, Name, SKU, ID, Description, Unit, Packaging Note, and Price
-  console.log('\n--- TEST 7: Global search across all catalog fields (GET /api/v1/products?search=...) ---');
-  
+  console.log(
+    '\n--- TEST 7: Global search across all catalog fields (GET /api/v1/products?search=...) ---',
+  );
+
   // Create a unique category and product to test search capabilities
   const spiceCatName = `Organic Spices & Herbs ${Date.now()}`;
   const spiceCatRes = await makeRequest(
@@ -379,12 +381,7 @@ async function runTests() {
   console.log('  ✔ Global search by Category Name matched successfully');
 
   // 7b: Search by Unit
-  const searchUnitRes = await makeRequest(
-    'GET',
-    `/api/v1/products?search=pouch`,
-    undefined,
-    token,
-  );
+  const searchUnitRes = await makeRequest('GET', `/api/v1/products?search=pouch`, undefined, token);
   assert(searchUnitRes.status === 200, 'Search by unit failed');
   assert(
     searchUnitRes.body.data.products.some((p: any) => p.id === spiceProd.id),
@@ -435,12 +432,7 @@ async function runTests() {
   console.log('  ✔ Global search by ID matched successfully');
 
   // 7f: Search by Price number
-  const searchPriceRes = await makeRequest(
-    'GET',
-    `/api/v1/products?search=350`,
-    undefined,
-    token,
-  );
+  const searchPriceRes = await makeRequest('GET', `/api/v1/products?search=350`, undefined, token);
   assert(searchPriceRes.status === 200, 'Search by price failed');
   assert(
     searchPriceRes.body.data.products.some((p: any) => p.id === spiceProd.id),
@@ -463,7 +455,9 @@ async function runTests() {
   console.log('  ✔ Global search by Variant Weight matched successfully');
 
   // Test 8: Specific field-level filter parameters
-  console.log('\n--- TEST 8: Specific field filters (categoryName, unit, packagingNote, sku, price range) ---');
+  console.log(
+    '\n--- TEST 8: Specific field filters (categoryName, unit, packagingNote, sku, price range) ---',
+  );
   const fieldFilterRes = await makeRequest(
     'GET',
     `/api/v1/products?categoryName=${encodeURIComponent('Spices')}&unit=pouch&sku=${spiceSku}&minPrice=300&maxPrice=400`,
@@ -634,7 +628,10 @@ async function runTests() {
   );
   assert(recentPurchasesRes.status === 200, 'Recent purchases request failed');
   const recentProds = recentPurchasesRes.body.data.products;
-  assert(recentProds.length === 3, `Expected 3 distinct recent products, got ${recentProds.length}`);
+  assert(
+    recentProds.length === 3,
+    `Expected 3 distinct recent products, got ${recentProds.length}`,
+  );
   // Order 2 is newer (C, A), Order 1 is older (A, B) -> first items should be from Order 2
   const recentIds = recentProds.map((p: any) => p.id);
   assert(
@@ -682,12 +679,31 @@ async function runTests() {
   console.log('  ✔ Search within recent purchases verified');
 
   // 9e: Route aliases (/recent-purchase, /recent-purchased, /recent)
-  const aliasRes1 = await makeRequest('GET', '/api/v1/products/recent-purchase', undefined, retailerToken);
-  assert(aliasRes1.status === 200 && aliasRes1.body.data.products.length === 3, 'Alias /recent-purchase failed');
-  const aliasRes2 = await makeRequest('GET', '/api/v1/products/recent-purchased', undefined, retailerToken);
-  assert(aliasRes2.status === 200 && aliasRes2.body.data.products.length === 3, 'Alias /recent-purchased failed');
+  const aliasRes1 = await makeRequest(
+    'GET',
+    '/api/v1/products/recent-purchase',
+    undefined,
+    retailerToken,
+  );
+  assert(
+    aliasRes1.status === 200 && aliasRes1.body.data.products.length === 3,
+    'Alias /recent-purchase failed',
+  );
+  const aliasRes2 = await makeRequest(
+    'GET',
+    '/api/v1/products/recent-purchased',
+    undefined,
+    retailerToken,
+  );
+  assert(
+    aliasRes2.status === 200 && aliasRes2.body.data.products.length === 3,
+    'Alias /recent-purchased failed',
+  );
   const aliasRes3 = await makeRequest('GET', '/api/v1/products/recent', undefined, retailerToken);
-  assert(aliasRes3.status === 200 && aliasRes3.body.data.products.length === 3, 'Alias /recent failed');
+  assert(
+    aliasRes3.status === 200 && aliasRes3.body.data.products.length === 3,
+    'Alias /recent failed',
+  );
   console.log('  ✔ All route aliases (/recent-purchase, /recent-purchased, /recent) verified');
 
   console.log('\n===========================================================');

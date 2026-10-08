@@ -151,5 +151,3 @@ export type RejectPartialOrderInput = z.infer<typeof rejectPartialOrderSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type OrderFilterInput = z.infer<typeof orderFilterQuerySchema>;
-
-

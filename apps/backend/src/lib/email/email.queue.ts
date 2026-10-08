@@ -177,7 +177,10 @@ export class EmailQueue {
         job.status = 'failed';
         this.stats.failed++;
         this.stats.totalProcessed++;
-        console.error(`[EmailQueue] Job ${job.id} failed after ${job.attempts} attempts:`, errorMessage);
+        console.error(
+          `[EmailQueue] Job ${job.id} failed after ${job.attempts} attempts:`,
+          errorMessage,
+        );
       }
     }
   }

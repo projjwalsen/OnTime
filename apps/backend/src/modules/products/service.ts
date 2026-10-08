@@ -540,10 +540,7 @@ export class ProductsService {
         order: orderWhere,
         product: productWhere,
       },
-      orderBy: [
-        { order: { createdAt: 'desc' } },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ order: { createdAt: 'desc' } }, { createdAt: 'desc' }],
       select: {
         productId: true,
       },

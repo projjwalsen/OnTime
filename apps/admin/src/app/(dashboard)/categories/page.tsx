@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layers, Plus, Search, Edit2, Trash2, Loader2, Package } from 'lucide-react';
+import { Layers, Plus, Search, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Category, CreateCategoryDto, UpdateCategoryDto } from '@ontime/shared';
 import { Button } from '../../../components/ui/Button';

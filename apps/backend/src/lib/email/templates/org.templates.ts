@@ -1,10 +1,5 @@
 import { renderBaseTemplate } from './base.template';
-import {
-  escapeHtml,
-  renderAlertBox,
-  renderButton,
-  renderDetailGrid,
-} from './components';
+import { escapeHtml, renderAlertBox, renderButton, renderDetailGrid } from './components';
 import type { OrganisationStatusChangeEmailData, RenderedEmail } from '../email.types';
 
 /**
@@ -85,7 +80,11 @@ export function renderOrganisationStatusChangeTemplate(
 
     ${
       data.reason
-        ? renderAlertBox('Notice Details', data.reason, data.newStatus === 'SUSPENDED' ? 'warning' : 'info')
+        ? renderAlertBox(
+            'Notice Details',
+            data.reason,
+            data.newStatus === 'SUSPENDED' ? 'warning' : 'info',
+          )
         : ''
     }
   `;

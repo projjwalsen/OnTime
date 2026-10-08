@@ -165,7 +165,11 @@ export const updateOrganisationStatus: RequestHandler = asyncHandler(
         return;
       }
       const { status } = req.body;
-      const organisation = await organisationsService.updateOrganisationStatus(req.user, id, status);
+      const organisation = await organisationsService.updateOrganisationStatus(
+        req.user,
+        id,
+        status,
+      );
       successResponse(res, `Organisation status updated to ${status}`, { organisation });
     } catch (error) {
       handleOrganisationError(res, error);

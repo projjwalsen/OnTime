@@ -72,4 +72,3 @@ export type UpdateDraftOrderItemInput = z.infer<typeof updateDraftOrderItemSchem
 export type BulkRemoveDraftOrderItemsInput = z.infer<typeof bulkRemoveDraftOrderItemsSchema>;
 export type ConvertDraftOrderInput = z.infer<typeof convertDraftOrderSchema>;
 export type DraftOrderFilterInput = z.infer<typeof draftOrderFilterQuerySchema>;
-

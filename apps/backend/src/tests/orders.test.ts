@@ -667,14 +667,18 @@ async function runTests() {
     },
     tokenA,
   );
-  assert(modOrderRes.status === 201, `Failed to create order for mod test: ${JSON.stringify(modOrderRes.body)}`);
+  assert(
+    modOrderRes.status === 201,
+    `Failed to create order for mod test: ${JSON.stringify(modOrderRes.body)}`,
+  );
   const orderToModify = modOrderRes.body.data.order;
   assert(orderToModify.status === OrderStatus.PENDING, 'Initial order should be PENDING');
   assert(orderToModify.totalAmount === 5050, `Expected 5050, got ${orderToModify.totalAmount}`);
 
   // Super Admin adjusts stock (e.g., only 2 units of variant5kg available, 8 units of prod2)
   const modifyPayload = {
-    modificationNote: 'Reduced 5kg Basmati from 5 to 2 due to limited warehouse stock. Reduced Oil to 8.',
+    modificationNote:
+      'Reduced 5kg Basmati from 5 to 2 due to limited warehouse stock. Reduced Oil to 8.',
     items: [
       { productId: prod1.id, variantId: variant5kg.id, quantity: 2 }, // 2 * 750 = 1500
       { productId: prod2.id, quantity: 8 }, // 8 * 130 = 1040
@@ -687,7 +691,10 @@ async function runTests() {
     modifyPayload,
     superToken,
   );
-  assert(modifyRes.status === 200, `Super Admin modify order failed: ${JSON.stringify(modifyRes.body)}`);
+  assert(
+    modifyRes.status === 200,
+    `Super Admin modify order failed: ${JSON.stringify(modifyRes.body)}`,
+  );
   const modifiedOrder = modifyRes.body.data.order;
 
   assert(
@@ -706,12 +713,20 @@ async function runTests() {
 
   const modItem1 = modifiedOrder.items.find((i: any) => i.productId === prod1.id);
   assert(modItem1.quantity === 2, `Expected item 1 quantity 2, got ${modItem1.quantity}`);
-  assert(modItem1.originalQuantity === 5, `Expected item 1 originalQuantity 5, got ${modItem1.originalQuantity}`);
+  assert(
+    modItem1.originalQuantity === 5,
+    `Expected item 1 originalQuantity 5, got ${modItem1.originalQuantity}`,
+  );
 
   const modItem2 = modifiedOrder.items.find((i: any) => i.productId === prod2.id);
   assert(modItem2.quantity === 8, `Expected item 2 quantity 8, got ${modItem2.quantity}`);
-  assert(modItem2.originalQuantity === 10, `Expected item 2 originalQuantity 10, got ${modItem2.originalQuantity}`);
-  console.log('  ✔ Super Admin stock modification set status to AWAITING and saved original quantities & note');
+  assert(
+    modItem2.originalQuantity === 10,
+    `Expected item 2 originalQuantity 10, got ${modItem2.originalQuantity}`,
+  );
+  console.log(
+    '  ✔ Super Admin stock modification set status to AWAITING and saved original quantities & note',
+  );
 
   // -------------------------------------------------------------
   // TEST 11: Retailer Admin Approves Partial Order -> Status becomes PROCESSING
@@ -830,7 +845,9 @@ async function runTests() {
     'Rejection reason mismatch',
   );
   assert(!!rejectedOrder.cancelledAt, 'cancelledAt timestamp missing on rejected order');
-  console.log('  ✔ Retailer rejected partial order successfully transitioned to REJECTED with reason');
+  console.log(
+    '  ✔ Retailer rejected partial order successfully transitioned to REJECTED with reason',
+  );
 
   // -------------------------------------------------------------
   // TEST 13: Order History Audit Trail & Dedicated History Endpoint
@@ -851,11 +868,28 @@ async function runTests() {
   const histOrder = histOrderRes.body.data.order;
 
   // Verify initial history entry in getOrderById
-  const getOrderHist1 = await makeRequest('GET', `/api/v1/orders/${histOrder.id}`, undefined, tokenA);
-  assert(Array.isArray(getOrderHist1.body.data.order.history), 'Expected history array in order payload');
-  assert(getOrderHist1.body.data.order.history.length === 1, `Expected 1 history event, got ${getOrderHist1.body.data.order.history.length}`);
-  assert(getOrderHist1.body.data.order.history[0].action === 'Order Placed', 'Expected action "Order Placed"');
-  assert(getOrderHist1.body.data.order.history[0].status === OrderStatus.PENDING, 'Expected status PENDING');
+  const getOrderHist1 = await makeRequest(
+    'GET',
+    `/api/v1/orders/${histOrder.id}`,
+    undefined,
+    tokenA,
+  );
+  assert(
+    Array.isArray(getOrderHist1.body.data.order.history),
+    'Expected history array in order payload',
+  );
+  assert(
+    getOrderHist1.body.data.order.history.length === 1,
+    `Expected 1 history event, got ${getOrderHist1.body.data.order.history.length}`,
+  );
+  assert(
+    getOrderHist1.body.data.order.history[0].action === 'Order Placed',
+    'Expected action "Order Placed"',
+  );
+  assert(
+    getOrderHist1.body.data.order.history[0].status === OrderStatus.PENDING,
+    'Expected status PENDING',
+  );
   assert(!!getOrderHist1.body.data.order.history[0].createdAt, 'Expected createdAt timestamp');
   console.log('  ✔ Order Placed history event recorded with timestamp');
 
@@ -901,26 +935,47 @@ async function runTests() {
     undefined,
     superToken,
   );
-  assert(historyListRes.status === 200, `Failed to get order history: ${JSON.stringify(historyListRes.body)}`);
+  assert(
+    historyListRes.status === 200,
+    `Failed to get order history: ${JSON.stringify(historyListRes.body)}`,
+  );
   const historyEntries = historyListRes.body.data.history;
   assert(Array.isArray(historyEntries), 'Expected history array in response');
-  assert(historyEntries.length === 5, `Expected 5 lifecycle history events, got ${historyEntries.length}`);
+  assert(
+    historyEntries.length === 5,
+    `Expected 5 lifecycle history events, got ${historyEntries.length}`,
+  );
 
   // Check actions in descending order (newest event first)
-  assert(historyEntries[0].action === 'Order Delivered to Customer', 'Entry 1 (latest) action mismatch');
+  assert(
+    historyEntries[0].action === 'Order Delivered to Customer',
+    'Entry 1 (latest) action mismatch',
+  );
   assert(historyEntries[0].status === OrderStatus.DELIVERED, 'Entry 1 status mismatch');
 
   assert(historyEntries[1].action === 'Order Dispatched for Delivery', 'Entry 2 action mismatch');
   assert(historyEntries[1].status === OrderStatus.DISPATCHED, 'Entry 2 status mismatch');
 
-  assert(historyEntries[2].action === 'Partial Order Approved by Retailer', 'Entry 3 action mismatch');
+  assert(
+    historyEntries[2].action === 'Partial Order Approved by Retailer',
+    'Entry 3 action mismatch',
+  );
   assert(historyEntries[2].status === OrderStatus.PROCESSING, 'Entry 3 status mismatch');
   assert(historyEntries[2].note === 'Approved reduced quantity of 8', 'Entry 3 note mismatch');
 
-  assert(historyEntries[3].action === 'Stock Adjusted & Sent for Retailer Approval', 'Entry 4 action mismatch');
+  assert(
+    historyEntries[3].action === 'Stock Adjusted & Sent for Retailer Approval',
+    'Entry 4 action mismatch',
+  );
   assert(historyEntries[3].status === OrderStatus.AWAITING, 'Entry 4 status mismatch');
-  assert(historyEntries[3].note === 'Stock trimmed due to warehouse limitation', 'Entry 4 note mismatch');
-  assert(historyEntries[3].performedByUserRole === UserRole.SUPER_ADMIN, 'Entry 4 performer role mismatch');
+  assert(
+    historyEntries[3].note === 'Stock trimmed due to warehouse limitation',
+    'Entry 4 note mismatch',
+  );
+  assert(
+    historyEntries[3].performedByUserRole === UserRole.SUPER_ADMIN,
+    'Entry 4 performer role mismatch',
+  );
 
   assert(historyEntries[4].action === 'Order Placed', 'Entry 5 (initial) action mismatch');
   assert(historyEntries[4].status === OrderStatus.PENDING, 'Entry 5 status mismatch');
@@ -928,16 +983,21 @@ async function runTests() {
   // Verify timestamps exist and are sequential
   for (let i = 0; i < historyEntries.length; i++) {
     assert(!!historyEntries[i].createdAt, `History entry ${i} missing createdAt`);
-    assert(!!historyEntries[i].performedByUserName, `History entry ${i} missing performedByUserName`);
+    assert(
+      !!historyEntries[i].performedByUserName,
+      `History entry ${i} missing performedByUserName`,
+    );
   }
-  console.log('  ✔ All 5 sequential order lifecycle events captured with timestamps, notes, and user roles');
+  console.log(
+    '  ✔ All 5 sequential order lifecycle events captured with timestamps, notes, and user roles',
+  );
   console.log('  ✔ Dedicated GET /api/v1/orders/:id/history endpoint verified');
 
   // -------------------------------------------------------------
   // TEST 13: Multiple Order Statuses Filtering
   // -------------------------------------------------------------
   console.log('\n--- TEST 13: Multiple Order Statuses Filtering (GET /api/v1/orders) ---');
-  
+
   // 1. Comma-separated statuses (status=DELIVERED,CANCELLED)
   const multiCommaRes = await makeRequest(
     'GET',
@@ -982,7 +1042,9 @@ async function runTests() {
     !paramOrders.some((o: any) => o.status === OrderStatus.CANCELLED),
     'Must not include CANCELLED orders',
   );
-  console.log('  ✔ Repeated status parameters (?status=PENDING&status=DELIVERED) correctly filtered');
+  console.log(
+    '  ✔ Repeated status parameters (?status=PENDING&status=DELIVERED) correctly filtered',
+  );
 
   // 3. Plural statuses parameter (statuses=DELIVERED,CANCELLED)
   const pluralRes = await makeRequest(
@@ -1022,7 +1084,9 @@ async function runTests() {
     ),
     'All returned orders must be PENDING or DELIVERED for case-insensitive query',
   );
-  console.log('  ✔ Case-insensitivity and whitespace (?status=pending, delivered) correctly handled');
+  console.log(
+    '  ✔ Case-insensitivity and whitespace (?status=pending, delivered) correctly handled',
+  );
 
   // 5. Invalid status rejection (?status=INVALID_STATUS)
   const invalidRes = await makeRequest(
@@ -1031,10 +1095,7 @@ async function runTests() {
     undefined,
     superToken,
   );
-  assert(
-    invalidRes.status === 400,
-    `Expected 400 for invalid status, got ${invalidRes.status}`,
-  );
+  assert(invalidRes.status === 400, `Expected 400 for invalid status, got ${invalidRes.status}`);
   console.log('  ✔ Invalid status rejected with 400 Bad Request');
 
   // 6. Invalid status mixed in list (?status=PENDING,INVALID_STATUS)

@@ -6,4 +6,6 @@ export const updateNotificationPreferencesSchema = z.object({
   marketingUpdates: z.boolean().optional(),
 });
 
-export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
+export type UpdateNotificationPreferencesInput = z.infer<
+  typeof updateNotificationPreferencesSchema
+>;

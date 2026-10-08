@@ -3,16 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, RefreshCw, Eye, ArrowUpRight, Clock, CheckCircle2, AlertCircle, Package } from 'lucide-react';
+import { Search, Filter, RefreshCw, Eye, ArrowUpRight } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { OrderStatusBadge } from '../../../components/orders/OrderStatusBadge';
 import { Pagination } from '../../../components/ui/Pagination';
-import {
-  type Order,
-  type OrderSummaryStats,
-  type Organisation,
-  OrderStatus,
-} from '@ontime/shared';
+import { type Order, type OrderSummaryStats, type Organisation, OrderStatus } from '@ontime/shared';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -35,7 +30,6 @@ function formatDate(dateInput?: string | Date): string {
     minute: '2-digit',
   });
 }
-
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -147,7 +141,10 @@ export default function OrdersPage() {
 
       {/* ── KPI Stat Cards ── */}
       {stats && (
-        <div className="kpi-grid-5" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div
+          className="kpi-grid-5"
+          style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}
+        >
           <div className="figma-kpi-card">
             <span className="figma-kpi-title">Total Orders</span>
             <span className="figma-kpi-value">{Number(stats.totalOrders).toLocaleString()}</span>
@@ -158,7 +155,10 @@ export default function OrdersPage() {
 
           <div
             className="figma-kpi-card"
-            style={{ cursor: 'pointer', borderTop: statusFilter === 'PENDING' ? '3px solid #3b82f6' : undefined }}
+            style={{
+              cursor: 'pointer',
+              borderTop: statusFilter === 'PENDING' ? '3px solid #3b82f6' : undefined,
+            }}
             onClick={() => {
               setStatusFilter(statusFilter === 'PENDING' ? '' : 'PENDING');
               setPage(1);
@@ -173,7 +173,10 @@ export default function OrdersPage() {
 
           <div
             className="figma-kpi-card"
-            style={{ cursor: 'pointer', borderTop: statusFilter === 'AWAITING' ? '3px solid #f59e0b' : undefined }}
+            style={{
+              cursor: 'pointer',
+              borderTop: statusFilter === 'AWAITING' ? '3px solid #f59e0b' : undefined,
+            }}
             onClick={() => {
               setStatusFilter(statusFilter === 'AWAITING' ? '' : 'AWAITING');
               setPage(1);
@@ -188,7 +191,10 @@ export default function OrdersPage() {
 
           <div
             className="figma-kpi-card"
-            style={{ cursor: 'pointer', borderTop: statusFilter === 'PROCESSING' ? '3px solid #8b5cf6' : undefined }}
+            style={{
+              cursor: 'pointer',
+              borderTop: statusFilter === 'PROCESSING' ? '3px solid #8b5cf6' : undefined,
+            }}
             onClick={() => {
               setStatusFilter(statusFilter === 'PROCESSING' ? '' : 'PROCESSING');
               setPage(1);
@@ -203,7 +209,10 @@ export default function OrdersPage() {
 
           <div
             className="figma-kpi-card"
-            style={{ cursor: 'pointer', borderTop: statusFilter === 'DISPATCHED' ? '3px solid #06b6d4' : undefined }}
+            style={{
+              cursor: 'pointer',
+              borderTop: statusFilter === 'DISPATCHED' ? '3px solid #06b6d4' : undefined,
+            }}
             onClick={() => {
               setStatusFilter(statusFilter === 'DISPATCHED' ? '' : 'DISPATCHED');
               setPage(1);
@@ -218,7 +227,10 @@ export default function OrdersPage() {
 
           <div
             className="figma-kpi-card"
-            style={{ cursor: 'pointer', borderTop: statusFilter === 'DELIVERED' ? '3px solid #10b981' : undefined }}
+            style={{
+              cursor: 'pointer',
+              borderTop: statusFilter === 'DELIVERED' ? '3px solid #10b981' : undefined,
+            }}
             onClick={() => {
               setStatusFilter(statusFilter === 'DELIVERED' ? '' : 'DELIVERED');
               setPage(1);
@@ -354,7 +366,13 @@ export default function OrdersPage() {
                     >
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#2563eb' }}>
+                          <span
+                            style={{
+                              fontFamily: 'monospace',
+                              fontSize: '0.9rem',
+                              color: '#2563eb',
+                            }}
+                          >
                             {order.orderNumber}
                           </span>
                         </div>
@@ -389,7 +407,9 @@ export default function OrdersPage() {
                       <td style={{ fontWeight: 600, color: '#0f172a' }}>
                         {formatCurrency(Number(order.totalAmount))}
                       </td>
-                      <td><OrderStatusBadge status={order.status} /></td>
+                      <td>
+                        <OrderStatusBadge status={order.status} />
+                      </td>
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <Link
                           href={`/orders/${order.id}`}

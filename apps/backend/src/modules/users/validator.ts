@@ -45,7 +45,6 @@ export const updateUserRoleSchema = z.object({
   }),
 });
 
-
 export const updateUserStatusSchema = z.object({
   isActive: z.boolean({ message: 'isActive boolean is required' }),
 });
@@ -57,4 +56,3 @@ export type InviteStaffInput = OnboardUserInput;
 export type UserFilterInput = z.infer<typeof userFilterQuerySchema>;
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
-

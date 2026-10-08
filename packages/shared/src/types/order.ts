@@ -165,4 +165,3 @@ export interface OrderSummaryStats {
   rejectedOrders: number;
   totalRevenue: number;
 }
-

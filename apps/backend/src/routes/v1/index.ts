@@ -94,4 +94,3 @@ router.use('/support', supportRoutes);
 router.use('/help', helpRoutes);
 
 export default router;
-

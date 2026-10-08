@@ -16,7 +16,9 @@ function handleDraftOrderError(res: Response, error: unknown): void {
   if (
     error instanceof DraftOrderError ||
     (error as any)?.name === 'DraftOrderError' ||
-    ((error as any)?.statusCode && typeof (error as any).statusCode === 'number' && (error as any).statusCode < 500)
+    ((error as any)?.statusCode &&
+      typeof (error as any).statusCode === 'number' &&
+      (error as any).statusCode < 500)
   ) {
     const statusCode = (error as any).statusCode || 400;
     const message = (error as any).message || 'Draft order operation failed';
@@ -197,7 +199,6 @@ export const bulkRemoveItemsFromDraft: RequestHandler = asyncHandler(
     }
   },
 );
-
 
 /**
  * @route   DELETE /api/v1/draft-orders/:id

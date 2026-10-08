@@ -229,4 +229,3 @@ export const cancelOrder: RequestHandler = asyncHandler(
     }
   },
 );
-

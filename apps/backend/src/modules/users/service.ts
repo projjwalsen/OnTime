@@ -305,7 +305,6 @@ export class UsersService {
    * Get complete team overview including active members, pending invitations, and team statistics.
    */
   async getTeamOverview(caller: AuthContext): Promise<{
-
     members: User[];
     invitations: Array<{
       id: string;
@@ -512,4 +511,3 @@ export class UsersService {
 }
 
 export const usersService = new UsersService();
-

@@ -1,8 +1,4 @@
-import {
-  type HelpArticle,
-  type HelpCategorySummary,
-  SupportTopic,
-} from '@ontime/shared';
+import { type HelpArticle, type HelpCategorySummary, SupportTopic } from '@ontime/shared';
 import { prisma } from '../../lib/prisma';
 import { type HelpFilterQueryInput } from './validator';
 
@@ -46,7 +42,8 @@ You can view and download GST invoices from the order details screen in both PDF
     category: SupportTopic.PRODUCTS_STOCK,
     title: 'Product availability and variant pricing',
     slug: 'product-variants-and-pricing',
-    summary: 'Understanding wholesale pricing tiers, package sizes, and real-time inventory availability.',
+    summary:
+      'Understanding wholesale pricing tiers, package sizes, and real-time inventory availability.',
     content: `All prices listed in the catalog reflect distributor wholesale pricing exclusive of applicable taxes.
 Variants (such as 500g, 1kg, bulk carton packs) carry specific unit pricing and packaging specifications shown on the product card.`,
     order: 1,

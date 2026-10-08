@@ -136,9 +136,7 @@ export function renderStaffCredentialsTemplate(data: StaffCredentialsEmailData):
     { label: 'Name', value: data.name },
     { label: 'Username (Email)', value: data.username, isMono: true, isHighlight: true },
     { label: 'Temporary Password', value: data.temporaryPassword, isMono: true, isHighlight: true },
-    ...(data.organisationName
-      ? [{ label: 'Organisation', value: data.organisationName }]
-      : []),
+    ...(data.organisationName ? [{ label: 'Organisation', value: data.organisationName }] : []),
   ];
 
   const content = `
@@ -178,7 +176,11 @@ export function renderStaffCredentialsTemplate(data: StaffCredentialsEmailData):
 export function renderPasswordChangedTemplate(name: string, timestamp = new Date()): RenderedEmail {
   const subject = 'Your OnTime account password was changed';
   const previewText = 'Security Alert: Your OnTime account password has been updated successfully.';
-  const timeStr = timestamp.toLocaleString('en-US', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' });
+  const timeStr = timestamp.toLocaleString('en-US', {
+    timeZone: 'UTC',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
   const content = `
     <h2 style="margin: 0 0 12px 0; color: #0f172a; font-size: 20px; font-weight: 700;">
