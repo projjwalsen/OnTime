@@ -572,7 +572,7 @@ async function runTests() {
     assert(!!registerRes.body.data.tokens.accessToken, 'Access token returned on registration');
     assert(!!registerRes.body.data.tokens.refreshToken, 'Refresh token returned on registration');
     assert(
-      typeof registerRes.body.data.otp === 'string' && registerRes.body.data.otp.length === 6,
+      typeof registerRes.body.data.otp === 'string' && registerRes.body.data.otp.length === 4,
       'Registration OTP code returned in dev/test mode',
     );
 
@@ -646,8 +646,8 @@ async function runTests() {
     assert(!!sendLoginOtpRes.body.data.expiresInSeconds, 'expiresInSeconds is returned');
     const loginOtp = sendLoginOtpRes.body.data.otp;
     assert(
-      typeof loginOtp === 'string' && loginOtp.length === 6,
-      '6-digit OTP returned in test mode',
+      typeof loginOtp === 'string' && loginOtp.length === 4,
+      '4-digit OTP returned in test mode',
     );
 
     // 16b. Rapid resend should trigger cooldown 429
@@ -673,7 +673,7 @@ async function runTests() {
     // 16d. Attempt verification with incorrect OTP code
     const invalidVerifyRes = await request('/api/v1/auth/otp/login/verify', {
       method: 'POST',
-      body: { email: 'admin@ontime.com', otp: '000000' },
+      body: { email: 'admin@ontime.com', otp: '0000' },
     });
     assert(
       invalidVerifyRes.status === 400,
@@ -718,8 +718,8 @@ async function runTests() {
     assert(forgotOtpRes.status === 200, `Expected 200, got ${forgotOtpRes.status}`);
     const resetOtp = forgotOtpRes.body.data.otp;
     assert(
-      typeof resetOtp === 'string' && resetOtp.length === 6,
-      '6-digit Reset OTP returned in test mode',
+      typeof resetOtp === 'string' && resetOtp.length === 4,
+      '4-digit Reset OTP returned in test mode',
     );
 
     // 17b. Anti-enumeration check for non-existent email (returns 200 with generic message and no OTP)

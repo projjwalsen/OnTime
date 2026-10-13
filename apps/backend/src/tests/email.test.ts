@@ -69,25 +69,25 @@ async function runTests() {
   // Test 2: Auth Templates Rendering
   // -------------------------------------------------------------
   await test('Login OTP Template renders valid HTML and Plaintext', () => {
-    const rendered = renderLoginOtpTemplate('481920', 10);
-    assert(rendered.subject.includes('481920'), 'Subject must contain OTP');
-    assert(rendered.html.includes('481920'), 'HTML must contain OTP');
+    const rendered = renderLoginOtpTemplate('4819', 10);
+    assert(rendered.subject.includes('4819'), 'Subject must contain OTP');
+    assert(rendered.html.includes('4819'), 'HTML must contain OTP');
     assert(rendered.html.includes('Valid for 10 minutes'), 'HTML must mention expiry');
-    assert(rendered.text.includes('481920'), 'Plaintext must contain OTP');
+    assert(rendered.text.includes('4819'), 'Plaintext must contain OTP');
     assert(rendered.html.includes('⚡ OnTime'), 'HTML must include brand header');
   });
 
   await test('Password Reset OTP Template renders with security notice', () => {
-    const rendered = renderPasswordResetOtpTemplate('928374', 15);
-    assert(rendered.subject.includes('928374'), 'Subject must contain OTP');
-    assert(rendered.html.includes('928374'), 'HTML must contain OTP');
+    const rendered = renderPasswordResetOtpTemplate('9283', 15);
+    assert(rendered.subject.includes('9283'), 'Subject must contain OTP');
+    assert(rendered.html.includes('9283'), 'HTML must contain OTP');
     assert(rendered.html.includes('Reset your password'), 'HTML must contain title');
     assert(rendered.text.includes('15 minutes'), 'Plaintext must include expiry');
   });
 
   await test('Registration OTP Template renders with business context', () => {
-    const rendered = renderRegistrationOtpTemplate('123456', 10, 'Apex Supermarkets');
-    assert(rendered.subject.includes('123456'), 'Subject must contain OTP');
+    const rendered = renderRegistrationOtpTemplate('1234', 10, 'Apex Supermarkets');
+    assert(rendered.subject.includes('1234'), 'Subject must contain OTP');
     assert(rendered.html.includes('Apex Supermarkets'), 'HTML must contain business name');
     assert(rendered.text.includes('Apex Supermarkets'), 'Plaintext must contain business name');
   });
@@ -230,19 +230,19 @@ async function runTests() {
   await test('EmailService immediate send logs and updates sent history', async () => {
     emailService.clearSentEmails();
 
-    await emailService.sendLoginOtpEmail('user1@example.com', '778899', 10);
-    await emailService.sendPasswordResetOtpEmail('user2@example.com', '112233', 10);
+    await emailService.sendLoginOtpEmail('user1@example.com', '7788', 10);
+    await emailService.sendPasswordResetOtpEmail('user2@example.com', '1122', 10);
 
     const history = emailService.sentEmails;
     assert.strictEqual(history.length, 2, 'Must have recorded 2 sent emails');
 
     const lastToUser1 = emailService.getLastEmailTo('user1@example.com');
     assert(lastToUser1, 'Should find email to user1');
-    assert(lastToUser1.subject.includes('778899'), 'Should match user1 OTP subject');
+    assert(lastToUser1.subject.includes('7788'), 'Should match user1 OTP subject');
 
     const lastToUser2 = emailService.getLastEmailTo('user2@example.com');
     assert(lastToUser2, 'Should find email to user2');
-    assert(lastToUser2.subject.includes('112233'), 'Should match user2 OTP subject');
+    assert(lastToUser2.subject.includes('1122'), 'Should match user2 OTP subject');
   });
 
   // -------------------------------------------------------------
