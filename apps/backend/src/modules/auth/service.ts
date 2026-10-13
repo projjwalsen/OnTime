@@ -724,7 +724,7 @@ export class AuthService {
       },
     });
 
-    // Generate 6-digit registration verification OTP and save record
+    // Generate 4-digit registration verification OTP and save record
     const otp = this.generateOtp();
     const codeHash = this.hashOtp(otp);
     const expiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
@@ -768,10 +768,10 @@ export class AuthService {
   }
 
   /**
-   * Generate a random 6-digit numeric OTP string.
+   * Generate a random 4-digit numeric OTP string.
    */
   private generateOtp(): string {
-    return crypto.randomInt(100000, 1000000).toString();
+    return crypto.randomInt(1000, 10000).toString();
   }
 
   /**
@@ -839,7 +839,7 @@ export class AuthService {
       },
     });
 
-    // Generate 6-digit code and save hashed record
+    // Generate 4-digit code and save hashed record
     const otp = this.generateOtp();
     const codeHash = this.hashOtp(otp);
     const expiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
@@ -1286,7 +1286,7 @@ export class AuthService {
       },
     });
 
-    // Generate 6-digit code and save hashed record
+    // Generate 4-digit code and save hashed record
     const otp = this.generateOtp();
     const codeHash = this.hashOtp(otp);
     const expiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);

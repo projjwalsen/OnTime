@@ -102,8 +102,7 @@ export const verifyLoginOtpSchema = z.object({
   otp: z
     .string({ message: 'OTP code is required' })
     .trim()
-    .min(4, 'OTP code must be at least 4 characters')
-    .max(10, 'OTP code must be at most 10 characters'),
+    .regex(/^\d{4}$/, 'OTP code must be a 4-digit number'),
 });
 
 export const sendForgotPasswordOtpSchema = z.object({
@@ -123,8 +122,7 @@ export const verifyForgotPasswordOtpSchema = z.object({
   otp: z
     .string({ message: 'OTP code is required' })
     .trim()
-    .min(4, 'OTP code must be at least 4 characters')
-    .max(10, 'OTP code must be at most 10 characters'),
+    .regex(/^\d{4}$/, 'OTP code must be a 4-digit number'),
 });
 
 export const resetPasswordWithOtpSchema = z.object({
@@ -136,8 +134,7 @@ export const resetPasswordWithOtpSchema = z.object({
   otp: z
     .string({ message: 'OTP code is required' })
     .trim()
-    .min(4, 'OTP code must be at least 4 characters')
-    .max(10, 'OTP code must be at most 10 characters'),
+    .regex(/^\d{4}$/, 'OTP code must be a 4-digit number'),
   newPassword: z
     .string({ message: 'New password is required' })
     .min(8, 'New password must be at least 8 characters long'),
@@ -160,8 +157,7 @@ export const verifyRegistrationOtpSchema = z.object({
   otp: z
     .string({ message: 'OTP code is required' })
     .trim()
-    .min(4, 'OTP code must be at least 4 characters')
-    .max(10, 'OTP code must be at most 10 characters'),
+    .regex(/^\d{4}$/, 'OTP code must be a 4-digit number'),
 });
 
 export const toggleTwoFactorSchema = z.object({

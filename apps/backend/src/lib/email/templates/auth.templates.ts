@@ -113,7 +113,7 @@ export function renderRegistrationOtpTemplate(
     )}
   `;
 
-  const text = `Welcome to OnTime!\n\nThank you for registering your retailer account${orgSuffix} on OnTime.\n\nYour 6-digit email verification code is: ${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. Please enter this code to verify your account.\n\nBest regards,\nOnTime Team`;
+  const text = `Welcome to OnTime!\n\nThank you for registering your retailer account${orgSuffix} on OnTime.\n\nYour 4-digit email verification code is: ${otp}\n\nThis code will expire in ${expiresInMinutes} minutes. Please enter this code to verify your account.\n\nBest regards,\nOnTime Team`;
 
   const html = renderBaseTemplate({
     title: 'OnTime Registration Verification',
