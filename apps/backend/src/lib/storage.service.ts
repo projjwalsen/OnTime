@@ -92,7 +92,7 @@ export class StorageService {
         try {
           await this.supabase.storage.createBucket(this.bucket, {
             public: true,
-            fileSizeLimit: 10 * 1024 * 1024,
+            fileSizeLimit: 25 * 1024 * 1024,
           });
           const retry = await this.supabase.storage.from(this.bucket).upload(fileKey, file.buffer, {
             contentType: file.mimetype,
