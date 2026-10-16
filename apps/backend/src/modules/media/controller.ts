@@ -11,7 +11,7 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/svg+xml',
 ]);
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB per image
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB per image
 
 export class MediaController {
   /**
@@ -55,7 +55,7 @@ export class MediaController {
         if (file.size > MAX_FILE_SIZE_BYTES) {
           errorResponse(
             res,
-            `File "${file.originalname}" exceeds maximum allowed size of 10 MB.`,
+            `File "${file.originalname}" exceeds maximum allowed size of 25 MB.`,
             400,
           );
           return;
