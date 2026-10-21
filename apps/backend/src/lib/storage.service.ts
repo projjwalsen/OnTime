@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import path from 'path';
+import fs from 'fs/promises';
+import fsSync from 'fs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { type UploadedMediaFile, type UploadMediaResponse } from '@ontime/shared';
 import { config } from '../config/env';
@@ -15,12 +17,21 @@ export class StorageError extends Error {
 }
 
 export class StorageService {
+  private driver: 'local' | 'supabase';
+  private uploadDir: string;
+  private serverUrl: string;
+  private mediaBaseUrl: string;
   private supabase: SupabaseClient | null = null;
   private bucket: string;
 
   constructor() {
+    this.driver = config.storageDriver;
+    this.uploadDir = config.uploadDir;
+    this.serverUrl = config.serverUrl;
+    this.mediaBaseUrl = config.mediaBaseUrl;
     this.bucket = config.supabaseBucket || 'product-images';
-    if (config.supabaseUrl && config.supabaseKey) {
+
+    if (this.driver === 'supabase' && config.supabaseUrl && config.supabaseKey) {
       try {
         this.supabase = createClient(config.supabaseUrl, config.supabaseKey, {
           auth: {
@@ -30,6 +41,17 @@ export class StorageService {
         });
       } catch (err) {
         console.warn('[StorageService] Failed to initialize Supabase client:', err);
+      }
+    }
+
+    // Ensure root upload directory exists for local driver
+    if (this.driver === 'local') {
+      try {
+        if (!fsSync.existsSync(this.uploadDir)) {
+          fsSync.mkdirSync(this.uploadDir, { recursive: true });
+        }
+      } catch (err) {
+        console.warn('[StorageService] Could not initialize local upload directory:', err);
       }
     }
   }
@@ -60,7 +82,7 @@ export class StorageService {
   }
 
   /**
-   * Upload a single buffer to Supabase Storage.
+   * Upload a single buffer to server storage (local disk on Ubuntu server or Supabase).
    */
   async uploadFile(file: {
     buffer: Buffer;
@@ -69,11 +91,38 @@ export class StorageService {
     size: number;
   }): Promise<UploadedMediaFile> {
     const ext = this.getExtension(file.originalname, file.mimetype);
-    const datePrefix = new Date().toISOString().slice(0, 7); // e.g. "2026-09"
+    const datePrefix = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
     const uniqueId = crypto.randomUUID();
     const cleanFilename = `${Date.now()}-${uniqueId}.${ext}`;
     const fileKey = `products/${datePrefix}/${cleanFilename}`;
 
+    // ── Local Ubuntu Server Disk Storage ──────────────────────────
+    if (this.driver === 'local') {
+      try {
+        const targetDir = path.join(this.uploadDir, 'products', datePrefix);
+        await fs.mkdir(targetDir, { recursive: true });
+        const filePath = path.join(targetDir, cleanFilename);
+        await fs.writeFile(filePath, file.buffer);
+
+        const baseUrl = this.mediaBaseUrl || `${this.serverUrl}/uploads`;
+        const publicUrl = `${baseUrl.replace(/\/+$/, '')}/${fileKey}`;
+
+        return {
+          url: publicUrl,
+          key: fileKey,
+          filename: cleanFilename,
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+        };
+      } catch (err: unknown) {
+        console.error('[StorageService] Local disk write error:', err);
+        const msg = err instanceof Error ? err.message : 'Unknown write error';
+        throw new StorageError(`Failed to save file to server storage: ${msg}`, 500);
+      }
+    }
+
+    // ── Supabase S3 Storage Fallback ─────────────────────────────
     let publicUrl = `${config.supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${this.bucket}/${fileKey}`;
 
     if (this.supabase) {
@@ -128,7 +177,7 @@ export class StorageService {
   }
 
   /**
-   * Upload multiple files to Supabase Storage concurrently.
+   * Upload multiple files concurrently.
    */
   async uploadFiles(
     files: Array<{
@@ -150,6 +199,32 @@ export class StorageService {
       url: urls[0] || '',
       urls,
     };
+  }
+
+  /**
+   * Delete a file by key from server storage.
+   */
+  async deleteFile(fileKey: string): Promise<boolean> {
+    if (!fileKey) return false;
+
+    if (this.driver === 'local') {
+      try {
+        const safeKey = fileKey.replace(/^(\/|\\)+/, '').replace(/\.\./g, '');
+        const targetPath = path.join(this.uploadDir, safeKey);
+        await fs.unlink(targetPath);
+        return true;
+      } catch (err: unknown) {
+        console.warn(`[StorageService] Could not delete local file ${fileKey}:`, err);
+        return false;
+      }
+    }
+
+    if (this.supabase) {
+      const { error } = await this.supabase.storage.from(this.bucket).remove([fileKey]);
+      return !error;
+    }
+
+    return false;
   }
 }
 

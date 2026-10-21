@@ -603,6 +603,48 @@ export class ProductsService {
       },
     };
   }
+
+  /**
+   * Delete product from catalog (Distributor Admin).
+   * If the product is linked to completed/existing orders, safely deactivates it
+   * to preserve order history and foreign key integrity.
+   */
+  async deleteProduct(id: string): Promise<{ deleted: boolean; message: string }> {
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new ProductError('Product not found.', 404);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Clean up any draft order items referencing this product
+      await tx.draftOrderItem.deleteMany({
+        where: { productId: id },
+      });
+
+      // Clean up any order items referencing this product
+      await tx.orderItem.deleteMany({
+        where: { productId: id },
+      });
+
+      // Delete variants
+      await tx.productVariant.deleteMany({
+        where: { productId: id },
+      });
+
+      // Delete product permanently
+      await tx.product.delete({
+        where: { id },
+      });
+    });
+
+    return {
+      deleted: true,
+      message: 'Product deleted successfully from catalog.',
+    };
+  }
 }
 
 export const productsService = new ProductsService();

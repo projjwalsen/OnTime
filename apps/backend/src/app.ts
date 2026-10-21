@@ -2,6 +2,7 @@ import express, { type Application, type Request, type Response, type NextFuncti
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import fs from 'fs';
 import { config } from './config/env';
 import apiRouter from './routes/index';
 import { errorResponse } from './utils/response';
@@ -13,11 +14,10 @@ import { errorResponse } from './utils/response';
  *   Request
  *     ↓ Helmet (security headers)
  *     ↓ CORS
+ *     ↓ Static Media (/uploads & /api/v1/uploads)
  *     ↓ Morgan (request logging)
  *     ↓ JSON body parser
- *     ↓ [Authentication middleware — future]
- *     ↓ [Role / Organisation Access — future]
- *     ↓ Route handlers
+ *     ↓ API Routes (/api/v1/...)
  *       ↓ Controllers
  *         ↓ Services
  *           ↓ Repositories / Prisma
@@ -26,11 +26,42 @@ import { errorResponse } from './utils/response';
 export function createApp(): Application {
   const app = express();
 
+  // ── Ensure Local Upload Directory Exists ──────────────────
+  try {
+    if (!fs.existsSync(config.uploadDir)) {
+      fs.mkdirSync(config.uploadDir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('[Server] Could not initialize upload directory:', err);
+  }
+
   // ── Security headers ──────────────────────────────────────
-  app.use(helmet());
+  // Allow cross-origin resource policy so images can be rendered in browser frontends
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // ── CORS ─────────────────────────────────────────────────
   app.use(cors());
+
+  // ── Static Media Files (Ubuntu Server Disk Storage) ───────
+  // Serve at /uploads and /api/v1/uploads for seamless reverse-proxy & direct access
+  app.use(
+    '/uploads',
+    express.static(config.uploadDir, {
+      maxAge: '30d',
+      immutable: true,
+    }),
+  );
+  app.use(
+    '/api/v1/uploads',
+    express.static(config.uploadDir, {
+      maxAge: '30d',
+      immutable: true,
+    }),
+  );
 
   // ── Request logging (dev only) ────────────────────────────
   if (config.isDevelopment) {
@@ -39,7 +70,7 @@ export function createApp(): Application {
     app.use(morgan('combined'));
   }
 
-  // ── Body parsing ──────────────────────────────────────────
+  // ── Body parsing (large file / payload limits) ────────────
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

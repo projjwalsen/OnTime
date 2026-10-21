@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import path from 'path';
 
 /**
  * Validated environment configuration.
@@ -78,6 +79,19 @@ export const config = {
   otpExpiryMinutes: parseInt(optionalEnv('OTP_EXPIRY_MINUTES', '10'), 10),
   otpMaxAttempts: parseInt(optionalEnv('OTP_MAX_ATTEMPTS', '5'), 10),
   otpCooldownSeconds: parseInt(optionalEnv('OTP_COOLDOWN_SECONDS', '60'), 10),
+
+  /**
+   * Media Storage Configuration (Local Disk on Ubuntu server, or Supabase)
+   */
+  storageDriver: (optionalEnv('STORAGE_DRIVER', 'local').toLowerCase() === 'supabase'
+    ? 'supabase'
+    : 'local') as 'local' | 'supabase',
+  uploadDir: path.resolve(process.cwd(), optionalEnv('UPLOAD_DIR', 'uploads')),
+  serverUrl: optionalEnv(
+    'SERVER_URL',
+    optionalEnv('PUBLIC_URL', `http://localhost:${optionalEnv('PORT', '4000')}`),
+  ).replace(/\/+$/, ''),
+  mediaBaseUrl: optionalEnv('MEDIA_BASE_URL', '').replace(/\/+$/, ''),
 
   /**
    * Supabase Storage / S3 Configuration

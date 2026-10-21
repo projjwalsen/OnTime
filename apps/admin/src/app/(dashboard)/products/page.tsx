@@ -18,6 +18,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { getMediaUrl } from '../../../lib/config';
 import {
   Product,
   Category,
@@ -38,6 +39,25 @@ interface VariantFormItem {
   description: string;
   image: string;
   price: string;
+}
+
+function ProductThumbnail({ src, alt }: { src: string | null | undefined; alt: string }) {
+  const [hasError, setHasError] = useState(false);
+  const resolvedSrc = src ? getMediaUrl(src) : null;
+
+  if (!resolvedSrc || hasError) {
+    return <Package size={22} color="#94a3b8" />;
+  }
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      onError={() => setHasError(true)}
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      loading="lazy"
+    />
+  );
 }
 
 export default function ProductsPage() {
@@ -176,7 +196,7 @@ export default function ProductsPage() {
         success(
           `Uploaded ${res.data.files.length} ${
             res.data.files.length === 1 ? 'image' : 'images'
-          } to Supabase bucket!`,
+          } to server storage!`,
         );
       } else {
         toastError(res.error || 'Failed to upload images');
@@ -385,23 +405,37 @@ export default function ProductsPage() {
         />
       </div>
 
-      <div className="form-group">
-        <label className="form-label">Category *</label>
-        <select
-          className="form-input"
-          value={formData.categoryId}
-          onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-          required
-        >
-          <option value="" disabled>
-            Select category
-          </option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+        <div className="form-group">
+          <label className="form-label">Category *</label>
+          <select
+            className="form-input"
+            value={formData.categoryId}
+            onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+            required
+          >
+            <option value="" disabled>
+              Select category
             </option>
-          ))}
-        </select>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Product Status *</label>
+          <select
+            className="form-input"
+            value={formData.isActive ? 'active' : 'inactive'}
+            onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
+          >
+            <option value="active">Active (Visible in Catalog)</option>
+            <option value="inactive">Inactive (Hidden)</option>
+          </select>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -463,7 +497,7 @@ export default function ProductsPage() {
                   fontWeight: 600,
                 }}
               >
-                Supabase S3
+                Server Storage
               </span>
             </div>
             <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
@@ -557,7 +591,7 @@ export default function ProductsPage() {
             >
               <Loader2 className="spinner" size={20} />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                Uploading images to Supabase Storage...
+                Uploading images to server storage...
               </span>
             </div>
           ) : (
@@ -618,7 +652,7 @@ export default function ProductsPage() {
               >
                 {/* Image */}
                 <img
-                  src={url}
+                  src={getMediaUrl(url)}
                   alt={`Product photo ${idx + 1}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
@@ -824,7 +858,7 @@ export default function ProductsPage() {
                         }}
                       >
                         <img
-                          src={variant.image}
+                          src={getMediaUrl(variant.image)}
                           alt="Variant"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -1086,15 +1120,7 @@ export default function ProductsPage() {
                             position: 'relative',
                           }}
                         >
-                          {primaryImage ? (
-                            <img
-                              src={primaryImage}
-                              alt={prod.name}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <Package size={22} color="#94a3b8" />
-                          )}
+                          <ProductThumbnail src={primaryImage} alt={prod.name} />
 
                           {totalImages > 1 && (
                             <span
