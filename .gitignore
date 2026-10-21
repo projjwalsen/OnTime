@@ -62,6 +62,11 @@ $RECYCLE.BIN/
 tmp/
 temp/
 
+# ------ Media Uploads (Ubuntu Server Storage) ------
+uploads/
+**/uploads/*
+!**/uploads/.gitkeep
+
 # ------ API Clients & Postman ------
 postman/
 *.postman_collection.json
