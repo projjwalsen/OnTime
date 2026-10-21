@@ -20,7 +20,8 @@ export const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/v\d+.*$/, '');
 
 /**
  * Normalizes an image or media URL for browser display.
- * Handles full URLs, relative /uploads URLs, data URLs, etc.
+ * Strips accidental localhost:4000 / 127.0.0.1:4000 prefixes so images
+ * correctly load from the current server domain / IP or through Next.js rewrites.
  */
 export function getMediaUrl(url?: string | null): string {
   if (!url) return '';
@@ -31,8 +32,33 @@ export function getMediaUrl(url?: string | null): string {
     return trimmed;
   }
 
-  // If it's a relative path starting with /uploads or /api
-  if (trimmed.startsWith('/uploads') || trimmed.startsWith('/api')) {
+  // If the URL contains /uploads/...
+  const uploadsIdx = trimmed.indexOf('/uploads/');
+  if (uploadsIdx !== -1) {
+    const relativePath = trimmed.slice(uploadsIdx); // e.g. "/uploads/products/2026-10/xxx.png"
+
+    if (typeof window !== 'undefined') {
+      const rawApi = process.env.NEXT_PUBLIC_API_URL;
+      // If NEXT_PUBLIC_API_URL is an external origin (not localhost), point there:
+      if (
+        rawApi &&
+        (rawApi.startsWith('http://') || rawApi.startsWith('https://')) &&
+        !rawApi.includes('localhost') &&
+        !rawApi.includes('127.0.0.1')
+      ) {
+        const origin = rawApi.replace(/\/api\/v\d+.*$/, '');
+        return `${origin}${relativePath}`;
+      }
+
+      // Root-relative path: browser fetches from current origin (rewritten by Next.js / Nginx)
+      return relativePath;
+    }
+
+    return `${SERVER_BASE_URL}${relativePath}`;
+  }
+
+  // If it's a relative path starting with /api
+  if (trimmed.startsWith('/api')) {
     return `${SERVER_BASE_URL}${trimmed}`;
   }
 

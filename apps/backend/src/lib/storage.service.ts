@@ -104,8 +104,18 @@ export class StorageService {
         const filePath = path.join(targetDir, cleanFilename);
         await fs.writeFile(filePath, file.buffer);
 
-        const baseUrl = this.mediaBaseUrl || `${this.serverUrl}/uploads`;
-        const publicUrl = `${baseUrl.replace(/\/+$/, '')}/${fileKey}`;
+        let publicUrl: string;
+        if (this.mediaBaseUrl) {
+          publicUrl = `${this.mediaBaseUrl.replace(/\/+$/, '')}/${fileKey}`;
+        } else if (
+          this.serverUrl &&
+          !this.serverUrl.includes('localhost') &&
+          !this.serverUrl.includes('127.0.0.1')
+        ) {
+          publicUrl = `${this.serverUrl.replace(/\/+$/, '')}/uploads/${fileKey}`;
+        } else {
+          publicUrl = `/uploads/${fileKey}`;
+        }
 
         return {
           url: publicUrl,
