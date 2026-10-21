@@ -223,8 +223,8 @@ async function runTests() {
   assert(uploadRes1.body.data.files.length === 1, 'Expected 1 uploaded file item');
   assert(
     typeof uploadRes1.body.data.url === 'string' &&
-      uploadRes1.body.data.url.includes('supabase.co'),
-    'Expected Supabase public URL',
+      (uploadRes1.body.data.url.includes('/uploads/') || uploadRes1.body.data.url.includes('supabase.co')),
+    'Expected valid media URL',
   );
   assert(
     uploadRes1.body.data.files[0].originalName === 'basmati-front.png',

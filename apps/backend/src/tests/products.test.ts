@@ -706,6 +706,47 @@ async function runTests() {
   );
   console.log('  ✔ All route aliases (/recent-purchase, /recent-purchased, /recent) verified');
 
+  // ── TEST: Delete Product ─────────────────────────────────
+  console.log('\n--- TEST: Delete Product ---');
+  const prodToDeleteSku = `DEL-${Date.now()}`;
+  const prodToDeleteRes = await makeRequest(
+    'POST',
+    '/api/v1/products',
+    {
+      name: 'Product To Delete',
+      sku: prodToDeleteSku,
+      price: 99.0,
+      categoryId,
+    },
+    token,
+  );
+  assert(prodToDeleteRes.status === 201, 'Create product to delete failed');
+  const deleteId = prodToDeleteRes.body.data.product.id;
+
+  // Retailer cannot delete (403)
+  const retailerDelRes = await makeRequest(
+    'DELETE',
+    `/api/v1/products/${deleteId}`,
+    undefined,
+    retailerToken,
+  );
+  assert(retailerDelRes.status === 403, 'Expected 403 when Retailer attempts to delete product');
+
+  // Distributor Admin can delete (200)
+  const adminDelRes = await makeRequest(
+    'DELETE',
+    `/api/v1/products/${deleteId}`,
+    undefined,
+    token,
+  );
+  assert(adminDelRes.status === 200, `Delete product failed: ${JSON.stringify(adminDelRes.body)}`);
+  assert(adminDelRes.body.success === true, 'Delete response success should be true');
+
+  // Verify product is gone
+  const getDeletedRes = await makeRequest('GET', `/api/v1/products/${deleteId}`, undefined, token);
+  assert(getDeletedRes.status === 404, 'Expected 404 for deleted product');
+  console.log('  ✔ Delete product endpoint verified (RBAC & 404 on fetch)');
+
   console.log('\n===========================================================');
   console.log('🎉 ALL PRODUCT & VARIANT TESTS PASSED! 🎉');
   console.log('===========================================================');

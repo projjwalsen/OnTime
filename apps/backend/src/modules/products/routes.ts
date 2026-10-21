@@ -4,6 +4,7 @@ import {
   createProduct,
   getProductById,
   updateProduct,
+  deleteProduct,
   getRecentPurchases,
 } from './controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
@@ -64,5 +65,12 @@ router.get('/:id', getProductById);
  * @access  Protected (Distributor Admin)
  */
 router.patch('/:id', requireDistributorAdmin, validateBody(updateProductSchema), updateProduct);
+
+/**
+ * @route   DELETE /api/v1/products/:id
+ * @desc    Delete product from catalog
+ * @access  Protected (Distributor Admin)
+ */
+router.delete('/:id', requireDistributorAdmin, deleteProduct);
 
 export default router;

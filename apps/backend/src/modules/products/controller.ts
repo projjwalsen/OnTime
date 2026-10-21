@@ -115,3 +115,24 @@ export const updateProduct: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * @route   DELETE /api/v1/products/:id
+ * @desc    Delete product from catalog (Distributor Admin)
+ * @access  Protected (Distributor Admin)
+ */
+export const deleteProduct: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id as string;
+      if (!id) {
+        errorResponse(res, 'Product ID is required', 400);
+        return;
+      }
+      const result = await productsService.deleteProduct(id);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleProductError(res, error);
+    }
+  },
+);
