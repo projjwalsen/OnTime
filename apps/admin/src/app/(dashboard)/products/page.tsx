@@ -43,6 +43,10 @@ interface VariantFormItem {
 
 function ProductThumbnail({ src, alt }: { src: string | null | undefined; alt: string }) {
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
   const resolvedSrc = src ? getMediaUrl(src) : null;
 
   if (!resolvedSrc || hasError) {
@@ -53,7 +57,10 @@ function ProductThumbnail({ src, alt }: { src: string | null | undefined; alt: s
     <img
       src={resolvedSrc}
       alt={alt}
-      onError={() => setHasError(true)}
+      onError={() => {
+        console.warn(`[Thumbnail] Failed to load image: ${resolvedSrc}`);
+        setHasError(true);
+      }}
       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
       loading="lazy"
     />
