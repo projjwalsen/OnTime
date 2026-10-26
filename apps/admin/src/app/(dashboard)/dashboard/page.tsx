@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { OrderStatus } from '@ontime/shared';
+import { BannerCarousel } from '../../../components/ui/BannerCarousel';
 
 interface DashboardStats {
   totalOrders: number;
@@ -455,6 +456,9 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* ── Promotional Carousel Banners (Requirement 5.A) ── */}
+      <BannerCarousel />
 
       {/* ── 2. KPI Metric Cards (Jivanjor Structure) ── */}
       <div className="kpi-grid-jivanjor">

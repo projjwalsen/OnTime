@@ -376,6 +376,17 @@ export default function OrdersPage() {
                             {order.orderNumber}
                           </span>
                         </div>
+                        {order.customerPoNumber && (
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                            <span style={{ fontWeight: 600, color: '#475569' }}>PO:</span>{' '}
+                            {order.customerPoNumber}
+                          </div>
+                        )}
+                        {order.couponCode && (
+                          <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: '2px' }}>
+                            Coupon: {order.couponCode}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div>
@@ -412,6 +423,7 @@ export default function OrdersPage() {
                       </td>
                       <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <Link
+                          title="Manage Order"
                           href={`/orders/${order.id}`}
                           className="btn-secondary"
                           style={{
@@ -428,8 +440,6 @@ export default function OrdersPage() {
                           }}
                         >
                           <Eye size={13} />
-                          <span>View & Manage</span>
-                          <ArrowUpRight size={12} />
                         </Link>
                       </td>
                     </tr>

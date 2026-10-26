@@ -24,10 +24,14 @@ export type UpdateCategoryDto = Partial<CreateCategoryDto>;
 export interface ProductVariant {
   id: string;
   productId: string;
+  sku?: string | null;
   weight?: string | null;
   description?: string | null;
   image?: string | null;
   price: number;
+  tier1Price?: number | null;
+  tier2Price?: number | null;
+  tier3Price?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,10 +41,14 @@ export interface ProductVariant {
  */
 export interface ProductVariantDto {
   id?: string | undefined;
+  sku?: string | undefined;
   weight?: string | undefined;
   description?: string | undefined;
   image?: string | undefined;
   price: number;
+  tier1Price?: number | undefined;
+  tier2Price?: number | undefined;
+  tier3Price?: number | undefined;
 }
 
 export interface Product {
@@ -49,6 +57,11 @@ export interface Product {
   sku: string;
   description?: string | null;
   price: number;
+  tier1Price?: number | null;
+  tier2Price?: number | null;
+  tier3Price?: number | null;
+  noVat?: boolean;
+  tags?: string[];
   categoryId?: string | null;
   category?: Category | null;
   unit: string;
@@ -65,6 +78,11 @@ export interface CreateProductDto {
   sku: string;
   description?: string | null | undefined;
   price: number;
+  tier1Price?: number | undefined;
+  tier2Price?: number | undefined;
+  tier3Price?: number | undefined;
+  noVat?: boolean | undefined;
+  tags?: string[] | undefined;
   categoryId?: string | undefined;
   unit?: string | undefined;
   isActive?: boolean | undefined;
@@ -101,6 +119,8 @@ export interface ProductFilterParams {
   price?: number | undefined;
   minPrice?: number | undefined;
   maxPrice?: number | undefined;
+  noVat?: boolean | undefined;
+  tag?: string | undefined;
   isActive?: boolean | undefined;
   page?: number | undefined;
   limit?: number | undefined;

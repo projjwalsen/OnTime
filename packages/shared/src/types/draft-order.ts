@@ -31,6 +31,9 @@ export interface DraftOrder {
   createdByUserId: string;
   title?: string | null;
   notes?: string | null;
+  customerPoNumber?: string | null;
+  couponCode?: string | null;
+  discountAmount?: number;
   deliveryAddress?: string | null;
   subtotal: number;
   taxAmount: number;
@@ -58,6 +61,8 @@ export interface CreateDraftOrderDto {
   title?: string;
   items?: CreateDraftOrderItemDto[];
   notes?: string;
+  customerPoNumber?: string;
+  couponCode?: string;
   deliveryAddress?: string;
 }
 
@@ -67,6 +72,8 @@ export interface CreateDraftOrderDto {
 export interface UpdateDraftOrderDto {
   title?: string | null;
   notes?: string | null;
+  customerPoNumber?: string | null;
+  couponCode?: string | null;
   deliveryAddress?: string | null;
   items?: CreateDraftOrderItemDto[];
 }

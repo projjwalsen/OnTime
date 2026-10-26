@@ -9,6 +9,10 @@ import {
   updateUserRole,
   updateUserStatus,
   revokeInvitation,
+  requestEmailChange,
+  verifyOldEmailToken,
+  confirmEmailChange,
+  adminUpdateEmail,
 } from './controller';
 
 import { authMiddleware } from '../../middleware/auth.middleware';
@@ -25,8 +29,29 @@ import {
 
 const router = Router();
 
-// All user routes require authentication
+/**
+ * Public email change callback verification & confirmation routes (Requirement 2.B)
+ */
+router.post('/change-email/verify-old', verifyOldEmailToken);
+router.get('/change-email/verify-old', verifyOldEmailToken);
+router.post('/change-email/confirm', confirmEmailChange);
+
+// All subsequent user routes require authentication
 router.use(authMiddleware);
+
+/**
+ * @route   POST /api/v1/users/change-email/request
+ * @desc    Initiate email address change workflow
+ * @access  Protected
+ */
+router.post('/change-email/request', requestEmailChange);
+
+/**
+ * @route   PATCH /api/v1/users/:id/email
+ * @desc    Admin directly updates customer email without verification or password reset (Requirement 2.B)
+ * @access  Protected (Admin only)
+ */
+router.patch('/:id/email', requireOrganisationAdmin, adminUpdateEmail);
 
 /**
  * @route   GET /api/v1/users/team

@@ -67,6 +67,15 @@ import {
   type TeamSummary,
   type UpdateUserRoleDto,
   type UpdateUserStatusDto,
+  type Coupon,
+  type CreateCouponDto,
+  type UpdateCouponDto,
+  type ValidateCouponResponse,
+  type Banner,
+  type CreateBannerDto,
+  type UpdateBannerDto,
+  type CustomerOverallPurchaseHistory,
+  type CustomerProductPurchaseHistory,
   UserRole,
 } from '@ontime/shared';
 
@@ -633,6 +642,44 @@ class ApiClient {
     return this.onboardUser(dto);
   }
 
+  async adminUpdateUserEmail(
+    userId: string,
+    email: string,
+  ): Promise<{ success: boolean; data?: { user: User }; message?: string; error?: string }> {
+    return this.request(`/users/${userId}/email`, {
+      method: 'PATCH',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async requestEmailChange(
+    newEmail: string,
+  ): Promise<{ success: boolean; message?: string; token?: string; error?: string }> {
+    return this.request('/users/change-email/request', {
+      method: 'POST',
+      body: JSON.stringify({ newEmail }),
+    });
+  }
+
+  async verifyOldEmailToken(
+    token: string,
+  ): Promise<{ success: boolean; message?: string; newEmail?: string; error?: string }> {
+    return this.request('/users/change-email/verify-old', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async confirmEmailChange(
+    token: string,
+    otp: string,
+  ): Promise<{ success: boolean; message?: string; email?: string; error?: string }> {
+    return this.request('/users/change-email/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ token, otp }),
+    });
+  }
+
   // ── Orders ──────────────────────────────────────────────────
 
   async getOrders(params?: OrderFilterParams): Promise<{
@@ -1118,6 +1165,125 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(dto),
     });
+  }
+
+  // ── Coupons (Requirement 2.C) ──────────────────────────
+
+  async getCoupons(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+    organisationId?: string;
+    userId?: string;
+  }): Promise<
+    ApiResponse<{
+      coupons: Coupon[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>
+  > {
+    const q = new URLSearchParams();
+    if (params?.page) q.append('page', params.page.toString());
+    if (params?.limit) q.append('limit', params.limit.toString());
+    if (params?.search) q.append('search', params.search);
+    if (params?.isActive !== undefined) q.append('isActive', params.isActive.toString());
+    if (params?.organisationId) q.append('organisationId', params.organisationId);
+    if (params?.userId) q.append('userId', params.userId);
+    const queryStr = q.toString() ? `?${q.toString()}` : '';
+    return this.request<{
+      coupons: Coupon[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>(`/v1/coupons${queryStr}`);
+  }
+
+  async getCouponById(id: string): Promise<ApiResponse<{ coupon: Coupon }>> {
+    return this.request<{ coupon: Coupon }>(`/v1/coupons/${id}`);
+  }
+
+  async createCoupon(dto: CreateCouponDto): Promise<ApiResponse<{ coupon: Coupon }>> {
+    return this.request<{ coupon: Coupon }>('/v1/coupons', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateCoupon(id: string, dto: UpdateCouponDto): Promise<ApiResponse<{ coupon: Coupon }>> {
+    return this.request<{ coupon: Coupon }>(`/v1/coupons/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deleteCoupon(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/coupons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async validateCoupon(
+    code: string,
+    orderAmount: number,
+  ): Promise<ApiResponse<ValidateCouponResponse>> {
+    return this.request<ValidateCouponResponse>('/v1/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, orderAmount }),
+    });
+  }
+
+  // ── Banners (Requirement 5.A) ──────────────────────────
+
+  async getBanners(activeOnly?: boolean): Promise<ApiResponse<{ banners: Banner[] }>> {
+    const query = activeOnly ? '?activeOnly=true' : '';
+    return this.request<{ banners: Banner[] }>(`/v1/banners${query}`);
+  }
+
+  async getBannerById(id: string): Promise<ApiResponse<{ banner: Banner }>> {
+    return this.request<{ banner: Banner }>(`/v1/banners/${id}`);
+  }
+
+  async createBanner(dto: CreateBannerDto): Promise<ApiResponse<{ banner: Banner }>> {
+    return this.request<{ banner: Banner }>('/v1/banners', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateBanner(id: string, dto: UpdateBannerDto): Promise<ApiResponse<{ banner: Banner }>> {
+    return this.request<{ banner: Banner }>(`/v1/banners/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deleteBanner(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/v1/banners/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderBanners(ids: string[]): Promise<ApiResponse<null>> {
+    return this.request<null>('/v1/banners/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  // ── Reports (Requirement 2.D) ──────────────────────────
+
+  async getCustomerOverallPurchaseHistory(
+    organisationId: string,
+  ): Promise<ApiResponse<CustomerOverallPurchaseHistory>> {
+    return this.request<CustomerOverallPurchaseHistory>(
+      `/v1/reports/purchase-history/overall/${organisationId}`,
+    );
+  }
+
+  async getCustomerProductPurchaseHistory(
+    organisationId: string,
+  ): Promise<ApiResponse<CustomerProductPurchaseHistory>> {
+    return this.request<CustomerProductPurchaseHistory>(
+      `/v1/reports/purchase-history/product-wise/${organisationId}`,
+    );
   }
 }
 

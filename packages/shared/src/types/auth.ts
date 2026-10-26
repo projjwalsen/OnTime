@@ -111,8 +111,27 @@ export interface RegisterRetailerDto {
   address?: string;
   area?: string;
   city?: string;
-  taxNumber?: string;
+  taxNumber: string; // Mandatory TIN field
   password: string;
+}
+
+// ── Email Change DTOs ───────────────────────────────────────
+
+export interface RequestEmailChangeDto {
+  newEmail: string;
+}
+
+export interface VerifyOldEmailTokenDto {
+  token: string;
+}
+
+export interface ConfirmEmailChangeDto {
+  token: string;
+  otp: string;
+}
+
+export interface AdminUpdateEmailDto {
+  email: string;
 }
 
 // ── OTP Authentication DTOs ─────────────────────────────────

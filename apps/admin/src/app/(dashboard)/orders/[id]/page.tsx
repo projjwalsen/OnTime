@@ -1627,6 +1627,19 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                 <span>Subtotal:</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
+              {order.discountAmount ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    color: '#16a34a',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>Discount ({order.couponCode || 'Coupon'}):</span>
+                  <span>-{formatCurrency(Number(order.discountAmount))}</span>
+                </div>
+              ) : null}
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
                 <span>Tax / GST:</span>
                 <span>{formatCurrency(0)}</span>
@@ -1699,6 +1712,26 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                   <CheckCircle2 size={15} />
                   <span>Confirm Full Order Directly</span>
                 </button>
+
+                {order.status === OrderStatus.PENDING && (
+                  <button
+                    type="button"
+                    onClick={() => handleAdvanceStatus(OrderStatus.PROCESSING)}
+                    disabled={submitting}
+                    className="btn-action-primary"
+                    style={{
+                      height: '42px',
+                      width: '100%',
+                      justifyContent: 'center',
+                      backgroundColor: '#8b5cf6',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Package size={15} />
+                    <span>Advance Directly (Pending → Processing)</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -1719,21 +1752,47 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
             )}
 
             {order.status === OrderStatus.PROCESSING && (
-              <div style={{ marginTop: '1.5rem' }}>
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
                 <button
                   type="button"
-                  onClick={() => handleAdvanceStatus(OrderStatus.DISPATCHED)}
+                  onClick={() => handleAdvanceStatus(OrderStatus.DELIVERED)}
                   disabled={submitting}
                   className="btn-action-primary"
                   style={{
                     height: '42px',
                     width: '100%',
                     justifyContent: 'center',
-                    backgroundColor: '#0891b2',
+                    backgroundColor: '#059669',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Mark as Delivered Directly (Processing → Delivered)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAdvanceStatus(OrderStatus.DISPATCHED)}
+                  disabled={submitting}
+                  className="btn-secondary"
+                  style={{
+                    height: '38px',
+                    width: '100%',
+                    justifyContent: 'center',
+                    color: '#0891b2',
+                    borderColor: '#a5f3fc',
                   }}
                 >
                   <Truck size={15} />
-                  <span>Mark as Dispatched (In Transit)</span>
+                  <span>Or Mark as Dispatched (In Transit)</span>
                 </button>
               </div>
             )}
@@ -1828,6 +1887,33 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
             <div
               style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}
             >
+              {order.customerPoNumber && (
+                <div
+                  style={{
+                    backgroundColor: '#eff6ff',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #bfdbfe',
+                  }}
+                >
+                  <span
+                    style={{
+                      color: '#1e40af',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      display: 'block',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    Customer PO Reference
+                  </span>
+                  <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>
+                    {order.customerPoNumber}
+                  </strong>
+                </div>
+              )}
               <div>
                 <span
                   style={{

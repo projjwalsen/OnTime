@@ -508,6 +508,269 @@ export class UsersService {
       data: { status: InvitationStatus.REVOKED },
     });
   }
+
+  /**
+   * Request email change (Requirement 2.B):
+   * Workflow: Settings > Change Email > Auth link sent to original email
+   */
+  async requestEmailChange(
+    caller: AuthContext,
+    newEmail: string,
+  ): Promise<{ message: string; token: string }> {
+    const cleanNew = newEmail.trim().toLowerCase();
+
+    // Check if new email is already in use
+    const existing = await prisma.user.findUnique({
+      where: { email: cleanNew },
+    });
+    if (existing) {
+      throw new UserError('An account with this new email address already exists.', 409);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: caller.userId },
+    });
+    if (!user) {
+      throw new UserError('User account not found.', 404);
+    }
+
+    if (user.email.toLowerCase() === cleanNew) {
+      throw new UserError('New email must be different from your current email.', 400);
+    }
+
+    // Clean up any pending email change requests for this user
+    await prisma.emailChangeRequest.deleteMany({
+      where: { userId: caller.userId },
+    });
+
+    const oldEmailToken = crypto.randomBytes(32).toString('hex');
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const newEmailOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+    await prisma.emailChangeRequest.create({
+      data: {
+        userId: caller.userId,
+        oldEmail: user.email,
+        newEmail: cleanNew,
+        oldEmailToken,
+        newEmailOtpHash,
+        expiresAt,
+      },
+    });
+
+    // Send authentication link to original email
+    const verificationUrl = `${config.serverUrl}/api/v1/users/change-email/verify-old?token=${oldEmailToken}`;
+    emailService.enqueueEmail({
+      to: user.email,
+      subject: 'Security Alert: Request to Change Your Email Address',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #0f172a;">Verify Email Address Change</h2>
+          <p>Hi ${user.name},</p>
+          <p>We received a request to update your login email address from <strong>${user.email}</strong> to <strong>${cleanNew}</strong>.</p>
+          <p>To proceed, please click the verification button below:</p>
+          <p style="margin: 24px 0;">
+            <a href="${verificationUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Confirm Change Request</a>
+          </p>
+          <p style="font-size: 0.85rem; color: #64748b;">Or use this verification token directly: <code>${oldEmailToken}</code></p>
+          <p style="font-size: 0.85rem; color: #94a3b8;">If you did not request this change, please ignore this email and your email will remain unchanged.</p>
+        </div>
+      `,
+      text: `Verify Email Change: Request to update your email to ${cleanNew}. Use token: ${oldEmailToken}`,
+    });
+
+    return {
+      message: 'Authentication link sent to your current email address. Please click it to proceed.',
+      token: oldEmailToken,
+    };
+  }
+
+  /**
+   * Verify old email token and trigger OTP to new email.
+   */
+  async verifyOldEmailToken(token: string): Promise<{ message: string; newEmail: string }> {
+    const request = await prisma.emailChangeRequest.findUnique({
+      where: { oldEmailToken: token },
+    });
+
+    if (!request || request.confirmedAt || request.expiresAt < new Date()) {
+      throw new UserError('Invalid or expired email change request.', 400);
+    }
+
+    // Generate fresh OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const newEmailOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    await prisma.emailChangeRequest.update({
+      where: { id: request.id },
+      data: {
+        oldEmailVerified: true,
+        newEmailOtpHash,
+      },
+    });
+
+    // Send OTP to new email
+    emailService.enqueueEmail({
+      to: request.newEmail,
+      subject: 'Your Verification Code for Email Change',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #0f172a;">Verify Your New Email Address</h2>
+          <p>Your one-time verification code is:</p>
+          <div style="font-size: 28px; font-weight: 700; letter-spacing: 4px; color: #2563eb; margin: 16px 0;">
+            ${otp}
+          </div>
+          <p style="font-size: 0.85rem; color: #64748b;">This code expires in 15 minutes. Enter this code to finalize your email change.</p>
+        </div>
+      `,
+      text: `Your verification code for email change is: ${otp}`,
+    });
+
+    return {
+      message: 'Original email verified. A 4-digit verification code has been sent to your new email.',
+      newEmail: request.newEmail,
+    };
+  }
+
+  /**
+   * Confirm email change with OTP. Preserves all history.
+   */
+  async confirmEmailChange(
+    token: string,
+    otp: string,
+  ): Promise<{ message: string; email: string }> {
+    const request = await prisma.emailChangeRequest.findUnique({
+      where: { oldEmailToken: token },
+      include: { user: true },
+    });
+
+    if (!request || request.confirmedAt || request.expiresAt < new Date()) {
+      throw new UserError('Invalid or expired email change request.', 400);
+    }
+
+    if (!request.oldEmailVerified) {
+      throw new UserError('Original email has not been verified yet.', 400);
+    }
+
+    const providedHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
+    if (providedHash !== request.newEmailOtpHash) {
+      throw new UserError('Invalid OTP verification code.', 400);
+    }
+
+    // Transaction to update email and preserve all history
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: request.userId },
+        data: { email: request.newEmail },
+      });
+
+      // If user is primary contact for organisation, sync org email
+      if (request.user.organisationId) {
+        await tx.organisation.updateMany({
+          where: { id: request.user.organisationId, email: request.oldEmail },
+          data: { email: request.newEmail },
+        });
+      }
+
+      await tx.emailChangeRequest.update({
+        where: { id: request.id },
+        data: { confirmedAt: new Date(), newEmailVerified: true },
+      });
+    });
+
+    return {
+      message:
+        'Email address updated successfully! All order history and account details are preserved.',
+      email: request.newEmail,
+    };
+  }
+
+  /**
+   * Admin direct update of customer email without verification or resetting passwords (Requirement 2.B).
+   */
+  async adminUpdateEmail(
+    caller: AuthContext,
+    targetUserId: string,
+    newEmail: string,
+  ): Promise<User> {
+    if (caller.role !== UserRole.SUPER_ADMIN && caller.role !== UserRole.ADMIN) {
+      throw new UserError('Forbidden: Only admins can directly update user emails.', 403);
+    }
+
+    const cleanNew = newEmail.trim().toLowerCase();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { organisation: true },
+    });
+
+    if (!existingUser) {
+      throw new UserError('User not found.', 404);
+    }
+
+    if (
+      caller.role !== UserRole.SUPER_ADMIN &&
+      existingUser.organisationId !== caller.organisationId
+    ) {
+      throw new UserError('Forbidden: Cannot modify users from another organisation.', 403);
+    }
+
+    if (existingUser.email.toLowerCase() === cleanNew) {
+      return {
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name,
+        mobile: existingUser.mobile,
+        role: existingUser.role as UserRole,
+        organisationId: existingUser.organisationId,
+        isActive: existingUser.isActive,
+        mustChangePassword: existingUser.mustChangePassword,
+        organisation: (existingUser.organisation as unknown as Organisation) ?? null,
+        createdAt: existingUser.createdAt,
+        updatedAt: existingUser.updatedAt,
+      };
+    }
+
+    const conflict = await prisma.user.findUnique({
+      where: { email: cleanNew },
+    });
+
+    if (conflict && conflict.id !== targetUserId) {
+      throw new UserError(`An account with email "${cleanNew}" already exists.`, 409);
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({
+        where: { id: targetUserId },
+        data: { email: cleanNew },
+        include: { organisation: true },
+      });
+
+      if (u.organisationId) {
+        await tx.organisation.updateMany({
+          where: { id: u.organisationId, email: existingUser.email },
+          data: { email: cleanNew },
+        });
+      }
+
+      return u;
+    });
+
+    return {
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      mobile: updated.mobile,
+      role: updated.role as UserRole,
+      organisationId: updated.organisationId,
+      isActive: updated.isActive,
+      mustChangePassword: updated.mustChangePassword,
+      organisation: (updated.organisation as unknown as Organisation) ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
 }
 
 export const usersService = new UsersService();

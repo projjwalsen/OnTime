@@ -12,6 +12,9 @@ import { addressesRoutes } from '../../modules/addresses';
 import { notificationsRoutes } from '../../modules/notifications';
 import { supportRoutes } from '../../modules/support';
 import { helpRoutes } from '../../modules/help';
+import { couponsRoutes } from '../../modules/coupons';
+import { bannersRoutes } from '../../modules/banners';
+import { reportsRoutes } from '../../modules/reports';
 
 const router = Router();
 
@@ -92,5 +95,23 @@ router.use('/support', supportRoutes);
  * @desc   Help center categories and articles endpoints
  */
 router.use('/help', helpRoutes);
+
+/**
+ * @route  /api/v1/coupons
+ * @desc   User-specific and general coupons endpoints
+ */
+router.use('/coupons', couponsRoutes);
+
+/**
+ * @route  /api/v1/banners
+ * @desc   Homepage carousel banners endpoints
+ */
+router.use('/banners', bannersRoutes);
+
+/**
+ * @route  /api/v1/reports
+ * @desc   Customer overall and product-wise purchase history reports
+ */
+router.use('/reports', reportsRoutes);
 
 export default router;

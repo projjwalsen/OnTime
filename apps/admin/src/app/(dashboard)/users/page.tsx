@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Shield, Building, Phone, Loader2 } from 'lucide-react';
+import { Users, Search, Shield, Building, Phone, Loader2, Edit2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { User, Organisation, UserRole } from '@ontime/shared';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
 import { Pagination } from '../../../components/ui/Pagination';
+import { Modal } from '../../../components/ui/Modal';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
 
 export default function UsersPage() {
-  const { error: toastError } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const [users, setUsers] = useState<(User & { organisation?: Organisation | null })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +23,12 @@ export default function UsersPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Email Edit Modal State (Requirement 2.B)
+  const [isEditEmailOpen, setIsEditEmailOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newEmail, setNewEmail] = useState('');
+  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -47,6 +56,33 @@ export default function UsersPage() {
     }, 250);
     return () => clearTimeout(timer);
   }, [loadUsers]);
+
+  const handleOpenEditEmail = (u: User) => {
+    setSelectedUser(u);
+    setNewEmail(u.email);
+    setIsEditEmailOpen(true);
+  };
+
+  const handleSaveEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser || !newEmail.trim()) return;
+
+    setUpdatingEmail(true);
+    try {
+      const res = await api.adminUpdateUserEmail(selectedUser.id, newEmail.trim());
+      if (res.success) {
+        toastSuccess(`Email updated to "${newEmail.trim()}" without resetting passwords!`);
+        setIsEditEmailOpen(false);
+        loadUsers();
+      } else {
+        toastError(res.error || 'Failed to update user email');
+      }
+    } catch {
+      toastError('Failed to update email address');
+    } finally {
+      setUpdatingEmail(false);
+    }
+  };
 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
@@ -109,12 +145,13 @@ export default function UsersPage() {
               <th>Contact</th>
               <th>Status</th>
               <th>Joined Date</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -131,7 +168,7 @@ export default function UsersPage() {
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                   <Users size={36} color="#cbd5e1" style={{ margin: '0 auto 8px' }} />
                   <p style={{ fontWeight: 600, color: '#1e293b' }}>No users found</p>
                 </td>
@@ -218,6 +255,29 @@ export default function UsersPage() {
                       {new Date(u.createdAt).toLocaleDateString()}
                     </span>
                   </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditEmail(u)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        color: '#2563eb',
+                        backgroundColor: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                      title="Directly edit email address without password reset"
+                    >
+                      <Edit2 size={12} />
+                      Edit Email
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -239,6 +299,70 @@ export default function UsersPage() {
           isLoading={loading}
         />
       </div>
+
+      {/* Edit User Email Modal (Requirement 2.B) */}
+      <Modal
+        isOpen={isEditEmailOpen}
+        onClose={() => setIsEditEmailOpen(false)}
+        title="Direct Edit Email Address"
+      >
+        <form onSubmit={handleSaveEmail}>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+            Modify the customer/user email address directly without triggering a password reset or
+            requiring re-verification.
+          </p>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: '#334155',
+                marginBottom: '4px',
+              }}
+            >
+              Current User
+            </label>
+            <div
+              style={{
+                padding: '8px 12px',
+                background: '#f8fafc',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.875rem',
+              }}
+            >
+              <strong>{selectedUser?.name}</strong> ({selectedUser?.email})
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <Input
+              label="New Email Address"
+              type="email"
+              required
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsEditEmailOpen(false)}
+              disabled={updatingEmail}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={updatingEmail}>
+              Update Email
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

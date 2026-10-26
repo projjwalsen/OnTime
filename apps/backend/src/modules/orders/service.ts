@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { emailService } from '../../lib/email.service';
+import { couponsService } from '../coupons/service';
 import {
   type AuthContext,
   type Order,
@@ -129,6 +130,9 @@ function formatOrder(order: {
   organisationId: string;
   createdByUserId: string;
   status: any;
+  customerPoNumber?: string | null;
+  couponCode?: string | null;
+  discountAmount?: any;
   subtotal: any;
   taxAmount: any;
   totalAmount: any;
@@ -152,6 +156,9 @@ function formatOrder(order: {
     organisationId: order.organisationId,
     createdByUserId: order.createdByUserId,
     status: order.status as OrderStatus,
+    customerPoNumber: order.customerPoNumber ?? null,
+    couponCode: order.couponCode ?? null,
+    discountAmount: order.discountAmount ? Number(order.discountAmount) : 0,
     subtotal: Number(order.subtotal),
     taxAmount: Number(order.taxAmount),
     totalAmount: Number(order.totalAmount),
@@ -288,12 +295,21 @@ export class OrdersService {
       let unitPrice = Number(product.price);
       let variantWeight: string | null = null;
       let selectedVariantId: string | null = null;
+      const orgTier = (organisation as any).pricingTier || 'TIER_1';
 
       if (item.variantId && item.variantId.trim() !== '' && item.variantId !== item.productId) {
         const variant = product.variants.find((v) => v.id === item.variantId);
         if (variant) {
           selectedVariantId = variant.id;
-          unitPrice = Number(variant.price);
+          if (orgTier === 'TIER_2' && (variant as any).tier2Price) {
+            unitPrice = Number((variant as any).tier2Price);
+          } else if (orgTier === 'TIER_3' && (variant as any).tier3Price) {
+            unitPrice = Number((variant as any).tier3Price);
+          } else if ((variant as any).tier1Price) {
+            unitPrice = Number((variant as any).tier1Price);
+          } else {
+            unitPrice = Number(variant.price);
+          }
           variantWeight = variant.weight;
         } else {
           throw new OrderError(
@@ -307,12 +323,28 @@ export class OrdersService {
         if (defaultVariant) {
           // If the product has variants, select the default (first) variant
           selectedVariantId = defaultVariant.id;
-          unitPrice = Number(defaultVariant.price);
+          if (orgTier === 'TIER_2' && (defaultVariant as any).tier2Price) {
+            unitPrice = Number((defaultVariant as any).tier2Price);
+          } else if (orgTier === 'TIER_3' && (defaultVariant as any).tier3Price) {
+            unitPrice = Number((defaultVariant as any).tier3Price);
+          } else if ((defaultVariant as any).tier1Price) {
+            unitPrice = Number((defaultVariant as any).tier1Price);
+          } else {
+            unitPrice = Number(defaultVariant.price);
+          }
           variantWeight = defaultVariant.weight;
         } else {
           // Base product without variants
           selectedVariantId = null;
-          unitPrice = Number(product.price);
+          if (orgTier === 'TIER_2' && (product as any).tier2Price) {
+            unitPrice = Number((product as any).tier2Price);
+          } else if (orgTier === 'TIER_3' && (product as any).tier3Price) {
+            unitPrice = Number((product as any).tier3Price);
+          } else if ((product as any).tier1Price) {
+            unitPrice = Number((product as any).tier1Price);
+          } else {
+            unitPrice = Number(product.price);
+          }
           variantWeight = null;
         }
       }
@@ -333,8 +365,29 @@ export class OrdersService {
       });
     }
 
+    let discountAmount = 0;
+    let appliedCouponCode: string | null = null;
+    let couponIdToIncrement: string | null = null;
+
+    if (data.couponCode && data.couponCode.trim()) {
+      try {
+        const couponValidation = await couponsService.validateCoupon(
+          data.couponCode.trim(),
+          subtotal,
+          caller,
+        );
+        if (couponValidation.valid) {
+          discountAmount = couponValidation.discountAmount;
+          appliedCouponCode = couponValidation.coupon.code;
+          couponIdToIncrement = couponValidation.coupon.id;
+        }
+      } catch (err: any) {
+        throw new OrderError(err.message || 'Invalid coupon code applied', 400);
+      }
+    }
+
     const taxAmount = 0.0;
-    const totalAmount = subtotal + taxAmount;
+    const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount);
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
     // Retry loop for unique order number collision resilience
@@ -362,6 +415,9 @@ export class OrdersService {
             orderNumber,
             organisationId,
             createdByUserId: caller.userId,
+            customerPoNumber: data.customerPoNumber?.trim() || null,
+            couponCode: appliedCouponCode,
+            discountAmount,
             status: OrderStatus.PENDING,
             subtotal,
             taxAmount,
@@ -391,7 +447,9 @@ export class OrdersService {
                 performedByUserRole: caller.role,
                 metadata: {
                   itemCount: preparedItems.length,
-                  totalAmount: subtotal + taxAmount,
+                  totalAmount,
+                  customerPoNumber: data.customerPoNumber?.trim() || null,
+                  couponCode: appliedCouponCode,
                 },
               },
             },
@@ -411,6 +469,42 @@ export class OrdersService {
       },
       { maxWait: 15000, timeout: 30000 },
     );
+
+    if (couponIdToIncrement) {
+      await couponsService.incrementUsage(couponIdToIncrement).catch((e) => {
+        console.error('Failed to increment coupon usage:', e);
+      });
+    }
+
+    // Requirement 3.C: Company automated notification email on Order Generated
+    this.getSuperAdminEmails()
+      .then((adminEmails) => {
+        for (const adminEmail of adminEmails) {
+          emailService
+            .sendCustomEmail(
+              adminEmail,
+              `New Order Generated: #${created.orderNumber} ${created.customerPoNumber ? `(PO: ${created.customerPoNumber})` : ''} - ${created.organisation.name}`,
+              'New Order Notification',
+              `
+                <p><strong>A new wholesale order has been placed!</strong></p>
+                <p><strong>Order Number:</strong> #${created.orderNumber}</p>
+                <p><strong>Retailer:</strong> ${created.organisation.name} (${created.organisation.email || 'N/A'})</p>
+                ${created.customerPoNumber ? `<p><strong>Customer PO Number:</strong> ${created.customerPoNumber}</p>` : ''}
+                <p><strong>Subtotal:</strong> $${Number(created.subtotal).toFixed(2)}</p>
+                ${created.discountAmount ? `<p><strong>Discount (${created.couponCode}):</strong> -$${Number(created.discountAmount).toFixed(2)}</p>` : ''}
+                <p><strong>Total Amount:</strong> $${Number(created.totalAmount).toFixed(2)}</p>
+                <p><strong>Status:</strong> ${created.status}</p>
+                <p><strong>Items:</strong></p>
+                <ul>
+                  ${created.items.map((it) => `<li>${it.productName} (${it.productSku}) x ${it.quantity} - $${Number(it.totalPrice).toFixed(2)}</li>`).join('')}
+                </ul>
+              `,
+              `New Order: #${created.orderNumber}\nRetailer: ${created.organisation.name}\nPO: ${created.customerPoNumber || 'N/A'}\nTotal: $${Number(created.totalAmount).toFixed(2)}`,
+            )
+            .catch((e) => console.error('Failed to notify company of new order:', e));
+        }
+      })
+      .catch((e) => console.error('Failed to get admin emails:', e));
 
     // Asynchronously dispatch order confirmation email in background
     const recipientEmail = created.createdBy?.email || created.organisation?.email;
@@ -905,9 +999,17 @@ export class OrdersService {
 
     const where: any = {};
 
-    // Multi-tenant boundary enforcement
+    // Multi-tenant boundary enforcement & 3-month restriction for non-admins (Requirement 4)
     if (caller.role !== UserRole.SUPER_ADMIN) {
       where.organisationId = caller.organisationId;
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      if (!where.createdAt) {
+        where.createdAt = { gte: threeMonthsAgo };
+      } else if (!where.createdAt.gte || where.createdAt.gte < threeMonthsAgo) {
+        where.createdAt.gte = threeMonthsAgo;
+      }
     } else if (filters.organisationId) {
       where.organisationId = filters.organisationId;
     }
@@ -941,6 +1043,8 @@ export class OrdersService {
       const search = filters.search.trim();
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },
+        { customerPoNumber: { contains: search, mode: 'insensitive' } },
+        { couponCode: { contains: search, mode: 'insensitive' } },
         { notes: { contains: search, mode: 'insensitive' } },
         { modificationNote: { contains: search, mode: 'insensitive' } },
         { deliveryAddress: { contains: search, mode: 'insensitive' } },
@@ -1191,6 +1295,30 @@ export class OrdersService {
           });
       }
     }
+
+    // Requirement 3.C: Company automated notification email on Order Status Updated
+    this.getSuperAdminEmails()
+      .then((adminEmails) => {
+        for (const adminEmail of adminEmails) {
+          emailService
+            .sendCustomEmail(
+              adminEmail,
+              `Order #${updated.orderNumber} Status Updated to ${nextStatus}`,
+              'Order Status Update Notification',
+              `
+                <p>Order <strong>#${updated.orderNumber}</strong> (${updated.organisation.name}) status has been updated to <strong>${nextStatus}</strong>.</p>
+                ${updated.customerPoNumber ? `<p><strong>Customer PO Number:</strong> ${updated.customerPoNumber}</p>` : ''}
+                <p><strong>Total Amount:</strong> $${Number(updated.totalAmount).toFixed(2)}</p>
+                <p><strong>Updated By:</strong> ${caller.email} (${caller.role})</p>
+                ${data.modificationNote ? `<p><strong>Note:</strong> ${data.modificationNote}</p>` : ''}
+                ${data.cancellationReason ? `<p><strong>Reason:</strong> ${data.cancellationReason}</p>` : ''}
+              `,
+              `Order #${updated.orderNumber} status updated to ${nextStatus}.\nCustomer: ${updated.organisation.name}\nTotal: $${Number(updated.totalAmount).toFixed(2)}`,
+            )
+            .catch((e) => console.error('Failed to notify company of status change:', e));
+        }
+      })
+      .catch((e) => console.error('Failed to get admin emails:', e));
 
     return formatOrder(updated);
   }

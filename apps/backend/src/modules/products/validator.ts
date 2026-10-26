@@ -2,12 +2,16 @@ import { z } from 'zod';
 
 export const productVariantSchema = z.object({
   id: z.string().optional(),
+  sku: z.string().trim().optional(),
   weight: z.string().trim().optional(),
   description: z.string().trim().optional(),
   image: z.string().trim().optional(),
   price: z
     .number({ message: 'Variant price is required' })
     .positive('Price must be greater than 0'),
+  tier1Price: z.number().positive().optional(),
+  tier2Price: z.number().positive().optional(),
+  tier3Price: z.number().positive().optional(),
 });
 
 export const createProductSchema = z.object({
@@ -15,6 +19,11 @@ export const createProductSchema = z.object({
   sku: z.string({ message: 'SKU is required' }).min(1).trim(),
   description: z.string().optional(),
   price: z.number({ message: 'Price is required' }).positive('Price must be greater than 0'),
+  tier1Price: z.number().positive().optional(),
+  tier2Price: z.number().positive().optional(),
+  tier3Price: z.number().positive().optional(),
+  noVat: z.boolean().default(false),
+  tags: z.array(z.string().trim()).default([]),
   categoryId: z.string().optional(),
   unit: z.string().default('piece'),
   isActive: z.boolean().default(true),
@@ -40,6 +49,11 @@ export const productFilterQuerySchema = z.object({
   price: z.coerce.number().positive().optional(),
   minPrice: z.coerce.number().positive().optional(),
   maxPrice: z.coerce.number().positive().optional(),
+  tag: z.string().trim().optional(),
+  noVat: z
+    .enum(['true', 'false'])
+    .transform((val) => val === 'true')
+    .optional(),
   isActive: z
     .enum(['true', 'false'])
     .transform((val) => val === 'true')

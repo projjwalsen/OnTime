@@ -33,6 +33,11 @@ function formatProduct(p: {
   sku: string;
   description: string | null;
   price: any;
+  tier1Price?: any;
+  tier2Price?: any;
+  tier3Price?: any;
+  noVat?: boolean;
+  tags?: string[];
   categoryId: string | null;
   unit: string;
   isActive: boolean;
@@ -50,10 +55,14 @@ function formatProduct(p: {
   variants?: Array<{
     id: string;
     productId: string;
+    sku?: string | null;
     weight: string | null;
     description: string | null;
     image: string | null;
     price: any;
+    tier1Price?: any;
+    tier2Price?: any;
+    tier3Price?: any;
     createdAt: Date;
     updatedAt: Date;
   }>;
@@ -64,6 +73,11 @@ function formatProduct(p: {
     sku: p.sku,
     description: p.description,
     price: Number(p.price),
+    tier1Price: p.tier1Price !== null && p.tier1Price !== undefined ? Number(p.tier1Price) : null,
+    tier2Price: p.tier2Price !== null && p.tier2Price !== undefined ? Number(p.tier2Price) : null,
+    tier3Price: p.tier3Price !== null && p.tier3Price !== undefined ? Number(p.tier3Price) : null,
+    noVat: p.noVat ?? false,
+    tags: p.tags ?? [],
     categoryId: p.categoryId,
     category: p.category
       ? {
@@ -82,10 +96,14 @@ function formatProduct(p: {
       p.variants?.map((v): ProductVariant => ({
         id: v.id,
         productId: v.productId,
+        sku: v.sku ?? null,
         weight: v.weight,
         description: v.description,
         image: v.image,
         price: Number(v.price),
+        tier1Price: v.tier1Price !== null && v.tier1Price !== undefined ? Number(v.tier1Price) : null,
+        tier2Price: v.tier2Price !== null && v.tier2Price !== undefined ? Number(v.tier2Price) : null,
+        tier3Price: v.tier3Price !== null && v.tier3Price !== undefined ? Number(v.tier3Price) : null,
         createdAt: v.createdAt,
         updatedAt: v.updatedAt,
       })) ?? [],
@@ -122,12 +140,14 @@ export class ProductsService {
           variants: {
             some: {
               OR: [
+                { sku: { contains: searchTerm, mode: 'insensitive' } },
                 { weight: { contains: searchTerm, mode: 'insensitive' } },
                 { description: { contains: searchTerm, mode: 'insensitive' } },
               ],
             },
           },
         },
+        { tags: { has: searchTerm } },
       ];
 
       const numericVal = Number(searchTerm);
@@ -188,6 +208,14 @@ export class ProductsService {
 
     if (filters?.isActive !== undefined) {
       andConditions.push({ isActive: filters.isActive });
+    }
+
+    if (filters?.noVat !== undefined) {
+      andConditions.push({ noVat: filters.noVat });
+    }
+
+    if (filters?.tag && filters.tag.trim()) {
+      andConditions.push({ tags: { has: filters.tag.trim() } });
     }
 
     if (filters?.price !== undefined) {
@@ -297,6 +325,11 @@ export class ProductsService {
         sku,
         description: data.description?.trim() || null,
         price: data.price,
+        tier1Price: data.tier1Price ?? null,
+        tier2Price: data.tier2Price ?? null,
+        tier3Price: data.tier3Price ?? null,
+        noVat: data.noVat ?? false,
+        tags: data.tags ?? [],
         categoryId: data.categoryId || null,
         unit: data.unit || 'piece',
         isActive: data.isActive ?? true,
@@ -306,10 +339,14 @@ export class ProductsService {
           ? {
               variants: {
                 create: rawVariants.map((v) => ({
+                  sku: v.sku?.trim() || null,
                   weight: v.weight?.trim() || null,
                   description: v.description?.trim() || null,
                   image: v.image?.trim() || null,
                   price: v.price,
+                  tier1Price: v.tier1Price ?? null,
+                  tier2Price: v.tier2Price ?? null,
+                  tier3Price: v.tier3Price ?? null,
                 })),
               },
             }
@@ -369,10 +406,14 @@ export class ProductsService {
           await tx.productVariant.createMany({
             data: rawVariants.map((v) => ({
               productId: id,
+              sku: v.sku?.trim() || null,
               weight: v.weight?.trim() || null,
               description: v.description?.trim() || null,
               image: v.image?.trim() || null,
               price: v.price,
+              tier1Price: v.tier1Price ?? null,
+              tier2Price: v.tier2Price ?? null,
+              tier3Price: v.tier3Price ?? null,
             })),
           });
         }
@@ -385,6 +426,11 @@ export class ProductsService {
           ...(data.sku && { sku: data.sku.trim() }),
           ...(data.description !== undefined && { description: data.description?.trim() || null }),
           ...(data.price !== undefined && { price: data.price }),
+          ...(data.tier1Price !== undefined && { tier1Price: data.tier1Price }),
+          ...(data.tier2Price !== undefined && { tier2Price: data.tier2Price }),
+          ...(data.tier3Price !== undefined && { tier3Price: data.tier3Price }),
+          ...(data.noVat !== undefined && { noVat: data.noVat }),
+          ...(data.tags !== undefined && { tags: data.tags }),
           ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
           ...(data.unit && { unit: data.unit }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
@@ -433,6 +479,14 @@ export class ProductsService {
 
     if (filters?.isActive !== undefined) {
       andConditions.push({ isActive: filters.isActive });
+    }
+
+    if (filters?.noVat !== undefined) {
+      andConditions.push({ noVat: filters.noVat });
+    }
+
+    if (filters?.tag && filters.tag.trim()) {
+      andConditions.push({ tags: { has: filters.tag.trim() } });
     } else {
       andConditions.push({ isActive: true });
     }
@@ -452,12 +506,14 @@ export class ProductsService {
           variants: {
             some: {
               OR: [
+                { sku: { contains: searchTerm, mode: 'insensitive' } },
                 { weight: { contains: searchTerm, mode: 'insensitive' } },
                 { description: { contains: searchTerm, mode: 'insensitive' } },
               ],
             },
           },
         },
+        { tags: { has: searchTerm } },
       ];
 
       const numericVal = Number(searchTerm);

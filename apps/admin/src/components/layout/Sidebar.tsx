@@ -16,6 +16,8 @@ import {
   ChevronRight,
   LogOut,
   X,
+  Ticket,
+  Image as ImageIcon,
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -40,6 +42,8 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 const SECONDARY_NAV_ITEMS: NavItem[] = [
+  { label: 'Coupons', href: '/coupons', icon: Ticket },
+  { label: 'Banners', href: '/banners', icon: ImageIcon },
   { label: 'Reports', href: '/reports', icon: BarChart3 },
   { label: 'Users', href: '/users', icon: UserCheck },
   { label: 'Settings', href: '/settings', icon: Settings },

@@ -112,6 +112,10 @@ export type {
   ResetPasswordWithOtpDto,
   SendRegistrationOtpDto,
   VerifyRegistrationOtpDto,
+  RequestEmailChangeDto,
+  VerifyOldEmailTokenDto,
+  ConfirmEmailChangeDto,
+  AdminUpdateEmailDto,
 } from './types/auth';
 export type { UploadedMediaFile, UploadMediaResponse } from './types/media';
 export type { DeliveryAddress, CreateAddressDto, UpdateAddressDto } from './types/address';
@@ -124,6 +128,21 @@ export type {
   TwoFactorStatusResponse,
   ToggleTwoFactorDto,
 } from './types/security';
+export { DiscountType } from './types/coupon';
+export type {
+  Coupon,
+  CreateCouponDto,
+  UpdateCouponDto,
+  ValidateCouponDto,
+  ValidateCouponResponse,
+} from './types/coupon';
+export type { Banner, CreateBannerDto, UpdateBannerDto } from './types/banner';
+export type {
+  PurchaseHistoryItem,
+  ProductPurchaseHistoryItem,
+  CustomerOverallPurchaseHistory,
+  CustomerProductPurchaseHistory,
+} from './types/reports';
 
 // Constants
 export {
