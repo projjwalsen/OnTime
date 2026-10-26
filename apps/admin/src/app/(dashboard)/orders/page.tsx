@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, RefreshCw, Eye, ArrowUpRight } from 'lucide-react';
+import { Search, Filter, RefreshCw, Eye } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { OrderStatusBadge } from '../../../components/orders/OrderStatusBadge';
 import { Pagination } from '../../../components/ui/Pagination';
