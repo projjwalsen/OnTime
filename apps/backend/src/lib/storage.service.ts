@@ -84,22 +84,26 @@ export class StorageService {
   /**
    * Upload a single buffer to server storage (local disk on Ubuntu server or Supabase).
    */
-  async uploadFile(file: {
-    buffer: Buffer;
-    originalname: string;
-    mimetype: string;
-    size: number;
-  }): Promise<UploadedMediaFile> {
+  async uploadFile(
+    file: {
+      buffer: Buffer;
+      originalname: string;
+      mimetype: string;
+      size: number;
+    },
+    folder: string = 'products',
+  ): Promise<UploadedMediaFile> {
     const ext = this.getExtension(file.originalname, file.mimetype);
     const datePrefix = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
     const uniqueId = crypto.randomUUID();
     const cleanFilename = `${Date.now()}-${uniqueId}.${ext}`;
-    const fileKey = `products/${datePrefix}/${cleanFilename}`;
+    const cleanFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '') || 'products';
+    const fileKey = `${cleanFolder}/${datePrefix}/${cleanFilename}`;
 
     // ── Local Ubuntu Server Disk Storage ──────────────────────────
     if (this.driver === 'local') {
       try {
-        const targetDir = path.join(this.uploadDir, 'products', datePrefix);
+        const targetDir = path.join(this.uploadDir, cleanFolder, datePrefix);
         await fs.mkdir(targetDir, { recursive: true });
         const filePath = path.join(targetDir, cleanFilename);
         await fs.writeFile(filePath, file.buffer);
@@ -196,12 +200,13 @@ export class StorageService {
       mimetype: string;
       size: number;
     }>,
+    folder: string = 'products',
   ): Promise<UploadMediaResponse> {
     if (!files || files.length === 0) {
       throw new StorageError('No files were provided for upload', 400);
     }
 
-    const uploaded = await Promise.all(files.map((f) => this.uploadFile(f)));
+    const uploaded = await Promise.all(files.map((f) => this.uploadFile(f, folder)));
     const urls = uploaded.map((u) => u.url);
 
     return {

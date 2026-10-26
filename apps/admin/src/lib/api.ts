@@ -117,7 +117,14 @@ class ApiClient {
     options: RequestInit = {},
     retryWithRefresh = true,
   ): Promise<ApiResponse<T>> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const normalizedEndpoint = endpoint.startsWith('/v1/')
+      ? endpoint.slice(3)
+      : endpoint === '/v1'
+        ? ''
+        : endpoint.startsWith('/')
+          ? endpoint
+          : `/${endpoint}`;
+    const url = `${API_BASE_URL}${normalizedEndpoint}`;
     const token = this.getAccessToken();
 
     const headers: Record<string, string> = {
@@ -1232,37 +1239,110 @@ class ApiClient {
 
   // ── Banners (Requirement 5.A) ──────────────────────────
 
+  async uploadBannerImage(file: File): Promise<{
+    success: boolean;
+    data?: { file: UploadedMediaFile; url: string };
+    message?: string;
+    error?: string;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/banners/upload`;
+    const token = this.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (response.status === 401) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          const retryToken = this.getAccessToken();
+          if (retryToken) headers['Authorization'] = `Bearer ${retryToken}`;
+          const retryResponse = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          const retryJson = (await retryResponse.json()) as ApiResponse<{
+            file: UploadedMediaFile;
+            url: string;
+          }>;
+          if (!retryResponse.ok) {
+            return {
+              success: false,
+              error: retryJson.message || retryJson.error || `HTTP error ${retryResponse.status}`,
+            };
+          }
+          return retryJson;
+        } else {
+          this.clearTokens();
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+        }
+      }
+
+      const json = (await response.json()) as ApiResponse<{
+        file: UploadedMediaFile;
+        url: string;
+      }>;
+      if (!response.ok) {
+        return {
+          success: false,
+          error: json.message || json.error || `HTTP error ${response.status}`,
+        };
+      }
+
+      return json;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Banner image upload failed';
+      return {
+        success: false,
+        error: msg,
+      };
+    }
+  }
+
   async getBanners(activeOnly?: boolean): Promise<ApiResponse<{ banners: Banner[] }>> {
     const query = activeOnly ? '?activeOnly=true' : '';
-    return this.request<{ banners: Banner[] }>(`/v1/banners${query}`);
+    return this.request<{ banners: Banner[] }>(`/banners${query}`);
   }
 
   async getBannerById(id: string): Promise<ApiResponse<{ banner: Banner }>> {
-    return this.request<{ banner: Banner }>(`/v1/banners/${id}`);
+    return this.request<{ banner: Banner }>(`/banners/${id}`);
   }
 
   async createBanner(dto: CreateBannerDto): Promise<ApiResponse<{ banner: Banner }>> {
-    return this.request<{ banner: Banner }>('/v1/banners', {
+    return this.request<{ banner: Banner }>('/banners', {
       method: 'POST',
       body: JSON.stringify(dto),
     });
   }
 
   async updateBanner(id: string, dto: UpdateBannerDto): Promise<ApiResponse<{ banner: Banner }>> {
-    return this.request<{ banner: Banner }>(`/v1/banners/${id}`, {
+    return this.request<{ banner: Banner }>(`/banners/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(dto),
     });
   }
 
   async deleteBanner(id: string): Promise<ApiResponse<null>> {
-    return this.request<null>(`/v1/banners/${id}`, {
+    return this.request<null>(`/banners/${id}`, {
       method: 'DELETE',
     });
   }
 
   async reorderBanners(ids: string[]): Promise<ApiResponse<null>> {
-    return this.request<null>('/v1/banners/reorder', {
+    return this.request<null>('/banners/reorder', {
       method: 'PUT',
       body: JSON.stringify({ ids }),
     });

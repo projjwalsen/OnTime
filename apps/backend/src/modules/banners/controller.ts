@@ -1,5 +1,6 @@
 import type { Request, Response, RequestHandler } from 'express';
 import { bannersService, BannerError } from './service';
+import { storageService, StorageError } from '../../lib/storage.service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { asyncHandler } from '../../utils/async-handler';
 import { createBannerSchema, updateBannerSchema } from './validator';
@@ -121,6 +122,87 @@ export const reorderBanners: RequestHandler = asyncHandler(
       await bannersService.reorderBanners(ids);
       successResponse(res, 'Banners reordered successfully');
     } catch (error) {
+      handleBannerError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/banners/upload
+ * @desc    Upload homepage banner image to dedicated banners folder
+ * @access  Protected (Super Admin / Admin)
+ */
+export const uploadBannerImage: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      let filesToUpload: Express.Multer.File[] = [];
+
+      if (req.files) {
+        if (Array.isArray(req.files)) {
+          filesToUpload = req.files;
+        } else {
+          for (const field of Object.values(req.files)) {
+            filesToUpload.push(...field);
+          }
+        }
+      } else if (req.file) {
+        filesToUpload = [req.file];
+      }
+
+      if (filesToUpload.length === 0) {
+        errorResponse(res, 'No banner image uploaded. Please include an image file.', 400);
+        return;
+      }
+
+      const file = filesToUpload[0]!;
+      const allowedMimes = new Set([
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'image/svg+xml',
+      ]);
+
+      if (!allowedMimes.has(file.mimetype.toLowerCase())) {
+        errorResponse(
+          res,
+          `Unsupported file type "${file.mimetype}". Allowed types: JPEG, PNG, WebP, GIF, SVG.`,
+          400,
+        );
+        return;
+      }
+
+      if (file.size > 25 * 1024 * 1024) {
+        errorResponse(res, 'Banner image file exceeds maximum allowed size of 25 MB.', 400);
+        return;
+      }
+
+      const result = await storageService.uploadFiles(
+        filesToUpload.map((f) => ({
+          buffer: f.buffer,
+          originalname: f.originalname,
+          mimetype: f.mimetype,
+          size: f.size,
+        })),
+        'banners', // Saved directly into "banners" folder!
+      );
+
+      successResponse(
+        res,
+        'Banner image uploaded successfully',
+        {
+          file: result.files[0],
+          files: result.files,
+          url: result.files[0]?.url,
+        },
+        201,
+      );
+    } catch (error) {
+      if (error instanceof StorageError) {
+        errorResponse(res, error.message, error.statusCode);
+        return;
+      }
       handleBannerError(res, error);
     }
   },

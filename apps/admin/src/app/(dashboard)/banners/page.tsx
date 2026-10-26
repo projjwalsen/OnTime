@@ -97,15 +97,15 @@ export default function BannersPage() {
 
     setUploadingImage(true);
     try {
-      const res = await api.uploadMedia([file]);
-      if (res.success && res.data?.files?.[0]?.url) {
-        setFormData((prev) => ({ ...prev, imageUrl: res.data!.files[0]!.url }));
+      const res = await api.uploadBannerImage(file);
+      if (res.success && res.data?.url) {
+        setFormData((prev) => ({ ...prev, imageUrl: res.data!.url }));
         toastSuccess('Banner image uploaded successfully!');
       } else {
-        toastError(res.error || 'Failed to upload image');
+        toastError(res.error || 'Failed to upload banner image');
       }
     } catch {
-      toastError('Failed to upload image');
+      toastError('Failed to upload banner image');
     } finally {
       setUploadingImage(false);
     }
