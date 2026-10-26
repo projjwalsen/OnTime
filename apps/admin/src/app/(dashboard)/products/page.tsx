@@ -35,10 +35,14 @@ import { Pagination } from '../../../components/ui/Pagination';
 
 interface VariantFormItem {
   id?: string;
+  sku?: string;
   weight: string;
   description: string;
   image: string;
   price: string;
+  tier1Price?: string;
+  tier2Price?: string;
+  tier3Price?: string;
 }
 
 function ProductThumbnail({ src, alt }: { src: string | null | undefined; alt: string }) {
@@ -93,6 +97,7 @@ export default function ProductsPage() {
   const [variantUploadingIndex, setVariantUploadingIndex] = useState<number | null>(null);
   const [manualImageUrl, setManualImageUrl] = useState('');
   const [showManualUrlInput, setShowManualUrlInput] = useState(false);
+  const [tagInput, setTagInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
@@ -102,6 +107,11 @@ export default function ProductsPage() {
     description: '',
     categoryId: '',
     price: '',
+    tier1Price: '',
+    tier2Price: '',
+    tier3Price: '',
+    noVat: false,
+    tags: [] as string[],
     unit: '1 kg',
     isActive: true,
     images: [] as string[],
@@ -151,6 +161,11 @@ export default function ProductsPage() {
       description: '',
       categoryId: categories[0]?.id || '',
       price: '50.00',
+      tier1Price: '50.00',
+      tier2Price: '',
+      tier3Price: '',
+      noVat: false,
+      tags: [],
       unit: '1 kg',
       isActive: true,
       images: [],
@@ -159,6 +174,7 @@ export default function ProductsPage() {
     });
     setManualImageUrl('');
     setShowManualUrlInput(false);
+    setTagInput('');
     setIsCreateOpen(true);
   };
 
@@ -170,6 +186,11 @@ export default function ProductsPage() {
       description: product.description || '',
       categoryId: product.categoryId || '',
       price: product.price.toString(),
+      tier1Price: product.tier1Price ? product.tier1Price.toString() : product.price.toString(),
+      tier2Price: product.tier2Price ? product.tier2Price.toString() : '',
+      tier3Price: product.tier3Price ? product.tier3Price.toString() : '',
+      noVat: !!product.noVat,
+      tags: product.tags ? [...product.tags] : [],
       unit: product.unit,
       isActive: product.isActive,
       images: product.images ? [...product.images] : [],
@@ -177,14 +198,19 @@ export default function ProductsPage() {
       variants:
         product.variants?.map((v) => ({
           id: v.id,
+          sku: v.sku || '',
           weight: v.weight || '',
           description: v.description || '',
           image: v.image || '',
           price: v.price.toString(),
+          tier1Price: v.tier1Price ? v.tier1Price.toString() : v.price.toString(),
+          tier2Price: v.tier2Price ? v.tier2Price.toString() : '',
+          tier3Price: v.tier3Price ? v.tier3Price.toString() : '',
         })) || [],
     });
     setManualImageUrl('');
     setShowManualUrlInput(false);
+    setTagInput('');
     setIsEditOpen(true);
   };
 
@@ -268,10 +294,14 @@ export default function ProductsPage() {
       variants: [
         ...prev.variants,
         {
+          sku: `${prev.sku}-V${prev.variants.length + 1}`,
           weight: '',
           description: '',
           image: '',
           price: prev.price || '0.00',
+          tier1Price: prev.tier1Price || prev.price || '0.00',
+          tier2Price: prev.tier2Price || '',
+          tier3Price: prev.tier3Price || '',
         },
       ],
     }));
@@ -292,6 +322,21 @@ export default function ProductsPage() {
     });
   };
 
+  const handleAddCustomTag = () => {
+    if (!tagInput.trim()) return;
+    const newTags = tagInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t && !formData.tags.includes(t));
+    if (newTags.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, ...newTags],
+      }));
+    }
+    setTagInput('');
+  };
+
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.categoryId || !formData.price) {
@@ -305,6 +350,13 @@ export default function ProductsPage() {
         sku: formData.sku.trim(),
         name: formData.name.trim(),
         price: parseFloat(formData.price),
+        tier1Price: formData.tier1Price
+          ? parseFloat(formData.tier1Price)
+          : parseFloat(formData.price),
+        tier2Price: formData.tier2Price ? parseFloat(formData.tier2Price) : undefined,
+        tier3Price: formData.tier3Price ? parseFloat(formData.tier3Price) : undefined,
+        noVat: formData.noVat,
+        tags: formData.tags,
         categoryId: formData.categoryId,
         unit: formData.unit.trim(),
         isActive: formData.isActive,
@@ -314,10 +366,14 @@ export default function ProductsPage() {
         ...(formData.variants.length > 0
           ? {
               variants: formData.variants.map((v): ProductVariantDto => ({
+                sku: v.sku?.trim() || undefined,
                 weight: v.weight.trim() || undefined,
                 description: v.description.trim() || undefined,
                 image: v.image.trim() || undefined,
                 price: parseFloat(v.price) || 0,
+                tier1Price: v.tier1Price ? parseFloat(v.tier1Price) : undefined,
+                tier2Price: v.tier2Price ? parseFloat(v.tier2Price) : undefined,
+                tier3Price: v.tier3Price ? parseFloat(v.tier3Price) : undefined,
               })),
             }
           : {}),
@@ -347,6 +403,13 @@ export default function ProductsPage() {
       const dto: UpdateProductDto = {
         name: formData.name.trim(),
         price: parseFloat(formData.price),
+        tier1Price: formData.tier1Price
+          ? parseFloat(formData.tier1Price)
+          : parseFloat(formData.price),
+        tier2Price: formData.tier2Price ? parseFloat(formData.tier2Price) : undefined,
+        tier3Price: formData.tier3Price ? parseFloat(formData.tier3Price) : undefined,
+        noVat: formData.noVat,
+        tags: formData.tags,
         categoryId: formData.categoryId,
         unit: formData.unit.trim(),
         isActive: formData.isActive,
@@ -354,10 +417,14 @@ export default function ProductsPage() {
         packagingNote: formData.packagingNote.trim() || null,
         ...(formData.description.trim() ? { description: formData.description.trim() } : {}),
         variants: formData.variants.map((v): ProductVariantDto => ({
+          sku: v.sku?.trim() || undefined,
           weight: v.weight.trim() || undefined,
           description: v.description.trim() || undefined,
           image: v.image.trim() || undefined,
           price: parseFloat(v.price) || 0,
+          tier1Price: v.tier1Price ? parseFloat(v.tier1Price) : undefined,
+          tier2Price: v.tier2Price ? parseFloat(v.tier2Price) : undefined,
+          tier3Price: v.tier3Price ? parseFloat(v.tier3Price) : undefined,
         })),
       };
 
@@ -445,16 +512,74 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-        <Input
-          label="Default Base Price ($) *"
-          type="number"
-          step="0.01"
-          placeholder="50.00"
-          value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-          required
-        />
+      {/* ── Multi-Tier Pricing (Requirement 1.B) ──────────────────── */}
+      <div
+        style={{
+          padding: '0.9rem',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '4px',
+          }}
+        >
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>
+            Multi-Tier Pricing (Tier 1, Tier 2, Tier 3)
+          </span>
+          <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Assigned by customer tier</span>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '8px',
+            marginTop: '6px',
+          }}
+        >
+          <Input
+            label="Tier 1 (Base Price) * ($)"
+            type="number"
+            step="0.01"
+            placeholder="50.00"
+            value={formData.tier1Price || formData.price}
+            onChange={(e) =>
+              setFormData({ ...formData, price: e.target.value, tier1Price: e.target.value })
+            }
+            required
+          />
+          <Input
+            label="Tier 2 Price ($)"
+            type="number"
+            step="0.01"
+            placeholder="Optional discount"
+            value={formData.tier2Price}
+            onChange={(e) => setFormData({ ...formData, tier2Price: e.target.value })}
+          />
+          <Input
+            label="Tier 3 Price ($)"
+            type="number"
+            step="0.01"
+            placeholder="Optional VIP rate"
+            value={formData.tier3Price}
+            onChange={(e) => setFormData({ ...formData, tier3Price: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '1rem',
+          alignItems: 'center',
+        }}
+      >
         <Input
           label="Unit / Pack *"
           placeholder="e.g. 1 kg / Pack of 6"
@@ -462,6 +587,140 @@ export default function ProductsPage() {
           onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
           required
         />
+
+        {/* ── Tax Exemption / No VAT (Requirement 1.C) ─────────────── */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            backgroundColor: formData.noVat ? '#fef3c7' : '#f8fafc',
+            border: formData.noVat ? '1px solid #fde68a' : '1px solid #e2e8f0',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            height: '42px',
+            marginTop: '1.25rem',
+          }}
+          onClick={() => setFormData({ ...formData, noVat: !formData.noVat })}
+        >
+          <input
+            type="checkbox"
+            id="noVat"
+            checked={formData.noVat}
+            onChange={(e) => setFormData({ ...formData, noVat: e.target.checked })}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          <label
+            htmlFor="noVat"
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              fontSize: '0.825rem',
+              fontWeight: 600,
+              color: formData.noVat ? '#92400e' : '#475569',
+            }}
+          >
+            No VAT (Tax-Exempt Product)
+          </label>
+        </div>
+      </div>
+
+      {/* ── Product Tags (Requirement 1.E) ────────────────────────── */}
+      <div className="form-group">
+        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <Tag size={14} color="#64748b" />
+          <span>Product Tags</span>
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>
+            (e.g. New, Hot Sale, Popular)
+          </span>
+        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+          {['New', 'Hot Sale', 'Popular', 'Organic', 'Best Seller'].map((preset) => {
+            const isSelected = formData.tags.includes(preset);
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => {
+                  if (isSelected) {
+                    setFormData({ ...formData, tags: formData.tags.filter((t) => t !== preset) });
+                  } else {
+                    setFormData({ ...formData, tags: [...formData.tags, preset] });
+                  }
+                }}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '3px 9px',
+                  borderRadius: '12px',
+                  border: isSelected ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                  backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#475569',
+                  fontWeight: isSelected ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {isSelected ? '✓ ' : '+ '}
+                {preset}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <Input
+            placeholder="Add custom tags separated by commas..."
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddCustomTag();
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleAddCustomTag}
+            style={{ width: 'auto', padding: '0 12px', height: '40px' }}
+          >
+            Add
+          </Button>
+        </div>
+        {formData.tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px' }}>
+            {formData.tags.map((t, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '2px 8px',
+                  backgroundColor: '#eff6ff',
+                  borderRadius: '12px',
+                  color: '#1d4ed8',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: '1px solid #bfdbfe',
+                }}
+              >
+                {t}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      tags: formData.tags.filter((_, i) => i !== idx),
+                    })
+                  }
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <X size={11} color="#1d4ed8" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="form-group">
@@ -831,23 +1090,20 @@ export default function ProductsPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1.1fr 1fr 1.8fr auto',
+                    gridTemplateColumns: '1.2fr 1fr 1.8fr auto',
                     gap: '8px',
                     alignItems: 'center',
                   }}
                 >
                   <Input
+                    placeholder="Variant SKU (e.g. SKU-V1)"
+                    value={variant.sku || ''}
+                    onChange={(e) => handleVariantChange(index, 'sku', e.target.value)}
+                  />
+                  <Input
                     placeholder="Weight (e.g. 500g, 10kg)"
                     value={variant.weight}
                     onChange={(e) => handleVariantChange(index, 'weight', e.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="Price ($)"
-                    value={variant.price}
-                    onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-                    required
                   />
 
                   {/* Variant Image Uploader / URL Field */}
@@ -964,6 +1220,43 @@ export default function ProductsPage() {
                   onChange={(e) => handleVariantChange(index, 'description', e.target.value)}
                   style={{ fontSize: '0.825rem' }}
                 />
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: '8px',
+                    backgroundColor: '#f8fafc',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Tier 1 Price ($) *"
+                    value={variant.tier1Price || variant.price}
+                    onChange={(e) => {
+                      handleVariantChange(index, 'price', e.target.value);
+                      handleVariantChange(index, 'tier1Price', e.target.value);
+                    }}
+                    required
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Tier 2 Price ($)"
+                    value={variant.tier2Price || ''}
+                    onChange={(e) => handleVariantChange(index, 'tier2Price', e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Tier 3 Price ($)"
+                    value={variant.tier3Price || ''}
+                    onChange={(e) => handleVariantChange(index, 'tier3Price', e.target.value)}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -1059,16 +1352,17 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Products Table */}
+      {/* Products Table (Reordered as per Requirement 1.D: SKU | Image | Detail | Unit/Pack | Price | Category | ...) */}
       <div className="table-container">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Product Details</th>
               <th>SKU</th>
-              <th>Category</th>
-              <th>Unit Price</th>
+              <th>Image</th>
+              <th>Detail</th>
               <th>Unit / Pack</th>
+              <th>Price</th>
+              <th>Category</th>
               <th>Variants</th>
               <th>Status</th>
               <th>Actions</th>
@@ -1077,7 +1371,7 @@ export default function ProductsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '3rem' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -1094,7 +1388,7 @@ export default function ProductsPage() {
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
                   <Package size={36} color="#cbd5e1" style={{ margin: '0 auto 8px' }} />
                   <p style={{ fontWeight: 600, color: '#1e293b' }}>No products found</p>
                   <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>
@@ -1109,112 +1403,179 @@ export default function ProductsPage() {
 
                 return (
                   <tr key={prod.id}>
+                    {/* 1. SKU */}
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* Thumbnail */}
+                      <code
+                        style={{
+                          fontSize: '0.825rem',
+                          fontFamily: 'monospace',
+                          color: '#0f172a',
+                          backgroundColor: '#f1f5f9',
+                          padding: '3px 7px',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {prod.sku}
+                      </code>
+                    </td>
+
+                    {/* 2. Image */}
+                    <td>
+                      <div
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '8px',
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'relative',
+                        }}
+                      >
+                        <ProductThumbnail src={primaryImage} alt={prod.name} />
+
+                        {totalImages > 1 && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              bottom: '2px',
+                              right: '2px',
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                              color: '#ffffff',
+                              borderRadius: '3px',
+                              padding: '1px 3px',
+                              lineHeight: '1',
+                            }}
+                          >
+                            +{totalImages - 1}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 3. Detail */}
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div
                           style={{
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '8px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            overflow: 'hidden',
-                            flexShrink: 0,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            position: 'relative',
+                            gap: '6px',
+                            flexWrap: 'wrap',
                           }}
                         >
-                          <ProductThumbnail src={primaryImage} alt={prod.name} />
+                          <strong style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.9rem' }}>
+                            {prod.name}
+                          </strong>
 
-                          {totalImages > 1 && (
+                          {prod.noVat && (
                             <span
                               style={{
-                                position: 'absolute',
-                                bottom: '2px',
-                                right: '2px',
-                                fontSize: '0.6rem',
+                                fontSize: '0.65rem',
                                 fontWeight: 700,
-                                backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                                color: '#ffffff',
-                                borderRadius: '3px',
-                                padding: '1px 3px',
-                                lineHeight: '1',
+                                backgroundColor: '#fef3c7',
+                                color: '#92400e',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #fde68a',
                               }}
                             >
-                              +{totalImages - 1}
+                              No VAT
                             </span>
                           )}
+
+                          {prod.tags &&
+                            prod.tags.map((tag, tIdx) => (
+                              <span
+                                key={tIdx}
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  backgroundColor: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  padding: '1px 6px',
+                                  borderRadius: '10px',
+                                  border: '1px solid #bfdbfe',
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
                         </div>
 
-                        {/* Title & Info */}
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <strong
-                              style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.9rem' }}
-                            >
-                              {prod.name}
-                            </strong>
+                        {prod.description && (
+                          <div
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#64748b',
+                              maxWidth: '260px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {prod.description}
                           </div>
+                        )}
 
-                          {prod.description && (
-                            <div
+                        {prod.packagingNote && (
+                          <div
+                            style={{
+                              fontSize: '0.725rem',
+                              color: '#0369a1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              marginTop: '2px',
+                            }}
+                          >
+                            <FileText size={11} />
+                            <span
                               style={{
-                                fontSize: '0.75rem',
-                                color: '#64748b',
-                                maxWidth: '260px',
+                                maxWidth: '240px',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                               }}
                             >
-                              {prod.description}
-                            </div>
-                          )}
-
-                          {prod.packagingNote && (
-                            <div
-                              style={{
-                                fontSize: '0.725rem',
-                                color: '#0369a1',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                marginTop: '2px',
-                              }}
-                            >
-                              <FileText size={11} />
-                              <span
-                                style={{
-                                  maxWidth: '240px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {prod.packagingNote}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                              {prod.packagingNote}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
+
+                    {/* 4. Unit / Pack */}
                     <td>
-                      <span
-                        style={{
-                          fontSize: '0.825rem',
-                          fontFamily: 'monospace',
-                          color: '#475569',
-                          backgroundColor: '#f1f5f9',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {prod.sku}
-                      </span>
+                      <span style={{ fontSize: '0.825rem', color: '#475569' }}>{prod.unit}</span>
                     </td>
+
+                    {/* 5. Price */}
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <strong style={{ color: '#0f172a', fontSize: '0.925rem' }}>
+                          ${Number(prod.price).toFixed(2)}
+                        </strong>
+                        {(prod.tier2Price || prod.tier3Price) && (
+                          <span
+                            style={{ fontSize: '0.675rem', color: '#64748b', marginTop: '2px' }}
+                          >
+                            T1: ${Number(prod.tier1Price || prod.price).toFixed(2)}
+                            {prod.tier2Price ? ` | T2: $${Number(prod.tier2Price).toFixed(2)}` : ''}
+                            {prod.tier3Price ? ` | T3: $${Number(prod.tier3Price).toFixed(2)}` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 6. Category */}
                     <td>
                       <span
                         style={{
@@ -1230,14 +1591,8 @@ export default function ProductsPage() {
                         {prod.category?.name || 'Unassigned'}
                       </span>
                     </td>
-                    <td>
-                      <strong style={{ color: '#0f172a', fontSize: '0.925rem' }}>
-                        ${Number(prod.price).toFixed(2)}
-                      </strong>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.825rem', color: '#475569' }}>{prod.unit}</span>
-                    </td>
+
+                    {/* 7. Variants */}
                     <td>
                       {prod.variants && prod.variants.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -1259,26 +1614,47 @@ export default function ProductsPage() {
                             {prod.variants.length}{' '}
                             {prod.variants.length === 1 ? 'Variant' : 'Variants'}
                           </span>
-                          <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
-                            {prod.variants
-                              .map(
-                                (v) =>
-                                  `${v.weight ? v.weight + ' ' : ''}$${Number(v.price).toFixed(2)}`,
-                              )
-                              .slice(0, 2)
-                              .join(', ')}
-                            {prod.variants.length > 2 ? ` +${prod.variants.length - 2} more` : ''}
-                          </span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                            {prod.variants.slice(0, 2).map((v) => (
+                              <span
+                                key={v.id}
+                                style={{
+                                  fontSize: '0.68rem',
+                                  color: '#475569',
+                                  backgroundColor: '#f1f5f9',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                {v.sku ? (
+                                  <strong style={{ color: '#2563eb' }}>{v.sku}: </strong>
+                                ) : (
+                                  ''
+                                )}
+                                {v.weight || 'Default'} — ${Number(v.price).toFixed(2)}
+                              </span>
+                            ))}
+                            {prod.variants.length > 2 && (
+                              <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                +{prod.variants.length - 2} more
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>—</span>
                       )}
                     </td>
+
+                    {/* 8. Status */}
                     <td>
                       <Badge variant={prod.isActive ? 'success' : 'danger'}>
                         {prod.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </td>
+
+                    {/* 9. Actions */}
                     <td>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button

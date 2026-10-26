@@ -89,6 +89,7 @@ export class OrganisationsService {
         area: org.area,
         city: org.city,
         taxNumber: org.taxNumber,
+        pricingTier: org.pricingTier || 'TIER_1',
         status: org.status as OrganisationStatus,
         createdAt: org.createdAt,
         updatedAt: org.updatedAt,
@@ -121,6 +122,7 @@ export class OrganisationsService {
       area: org.area,
       city: org.city,
       taxNumber: org.taxNumber,
+      pricingTier: org.pricingTier || 'TIER_1',
       status: org.status as OrganisationStatus,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,
@@ -184,6 +186,7 @@ export class OrganisationsService {
       area: org.area,
       city: org.city,
       taxNumber: org.taxNumber,
+      pricingTier: org.pricingTier || 'TIER_1',
       contactPerson: primaryAdmin?.name || null,
       contactEmail: primaryAdmin?.email || org.email,
       contactMobile: primaryAdmin?.mobile || org.mobile,
@@ -266,6 +269,7 @@ export class OrganisationsService {
           ...(data.area !== undefined && { area: data.area }),
           ...(data.city !== undefined && { city: data.city }),
           ...(data.taxNumber !== undefined && { taxNumber: data.taxNumber }),
+          ...(data.pricingTier !== undefined && { pricingTier: data.pricingTier }),
         },
       });
 
@@ -300,6 +304,7 @@ export class OrganisationsService {
         area: data.area || null,
         city: data.city || null,
         taxNumber: data.taxNumber || null,
+        pricingTier: data.pricingTier || 'TIER_1',
         status: OrganisationStatus.ACTIVE,
       },
     });
@@ -313,6 +318,7 @@ export class OrganisationsService {
       area: org.area,
       city: org.city,
       taxNumber: org.taxNumber,
+      pricingTier: org.pricingTier || 'TIER_1',
       status: org.status as OrganisationStatus,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,
@@ -375,6 +381,8 @@ export class OrganisationsService {
           ...(data.area !== undefined && { area: data.area }),
           ...(data.city !== undefined && { city: data.city }),
           ...(data.taxNumber !== undefined && { taxNumber: data.taxNumber }),
+          ...(data.pricingTier !== undefined && { pricingTier: data.pricingTier }),
+          ...(data.pricingTier !== undefined && { pricingTier: data.pricingTier }),
           ...(statusToUpdate && { status: statusToUpdate }),
         },
       });

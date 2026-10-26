@@ -77,7 +77,10 @@ export const registerRetailerSchema = z.object({
   address: z.string().optional(),
   area: z.string().optional(),
   city: z.string().optional(),
-  taxNumber: z.string().optional(),
+  taxNumber: z
+    .string({ message: 'TIN / Tax Number is required' })
+    .min(1, 'TIN / Tax Number is required')
+    .trim(),
   password: z
     .string({ message: 'Password is required' })
     .min(8, 'Password must be at least 8 characters long'),
@@ -165,6 +168,33 @@ export const toggleTwoFactorSchema = z.object({
   password: z.string().optional(),
 });
 
+// ── Email Change Schemas (Requirement 2.B) ───────────────────
+
+export const requestEmailChangeSchema = z.object({
+  newEmail: z
+    .string({ message: 'New email address is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+});
+
+export const verifyOldEmailTokenSchema = z.object({
+  token: z.string({ message: 'Verification token is required' }).min(1),
+});
+
+export const confirmEmailChangeSchema = z.object({
+  token: z.string({ message: 'Verification token is required' }).min(1),
+  otp: z.string({ message: 'OTP code is required' }).trim().min(4),
+});
+
+export const adminUpdateEmailSchema = z.object({
+  email: z
+    .string({ message: 'Email is required' })
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -180,3 +210,7 @@ export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchem
 export type SendRegistrationOtpInput = z.infer<typeof sendRegistrationOtpSchema>;
 export type VerifyRegistrationOtpInput = z.infer<typeof verifyRegistrationOtpSchema>;
 export type ToggleTwoFactorInput = z.infer<typeof toggleTwoFactorSchema>;
+export type RequestEmailChangeInput = z.infer<typeof requestEmailChangeSchema>;
+export type VerifyOldEmailTokenInput = z.infer<typeof verifyOldEmailTokenSchema>;
+export type ConfirmEmailChangeInput = z.infer<typeof confirmEmailChangeSchema>;
+export type AdminUpdateEmailInput = z.infer<typeof adminUpdateEmailSchema>;

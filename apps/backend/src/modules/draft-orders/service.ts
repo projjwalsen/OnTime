@@ -99,6 +99,9 @@ function formatDraftOrder(order: {
   createdByUserId: string;
   title: string | null;
   notes: string | null;
+  customerPoNumber?: string | null;
+  couponCode?: string | null;
+  discountAmount?: any;
   deliveryAddress: string | null;
   subtotal: any;
   taxAmount: any;
@@ -115,6 +118,9 @@ function formatDraftOrder(order: {
     createdByUserId: order.createdByUserId,
     title: order.title,
     notes: order.notes,
+    customerPoNumber: order.customerPoNumber ?? null,
+    couponCode: order.couponCode ?? null,
+    discountAmount: order.discountAmount ? Number(order.discountAmount) : 0,
     deliveryAddress: order.deliveryAddress,
     subtotal: Number(order.subtotal),
     taxAmount: Number(order.taxAmount),
@@ -398,6 +404,8 @@ export class DraftOrdersService {
         createdByUserId: caller.userId,
         title: data.title?.trim() || null,
         notes: data.notes?.trim() || null,
+        customerPoNumber: data.customerPoNumber?.trim() || null,
+        couponCode: data.couponCode?.trim() || null,
         deliveryAddress,
         subtotal,
         taxAmount,
@@ -1093,6 +1101,8 @@ export class DraftOrdersService {
           organisationId,
           createdByUserId: caller.userId,
           status: OrderStatus.PENDING,
+          customerPoNumber: (draft as any).customerPoNumber ?? null,
+          couponCode: (draft as any).couponCode ?? null,
           subtotal,
           taxAmount,
           totalAmount,

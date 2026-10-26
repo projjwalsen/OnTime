@@ -17,6 +17,7 @@ export interface Organisation {
   area?: string | null;
   city?: string | null;
   taxNumber?: string | null;
+  pricingTier?: string;
   status: OrganisationStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,7 @@ export interface BusinessDetails {
   area?: string | null;
   city?: string | null;
   taxNumber?: string | null;
+  pricingTier?: string;
   contactPerson?: string | null;
   contactEmail?: string | null;
   contactMobile?: string | null;
@@ -50,11 +52,12 @@ export interface BusinessDetails {
 export interface CreateOrganisationDto {
   name: string;
   email: string;
-  mobile?: string;
-  address?: string;
-  area?: string;
-  city?: string;
-  taxNumber?: string;
+  mobile?: string | undefined;
+  address?: string | undefined;
+  area?: string | undefined;
+  city?: string | undefined;
+  taxNumber: string;
+  pricingTier?: string | undefined;
 }
 
 /**
@@ -62,15 +65,16 @@ export interface CreateOrganisationDto {
  * Status changes are handled separately (distributor-only).
  */
 export interface UpdateOrganisationDto {
-  name?: string;
-  email?: string;
-  contactPerson?: string;
-  mobile?: string;
-  address?: string;
-  area?: string;
-  city?: string;
-  taxNumber?: string;
-  status?: OrganisationStatus;
+  name?: string | undefined;
+  email?: string | undefined;
+  contactPerson?: string | undefined;
+  mobile?: string | undefined;
+  address?: string | undefined;
+  area?: string | undefined;
+  city?: string | undefined;
+  taxNumber?: string | undefined;
+  pricingTier?: string | undefined;
+  status?: OrganisationStatus | undefined;
 }
 
 /**
@@ -82,6 +86,7 @@ export interface UpdateBusinessDetailsDto {
   email?: string;
   mobile?: string;
   taxNumber?: string;
+  pricingTier?: string;
   address?: string;
   area?: string;
   city?: string;

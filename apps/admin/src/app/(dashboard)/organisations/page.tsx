@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Building2, Plus, Search, Loader2, Phone, Mail, MapPin } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Building2, Plus, Search, Loader2, Phone, Mail, Edit } from 'lucide-react';
 import { api } from '../../../lib/api';
-import { Organisation, OrganisationStatus, CreateOrganisationDto } from '@ontime/shared';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import { Modal } from '../../../components/ui/Modal';
+import { Organisation, OrganisationStatus } from '@ontime/shared';
 import { Badge } from '../../../components/ui/Badge';
 import { useToast } from '../../../components/ui/Toast';
 import { Pagination } from '../../../components/ui/Pagination';
 
 export default function OrganisationsPage() {
+  const router = useRouter();
   const { success, error: toastError } = useToast();
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
@@ -24,19 +24,6 @@ export default function OrganisationsPage() {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-
-  // Create Org Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    mobile: '',
-    address: '',
-    area: '',
-    city: '',
-    taxNumber: '',
-  });
 
   const fetchOrganisations = useCallback(async () => {
     setLoading(true);
@@ -69,46 +56,17 @@ export default function OrganisationsPage() {
     return () => clearTimeout(timer);
   }, [fetchOrganisations]);
 
-  const handleCreateOrganisation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toastError('Organisation name and email are required');
-      return;
-    }
-
-    setCreating(true);
+  const handleUpdateTier = async (orgId: string, pricingTier: string) => {
     try {
-      const dto: CreateOrganisationDto = {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        ...(formData.mobile.trim() ? { mobile: formData.mobile.trim() } : {}),
-        ...(formData.address.trim() ? { address: formData.address.trim() } : {}),
-        ...(formData.area.trim() ? { area: formData.area.trim() } : {}),
-        ...(formData.city.trim() ? { city: formData.city.trim() } : {}),
-        ...(formData.taxNumber.trim() ? { taxNumber: formData.taxNumber.trim() } : {}),
-      };
-
-      const res = await api.createOrganisation(dto);
+      const res = await api.updateOrganisation(orgId, { pricingTier });
       if (res.success) {
-        success(`Organisation "${formData.name}" created successfully!`);
-        setIsModalOpen(false);
-        setFormData({
-          name: '',
-          email: '',
-          mobile: '',
-          address: '',
-          area: '',
-          city: '',
-          taxNumber: '',
-        });
+        success(`Customer pricing tier updated to ${pricingTier}`);
         fetchOrganisations();
       } else {
-        toastError(res.error || 'Failed to create organisation');
+        toastError(res.error || 'Failed to update pricing tier');
       }
     } catch {
-      toastError('An unexpected error occurred');
-    } finally {
-      setCreating(false);
+      toastError('Failed to update pricing tier');
     }
   };
 
@@ -153,10 +111,19 @@ export default function OrganisationsPage() {
           </p>
         </div>
 
-        <Button variant="action-primary" onClick={() => setIsModalOpen(true)}>
+        <Link
+          href="/organisations/new"
+          className="btn-action-primary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            textDecoration: 'none',
+          }}
+        >
           <Plus size={16} />
           <span>Onboard New Retailer</span>
-        </Button>
+        </Link>
       </div>
 
       {/* Filter / Search Bar */}
@@ -225,8 +192,8 @@ export default function OrganisationsPage() {
             <tr>
               <th>Organisation</th>
               <th>Contact Details</th>
-              <th>Location</th>
-              <th>Tax Number</th>
+              <th>TIN / Tax No</th>
+              <th>Pricing Tier</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -261,7 +228,11 @@ export default function OrganisationsPage() {
               </tr>
             ) : (
               organisations.map((org) => (
-                <tr key={org.id}>
+                <tr
+                  key={org.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => router.push(`/organisations/${org.id}`)}
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div
@@ -276,6 +247,7 @@ export default function OrganisationsPage() {
                           justifyContent: 'center',
                           fontWeight: 700,
                           fontSize: '0.9rem',
+                          flexShrink: 0,
                         }}
                       >
                         {org.name[0]?.toUpperCase()}
@@ -290,64 +262,85 @@ export default function OrganisationsPage() {
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td style={{ maxWidth: '210px' }}>
                     <div
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '2px',
-                        fontSize: '0.825rem',
+                        fontSize: '0.76rem',
+                        lineHeight: '1.25',
                       }}
                     >
                       <span
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          gap: '5px',
                           color: '#334155',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
+                        title={org.email}
                       >
-                        <Mail size={13} color="#94a3b8" /> {org.email}
+                        <Mail size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {org.email}
+                        </span>
                       </span>
                       {org.mobile && (
                         <span
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
+                            gap: '5px',
                             color: '#64748b',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                           }}
                         >
-                          <Phone size={13} color="#94a3b8" /> {org.mobile}
+                          <Phone size={12} color="#94a3b8" style={{ flexShrink: 0 }} />
+                          <span>{org.mobile}</span>
                         </span>
                       )}
                     </div>
                   </td>
                   <td>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '6px',
-                        fontSize: '0.825rem',
-                      }}
-                    >
-                      <MapPin size={14} color="#94a3b8" style={{ marginTop: '2px' }} />
-                      <div>
-                        <div style={{ fontWeight: 500, color: '#334155' }}>{org.city || '—'}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          {org.area ? `${org.area}, ` : ''}
-                          {org.address || ''}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
                     <span
-                      style={{ fontSize: '0.825rem', fontFamily: 'monospace', color: '#475569' }}
+                      style={{
+                        fontSize: '0.8rem',
+                        fontFamily: 'monospace',
+                        color: '#475569',
+                        fontWeight: 500,
+                      }}
                     >
                       {org.taxNumber || '—'}
                     </span>
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <select
+                      className="form-input"
+                      style={{
+                        height: '32px',
+                        padding: '0 8px',
+                        fontSize: '0.8rem',
+                        width: 'auto',
+                        fontWeight: 600,
+                        color: '#1d4ed8',
+                        backgroundColor: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        cursor: 'pointer',
+                      }}
+                      value={org.pricingTier || 'TIER_1'}
+                      onChange={(e) => handleUpdateTier(org.id, e.target.value)}
+                      title="Assign customer wholesale pricing tier"
+                    >
+                      <option value="TIER_1">Tier 1 (Base)</option>
+                      <option value="TIER_2">Tier 2</option>
+                      <option value="TIER_3">Tier 3</option>
+                    </select>
                   </td>
                   <td>
                     <Badge
@@ -362,22 +355,48 @@ export default function OrganisationsPage() {
                       {org.status}
                     </Badge>
                   </td>
-                  <td>
-                    <button
-                      onClick={() => handleToggleStatus(org)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        backgroundColor:
-                          org.status === OrganisationStatus.ACTIVE ? '#fef2f2' : '#ecfdf5',
-                        color: org.status === OrganisationStatus.ACTIVE ? '#dc2626' : '#059669',
-                        border: `1px solid ${org.status === OrganisationStatus.ACTIVE ? '#fecaca' : '#a7f3d0'}`,
-                      }}
-                    >
-                      {org.status === OrganisationStatus.ACTIVE ? 'Suspend' : 'Activate'}
-                    </button>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Link
+                        href={`/organisations/${org.id}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          backgroundColor: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                        }}
+                        title="View & Edit Organisation Details"
+                      >
+                        <Edit size={13} />
+                        <span>Edit</span>
+                      </Link>
+                      <button
+                        onClick={() => handleToggleStatus(org)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          backgroundColor:
+                            org.status === OrganisationStatus.ACTIVE ? '#fef2f2' : '#ecfdf5',
+                          color: org.status === OrganisationStatus.ACTIVE ? '#dc2626' : '#059669',
+                          border: `1px solid ${
+                            org.status === OrganisationStatus.ACTIVE ? '#fecaca' : '#a7f3d0'
+                          }`,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {org.status === OrganisationStatus.ACTIVE ? 'Suspend' : 'Activate'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -385,7 +404,7 @@ export default function OrganisationsPage() {
           </tbody>
         </table>
 
-        {/* ── Pagination ── */}
+        {/* Pagination */}
         <Pagination
           page={page}
           totalPages={totalPages}
@@ -400,88 +419,6 @@ export default function OrganisationsPage() {
           isLoading={loading}
         />
       </div>
-
-      {/* Onboard Organisation Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Onboard Retailer Organisation"
-        maxWidth="600px"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)} disabled={creating}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleCreateOrganisation}
-              isLoading={creating}
-              style={{ width: 'auto' }}
-            >
-              Create Organisation
-            </Button>
-          </>
-        }
-      >
-        <form
-          onSubmit={handleCreateOrganisation}
-          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-        >
-          <Input
-            label="Organisation Business Name *"
-            placeholder="e.g. Apex Retailers Ltd"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-          />
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Input
-              label="Business Email *"
-              type="email"
-              placeholder="contact@apexretailers.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
-            <Input
-              label="Contact Phone"
-              placeholder="+91 9876543210"
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Input
-              label="City"
-              placeholder="e.g. Mumbai"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            />
-            <Input
-              label="Area / District"
-              placeholder="e.g. Bandra West"
-              value={formData.area}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-            />
-          </div>
-
-          <Input
-            label="Street Address"
-            placeholder="e.g. 101 Commercial Street, Suite 4B"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          />
-
-          <Input
-            label="Tax / GST Number"
-            placeholder="e.g. GSTIN27AAAAA0000A1Z5"
-            value={formData.taxNumber}
-            onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
-          />
-        </form>
-      </Modal>
     </div>
   );
 }

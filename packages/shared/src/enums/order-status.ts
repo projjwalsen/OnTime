@@ -36,15 +36,20 @@ export function isDistributorCancellable(status: OrderStatus): boolean {
  * Valid lifecycle state transitions for order fulfillment.
  */
 export const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.AWAITING, OrderStatus.CANCELLED],
+  [OrderStatus.PENDING]: [
+    OrderStatus.PROCESSING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.AWAITING,
+    OrderStatus.CANCELLED,
+  ],
   [OrderStatus.AWAITING]: [
     OrderStatus.PROCESSING,
     OrderStatus.CONFIRMED,
     OrderStatus.REJECTED,
     OrderStatus.CANCELLED,
   ],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-  [OrderStatus.PROCESSING]: [OrderStatus.DISPATCHED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+  [OrderStatus.PROCESSING]: [OrderStatus.DELIVERED, OrderStatus.DISPATCHED, OrderStatus.CANCELLED],
   [OrderStatus.DISPATCHED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
   [OrderStatus.DELIVERED]: [],
   [OrderStatus.CANCELLED]: [],

@@ -195,3 +195,92 @@ export const revokeInvitation: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * @route   POST /api/v1/users/change-email/request
+ * @desc    Request email change - sends auth link to original email (Requirement 2.B)
+ * @access  Protected
+ */
+export const requestEmailChange: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const { newEmail } = req.body;
+      const result = await usersService.requestEmailChange(req.user, newEmail);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/users/change-email/verify-old
+ * @desc    Verify original email token and send OTP to new email
+ * @access  Public / Protected
+ */
+export const verifyOldEmailToken: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = (req.body.token || req.query.token) as string;
+      if (!token) {
+        errorResponse(res, 'Verification token is required', 400);
+        return;
+      }
+      const result = await usersService.verifyOldEmailToken(token);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/users/change-email/confirm
+ * @desc    Confirm email change using token + OTP from new email
+ * @access  Public / Protected
+ */
+export const confirmEmailChange: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { token, otp } = req.body;
+      if (!token || !otp) {
+        errorResponse(res, 'Token and OTP code are required', 400);
+        return;
+      }
+      const result = await usersService.confirmEmailChange(token, otp);
+      successResponse(res, result.message, result);
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);
+
+/**
+ * @route   PATCH /api/v1/users/:id/email
+ * @desc    Admin direct email update without verification or resetting passwords (Requirement 2.B)
+ * @access  Protected (Admin only)
+ */
+export const adminUpdateEmail: RequestHandler = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 'Unauthorised', 401);
+        return;
+      }
+      const id = req.params.id as string;
+      const { email } = req.body;
+      if (!email) {
+        errorResponse(res, 'New email is required', 400);
+        return;
+      }
+      const user = await usersService.adminUpdateEmail(req.user, id, email);
+      successResponse(res, 'User email updated successfully', { user });
+    } catch (error) {
+      handleUserError(res, error);
+    }
+  },
+);

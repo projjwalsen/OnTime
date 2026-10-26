@@ -15,7 +15,11 @@ export const createOrganisationSchema = z.object({
   address: z.string().optional(),
   area: z.string().optional(),
   city: z.string().optional(),
-  taxNumber: z.string().optional(),
+  taxNumber: z
+    .string({ message: 'TIN / Tax Number is required' })
+    .min(1, 'TIN / Tax Number is required')
+    .trim(),
+  pricingTier: z.enum(['TIER_1', 'TIER_2', 'TIER_3']).default('TIER_1').optional(),
 });
 
 export const updateBusinessDetailsSchema = z.object({
@@ -28,6 +32,7 @@ export const updateBusinessDetailsSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase().trim().optional(),
   mobile: z.string().trim().optional(),
   taxNumber: z.string().trim().optional(),
+  pricingTier: z.enum(['TIER_1', 'TIER_2', 'TIER_3']).optional(),
   address: z.string().trim().optional(),
   area: z.string().trim().optional(),
   city: z.string().trim().optional(),
@@ -46,6 +51,7 @@ export const updateOrganisationSchema = z.object({
   area: z.string().trim().optional(),
   city: z.string().trim().optional(),
   taxNumber: z.string().trim().optional(),
+  pricingTier: z.enum(['TIER_1', 'TIER_2', 'TIER_3']).optional(),
   status: z
     .enum([OrganisationStatus.ACTIVE, OrganisationStatus.INACTIVE, OrganisationStatus.SUSPENDED])
     .optional(),

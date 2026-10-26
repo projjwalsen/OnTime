@@ -50,6 +50,9 @@ export interface Order {
   organisationId: string;
   createdByUserId: string;
   status: OrderStatus;
+  customerPoNumber?: string | null;
+  couponCode?: string | null;
+  discountAmount?: number;
   subtotal: number;
   taxAmount: number;
   totalAmount: number;
@@ -83,6 +86,8 @@ export interface CreateOrderItemDto {
 export interface CreateOrderDto {
   items: CreateOrderItemDto[];
   notes?: string | undefined;
+  customerPoNumber?: string | undefined;
+  couponCode?: string | undefined;
   deliveryAddress?: string | undefined;
   /** Required when placed by SUPER_ADMIN; automatically derived from token for ADMIN / STAFF */
   organisationId?: string | undefined;
