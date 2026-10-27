@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { getMediaUrl } from '../../../lib/config';
 import { Banner } from '@ontime/shared';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -278,14 +279,32 @@ export default function BannersPage() {
               <div
                 style={{
                   height: '160px',
-                  backgroundColor: '#f8fafc',
-                  backgroundImage: `url(${b.imageUrl})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundColor: '#f1f5f9',
                   position: 'relative',
                   borderBottom: '1px solid #e2e8f0',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
+                {b.imageUrl ? (
+                  <img
+                    src={getMediaUrl(b.imageUrl)}
+                    alt={b.title}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <ImageIcon size={32} color="#94a3b8" />
+                )}
                 <div
                   style={{
                     position: 'absolute',
@@ -293,6 +312,7 @@ export default function BannersPage() {
                     right: '10px',
                     display: 'flex',
                     gap: '6px',
+                    zIndex: 2,
                   }}
                 >
                   <Badge variant={b.isActive ? 'success' : 'danger'}>
@@ -310,6 +330,7 @@ export default function BannersPage() {
                     borderRadius: '4px',
                     fontSize: '0.75rem',
                     fontWeight: 600,
+                    zIndex: 2,
                   }}
                 >
                   Order #{b.displayOrder}
@@ -497,12 +518,26 @@ export default function BannersPage() {
                     marginTop: '8px',
                     height: '100px',
                     borderRadius: '8px',
-                    backgroundImage: `url(${formData.imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
                     border: '1px solid #e2e8f0',
+                    overflow: 'hidden',
+                    backgroundColor: '#0f172a',
+                    position: 'relative',
                   }}
-                />
+                >
+                  <img
+                    src={getMediaUrl(formData.imageUrl)}
+                    alt="Banner preview"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
               )}
             </div>
 

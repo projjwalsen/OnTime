@@ -109,7 +109,11 @@ export class StorageService {
         await fs.writeFile(filePath, file.buffer);
 
         let publicUrl: string;
-        if (this.mediaBaseUrl) {
+        if (
+          this.mediaBaseUrl &&
+          !this.mediaBaseUrl.includes('localhost') &&
+          !this.mediaBaseUrl.includes('127.0.0.1')
+        ) {
           publicUrl = `${this.mediaBaseUrl.replace(/\/+$/, '')}/${fileKey}`;
         } else if (
           this.serverUrl &&

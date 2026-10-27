@@ -32,10 +32,17 @@ export function getMediaUrl(url?: string | null): string {
     return trimmed;
   }
 
+  let normalized = trimmed;
+  if (normalized.startsWith('uploads/')) {
+    normalized = `/${normalized}`;
+  } else if (normalized.startsWith('banners/') || normalized.startsWith('products/')) {
+    normalized = `/uploads/${normalized}`;
+  }
+
   // If the URL contains /uploads/...
-  const uploadsIdx = trimmed.indexOf('/uploads/');
+  const uploadsIdx = normalized.indexOf('/uploads/');
   if (uploadsIdx !== -1) {
-    const relativePath = trimmed.slice(uploadsIdx); // e.g. "/uploads/products/2026-10/xxx.png"
+    const relativePath = normalized.slice(uploadsIdx); // e.g. "/uploads/products/2026-10/xxx.png"
 
     if (typeof window !== 'undefined') {
       const rawApi = process.env.NEXT_PUBLIC_API_URL;
@@ -58,11 +65,11 @@ export function getMediaUrl(url?: string | null): string {
   }
 
   // If it's a relative path starting with /api
-  if (trimmed.startsWith('/api')) {
-    return `${SERVER_BASE_URL}${trimmed}`;
+  if (normalized.startsWith('/api')) {
+    return `${SERVER_BASE_URL}${normalized}`;
   }
 
-  return trimmed;
+  return normalized;
 }
 
 export const STORAGE_KEYS = {
