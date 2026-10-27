@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
+import { getMediaUrl } from '../../lib/config';
 import { Banner } from '@ontime/shared';
 
 export function BannerCarousel() {
@@ -75,19 +76,28 @@ export function BannerCarousel() {
       }}
     >
       {/* Background Image with Overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${currentBanner.imageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transition: 'all 0.5s ease-in-out',
-        }}
-      />
+      {currentBanner.imageUrl && (
+        <img
+          key={currentBanner.id || currentBanner.imageUrl}
+          src={getMediaUrl(currentBanner.imageUrl)}
+          alt={currentBanner.title}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            transition: 'opacity 0.5s ease-in-out',
+            zIndex: 0,
+          }}
+          onError={(e) => {
+            console.warn(`[BannerCarousel] Failed to load banner image: ${currentBanner.imageUrl}`);
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      )}
       <div
         style={{
           position: 'absolute',
@@ -97,6 +107,7 @@ export function BannerCarousel() {
           bottom: 0,
           background:
             'linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.4) 60%, rgba(15, 23, 42, 0.1) 100%)',
+          zIndex: 1,
         }}
       />
 
