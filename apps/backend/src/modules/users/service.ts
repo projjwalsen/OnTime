@@ -511,12 +511,12 @@ export class UsersService {
 
   /**
    * Request email change (Requirement 2.B):
-   * Workflow: Settings > Change Email > Auth link sent to original email
+   * Workflow: Settings > Change Email > OTP code sent to original email
    */
   async requestEmailChange(
     caller: AuthContext,
     newEmail: string,
-  ): Promise<{ message: string; token: string }> {
+  ): Promise<{ message: string; otp?: string; expiresInSeconds: number }> {
     const cleanNew = newEmail.trim().toLowerCase();
 
     // Check if new email is already in use
@@ -544,9 +544,10 @@ export class UsersService {
     });
 
     const oldEmailToken = crypto.randomBytes(32).toString('hex');
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const newEmailOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const oldEmailOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const oldEmailOtpHash = crypto.createHash('sha256').update(oldEmailOtp).digest('hex');
+    const expiresInSeconds = 15 * 60; // 15 mins
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     await prisma.emailChangeRequest.create({
       data: {
@@ -554,53 +555,112 @@ export class UsersService {
         oldEmail: user.email,
         newEmail: cleanNew,
         oldEmailToken,
-        newEmailOtpHash,
+        newEmailOtpHash: oldEmailOtpHash, // Stores old email OTP hash until verified
         expiresAt,
       },
     });
 
-    // Send authentication link to original email
-    const verificationUrl = `${config.serverUrl}/api/v1/users/change-email/verify-old?token=${oldEmailToken}`;
+    // Send OTP verification code to original email
     emailService.enqueueEmail({
       to: user.email,
-      subject: 'Security Alert: Request to Change Your Email Address',
+      subject: 'Security Alert: Your Verification Code to Change Email Address',
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #0f172a;">Verify Email Address Change</h2>
-          <p>Hi ${user.name},</p>
-          <p>We received a request to update your login email address from <strong>${user.email}</strong> to <strong>${cleanNew}</strong>.</p>
-          <p>To proceed, please click the verification button below:</p>
-          <p style="margin: 24px 0;">
-            <a href="${verificationUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Confirm Change Request</a>
-          </p>
-          <p style="font-size: 0.85rem; color: #64748b;">Or use this verification token directly: <code>${oldEmailToken}</code></p>
-          <p style="font-size: 0.85rem; color: #94a3b8;">If you did not request this change, please ignore this email and your email will remain unchanged.</p>
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #0f172a; margin-top: 0;">Verify Email Address Change</h2>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">Hi ${user.name},</p>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">We received a request to update your login email address from <strong>${user.email}</strong> to <strong>${cleanNew}</strong>.</p>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">Your one-time verification code is:</p>
+          <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2563eb; margin: 20px 0; background-color: #f1f5f9; padding: 16px; text-align: center; border-radius: 8px;">
+            ${oldEmailOtp}
+          </div>
+          <p style="font-size: 0.85rem; color: #64748b;">This code expires in 15 minutes. Enter this code to verify your current email address.</p>
+          <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0;">If you did not request this change, please ignore this email and your email will remain unchanged.</p>
         </div>
       `,
-      text: `Verify Email Change: Request to update your email to ${cleanNew}. Use token: ${oldEmailToken}`,
+      text: `Verify Email Change: Your verification code to update your email to ${cleanNew} is: ${oldEmailOtp}. Valid for 15 minutes.`,
     });
 
     return {
-      message: 'Authentication link sent to your current email address. Please click it to proceed.',
-      token: oldEmailToken,
+      message: 'A 4-digit verification code has been sent to your current email address.',
+      expiresInSeconds,
+      ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp: oldEmailOtp } : {}),
     };
   }
 
   /**
-   * Verify old email token and trigger OTP to new email.
+   * Verify old email OTP and trigger OTP to new email.
    */
-  async verifyOldEmailToken(token: string): Promise<{ message: string; newEmail: string }> {
-    const request = await prisma.emailChangeRequest.findUnique({
-      where: { oldEmailToken: token },
-    });
+  async verifyOldEmailOtp(payload: {
+    token?: string | undefined;
+    otp?: string | undefined;
+    userId?: string | undefined;
+  }): Promise<{ message: string; newEmail: string; otp?: string; expiresInSeconds: number }> {
+    const rawToken = payload.token?.trim();
+    const rawOtp = payload.otp?.trim();
+
+    // Determine the OTP and token
+    const otp = rawOtp || (rawToken && rawToken.length <= 6 ? rawToken : undefined);
+    const token = rawToken && rawToken.length > 6 ? rawToken : undefined;
+
+    if (!otp && !token) {
+      throw new UserError('Verification code (OTP) is required.', 400);
+    }
+
+    let request = null;
+
+    if (payload.userId) {
+      request = await prisma.emailChangeRequest.findFirst({
+        where: {
+          userId: payload.userId,
+          confirmedAt: null,
+          oldEmailVerified: false,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    if (!request && token) {
+      request = await prisma.emailChangeRequest.findUnique({
+        where: { oldEmailToken: token },
+      });
+    }
+
+    if (!request && otp) {
+      const providedHash = crypto.createHash('sha256').update(otp).digest('hex');
+      request = await prisma.emailChangeRequest.findFirst({
+        where: {
+          newEmailOtpHash: providedHash,
+          oldEmailVerified: false,
+          confirmedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
 
     if (!request || request.confirmedAt || request.expiresAt < new Date()) {
       throw new UserError('Invalid or expired email change request.', 400);
     }
 
-    // Generate fresh OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const newEmailOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    if (request.oldEmailVerified) {
+      throw new UserError('Original email has already been verified.', 400);
+    }
+
+    // Verify OTP or token
+    if (otp) {
+      const providedHash = crypto.createHash('sha256').update(otp).digest('hex');
+      if (providedHash !== request.newEmailOtpHash) {
+        throw new UserError('Invalid OTP verification code.', 400);
+      }
+    } else if (!token || token !== request.oldEmailToken) {
+      throw new UserError('Verification code (OTP) is required.', 400);
+    }
+
+    // Generate fresh 4-digit OTP for new email
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const newEmailOtpHash = crypto.createHash('sha256').update(newOtp).digest('hex');
+    const expiresInSeconds = 15 * 60;
 
     await prisma.emailChangeRequest.update({
       where: { id: request.id },
@@ -615,35 +675,102 @@ export class UsersService {
       to: request.newEmail,
       subject: 'Your Verification Code for Email Change',
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #0f172a;">Verify Your New Email Address</h2>
-          <p>Your one-time verification code is:</p>
-          <div style="font-size: 28px; font-weight: 700; letter-spacing: 4px; color: #2563eb; margin: 16px 0;">
-            ${otp}
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #0f172a; margin-top: 0;">Verify Your New Email Address</h2>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">Your one-time verification code to confirm this email address is:</p>
+          <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #2563eb; margin: 20px 0; background-color: #f1f5f9; padding: 16px; text-align: center; border-radius: 8px;">
+            ${newOtp}
           </div>
           <p style="font-size: 0.85rem; color: #64748b;">This code expires in 15 minutes. Enter this code to finalize your email change.</p>
         </div>
       `,
-      text: `Your verification code for email change is: ${otp}`,
+      text: `Your verification code for email change is: ${newOtp}. Valid for 15 minutes.`,
     });
 
     return {
       message: 'Original email verified. A 4-digit verification code has been sent to your new email.',
       newEmail: request.newEmail,
+      expiresInSeconds,
+      ...(config.isDevelopment || config.isTest || !config.isProduction ? { otp: newOtp } : {}),
     };
+  }
+
+  /**
+   * Alias for backward compatibility.
+   */
+  async verifyOldEmailToken(
+    token: string,
+    otp?: string | undefined,
+  ): Promise<{ message: string; newEmail: string }> {
+    return this.verifyOldEmailOtp({ token, otp });
   }
 
   /**
    * Confirm email change with OTP. Preserves all history.
    */
   async confirmEmailChange(
-    token: string,
-    otp: string,
+    payloadOrToken: string | { otp: string; token?: string | undefined; userId?: string | undefined },
+    possibleOtp?: string,
   ): Promise<{ message: string; email: string }> {
-    const request = await prisma.emailChangeRequest.findUnique({
-      where: { oldEmailToken: token },
-      include: { user: true },
-    });
+    let token: string | undefined;
+    let otp: string | undefined;
+    let userId: string | undefined;
+
+    if (typeof payloadOrToken === 'string') {
+      token = payloadOrToken.trim();
+      otp = possibleOtp?.trim();
+    } else {
+      otp = payloadOrToken.otp?.trim();
+      token = payloadOrToken.token?.trim();
+      userId = payloadOrToken.userId;
+    }
+
+    // If otp is provided in token field
+    if (!otp && token && token.length <= 6) {
+      otp = token;
+      token = undefined;
+    }
+
+    if (!otp) {
+      throw new UserError('Verification code (OTP) is required.', 400);
+    }
+
+    const providedHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    let request = null;
+
+    if (userId) {
+      request = await prisma.emailChangeRequest.findFirst({
+        where: {
+          userId,
+          oldEmailVerified: true,
+          confirmedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { user: true },
+      });
+    }
+
+    if (!request && token && token.length > 6) {
+      request = await prisma.emailChangeRequest.findUnique({
+        where: { oldEmailToken: token },
+        include: { user: true },
+      });
+    }
+
+    if (!request) {
+      request = await prisma.emailChangeRequest.findFirst({
+        where: {
+          newEmailOtpHash: providedHash,
+          oldEmailVerified: true,
+          confirmedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { user: true },
+      });
+    }
 
     if (!request || request.confirmedAt || request.expiresAt < new Date()) {
       throw new UserError('Invalid or expired email change request.', 400);
@@ -653,7 +780,6 @@ export class UsersService {
       throw new UserError('Original email has not been verified yet.', 400);
     }
 
-    const providedHash = crypto.createHash('sha256').update(otp.trim()).digest('hex');
     if (providedHash !== request.newEmailOtpHash) {
       throw new UserError('Invalid OTP verification code.', 400);
     }
@@ -677,6 +803,21 @@ export class UsersService {
         where: { id: request.id },
         data: { confirmedAt: new Date(), newEmailVerified: true },
       });
+    });
+
+    // Notify old and new email addresses about successful update
+    emailService.enqueueEmail({
+      to: [request.oldEmail, request.newEmail],
+      subject: 'Security Alert: Your Account Email Has Been Changed',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #0f172a; margin-top: 0;">Email Address Successfully Updated</h2>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">Hi ${request.user.name},</p>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">Your account email address has been successfully changed from <strong>${request.oldEmail}</strong> to <strong>${request.newEmail}</strong>.</p>
+          <p style="color: #334155; font-size: 1rem; line-height: 1.5;">All your past orders, organization data, and account history remain intact and accessible under your new email.</p>
+        </div>
+      `,
+      text: `Your account email address has been updated to ${request.newEmail}. All account history remains intact.`,
     });
 
     return {

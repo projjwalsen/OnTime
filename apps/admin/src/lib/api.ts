@@ -661,29 +661,39 @@ class ApiClient {
 
   async requestEmailChange(
     newEmail: string,
-  ): Promise<{ success: boolean; message?: string; token?: string; error?: string }> {
+  ): Promise<{ success: boolean; message?: string; otp?: string; error?: string }> {
     return this.request('/users/change-email/request', {
       method: 'POST',
       body: JSON.stringify({ newEmail }),
     });
   }
 
+  async verifyOldEmailOtp(
+    otp: string,
+  ): Promise<{ success: boolean; message?: string; newEmail?: string; otp?: string; error?: string }> {
+    return this.request('/users/change-email/verify-old', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    });
+  }
+
   async verifyOldEmailToken(
-    token: string,
+    tokenOrOtp: string,
+    otp?: string,
   ): Promise<{ success: boolean; message?: string; newEmail?: string; error?: string }> {
     return this.request('/users/change-email/verify-old', {
       method: 'POST',
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ otp: otp || tokenOrOtp }),
     });
   }
 
   async confirmEmailChange(
-    token: string,
     otp: string,
+    token?: string,
   ): Promise<{ success: boolean; message?: string; email?: string; error?: string }> {
     return this.request('/users/change-email/confirm', {
       method: 'POST',
-      body: JSON.stringify({ token, otp }),
+      body: JSON.stringify({ otp, token }),
     });
   }
 

@@ -89,3 +89,49 @@ export const authMiddleware: RequestHandler = asyncHandler(
     }
   },
 );
+
+/**
+ * Optional Authentication Middleware
+ * If Authorization Bearer token is provided, validates it and sets req.user.
+ * If not provided or invalid, proceeds gracefully without failing.
+ */
+export const optionalAuthMiddleware: RequestHandler = asyncHandler(
+  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.substring(7).trim();
+    if (!token) {
+      return next();
+    }
+
+    try {
+      const payload = verifyAccessToken(token);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          organisationId: true,
+          isActive: true,
+        },
+      });
+
+      if (user && user.isActive) {
+        req.user = {
+          userId: user.id,
+          email: user.email,
+          role: user.role as unknown as UserRole,
+          organisationId: user.organisationId,
+        };
+      }
+    } catch {
+      // Non-blocking: proceed without req.user
+    }
+
+    next();
+  },
+);

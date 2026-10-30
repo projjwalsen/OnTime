@@ -15,7 +15,7 @@ import {
   adminUpdateEmail,
 } from './controller';
 
-import { authMiddleware } from '../../middleware/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../../middleware/auth.middleware';
 import { requireOrganisationAdmin } from '../../middleware/rbac.middleware';
 import { validateBody, validateRequest } from '../../middleware/validate.middleware';
 import {
@@ -30,11 +30,14 @@ import {
 const router = Router();
 
 /**
- * Public email change callback verification & confirmation routes (Requirement 2.B)
+ * Email change OTP verification & confirmation routes (Requirement 2.B)
+ * Works both with Bearer token authentication and direct OTP validation.
  */
-router.post('/change-email/verify-old', verifyOldEmailToken);
-router.get('/change-email/verify-old', verifyOldEmailToken);
-router.post('/change-email/confirm', confirmEmailChange);
+router.post('/change-email/verify-old', optionalAuthMiddleware, verifyOldEmailToken);
+router.get('/change-email/verify-old', optionalAuthMiddleware, verifyOldEmailToken);
+router.post('/change-email/verify-original', optionalAuthMiddleware, verifyOldEmailToken);
+router.post('/change-email/verify-otp', optionalAuthMiddleware, verifyOldEmailToken);
+router.post('/change-email/confirm', optionalAuthMiddleware, confirmEmailChange);
 
 // All subsequent user routes require authentication
 router.use(authMiddleware);
