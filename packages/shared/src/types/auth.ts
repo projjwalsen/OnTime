@@ -122,12 +122,13 @@ export interface RequestEmailChangeDto {
 }
 
 export interface VerifyOldEmailTokenDto {
-  token: string;
+  otp: string;
+  token?: string;
 }
 
 export interface ConfirmEmailChangeDto {
-  token: string;
   otp: string;
+  token?: string;
 }
 
 export interface AdminUpdateEmailDto {

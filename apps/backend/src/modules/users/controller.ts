@@ -219,18 +219,23 @@ export const requestEmailChange: RequestHandler = asyncHandler(
 
 /**
  * @route   POST /api/v1/users/change-email/verify-old
- * @desc    Verify original email token and send OTP to new email
+ * @desc    Verify original email OTP and send OTP to new email
  * @access  Public / Protected
  */
 export const verifyOldEmailToken: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const token = (req.body.token || req.query.token) as string;
-      if (!token) {
-        errorResponse(res, 'Verification token is required', 400);
+      const token = (req.body.token || req.query.token) as string | undefined;
+      const otp = (req.body.otp || req.query.otp) as string | undefined;
+      if (!token && !otp) {
+        errorResponse(res, 'Verification OTP code or token is required', 400);
         return;
       }
-      const result = await usersService.verifyOldEmailToken(token);
+      const result = await usersService.verifyOldEmailOtp({
+        token,
+        otp,
+        userId: req.user?.userId,
+      });
       successResponse(res, result.message, result);
     } catch (error) {
       handleUserError(res, error);
@@ -240,18 +245,23 @@ export const verifyOldEmailToken: RequestHandler = asyncHandler(
 
 /**
  * @route   POST /api/v1/users/change-email/confirm
- * @desc    Confirm email change using token + OTP from new email
+ * @desc    Confirm email change using OTP from new email
  * @access  Public / Protected
  */
 export const confirmEmailChange: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { token, otp } = req.body;
-      if (!token || !otp) {
-        errorResponse(res, 'Token and OTP code are required', 400);
+      const otp = (req.body.otp || req.query.otp) as string | undefined;
+      const token = (req.body.token || req.query.token) as string | undefined;
+      if (!otp && !token) {
+        errorResponse(res, 'Verification OTP code is required', 400);
         return;
       }
-      const result = await usersService.confirmEmailChange(token, otp);
+      const result = await usersService.confirmEmailChange({
+        otp: (otp || token) as string,
+        token,
+        userId: req.user?.userId,
+      });
       successResponse(res, result.message, result);
     } catch (error) {
       handleUserError(res, error);
