@@ -668,9 +668,13 @@ class ApiClient {
     });
   }
 
-  async verifyOldEmailOtp(
-    otp: string,
-  ): Promise<{ success: boolean; message?: string; newEmail?: string; otp?: string; error?: string }> {
+  async verifyOldEmailOtp(otp: string): Promise<{
+    success: boolean;
+    message?: string;
+    newEmail?: string;
+    otp?: string;
+    error?: string;
+  }> {
     return this.request('/users/change-email/verify-old', {
       method: 'POST',
       body: JSON.stringify({ otp }),
