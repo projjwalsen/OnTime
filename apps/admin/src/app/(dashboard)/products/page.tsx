@@ -1475,7 +1475,7 @@ export default function ProductsPage() {
                             {prod.name}
                           </strong>
 
-                          {prod.noVat && (
+                          {prod.noVat ? (
                             <span
                               style={{
                                 fontSize: '0.65rem',
@@ -1489,7 +1489,21 @@ export default function ProductsPage() {
                             >
                               No VAT
                             </span>
-                          )}
+                          ) : prod.taxRate !== undefined && prod.taxRate > 0 ? (
+                            <span
+                              style={{
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                backgroundColor: '#eff6ff',
+                                color: '#1e40af',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #bfdbfe',
+                              }}
+                            >
+                              VAT: {prod.taxRate}%
+                            </span>
+                          ) : null}
 
                           {prod.tags &&
                             prod.tags.map((tag, tIdx) => (

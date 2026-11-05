@@ -104,6 +104,8 @@ function formatOrderItem(item: {
           isActive: item.product.isActive,
           images: item.product.images ?? [],
           packagingNote: item.product.packagingNote ?? null,
+          noVat: item.product.noVat ?? false,
+          taxRate: item.product.noVat ? 0 : Number(item.product.taxRate || 0),
           createdAt: item.product.createdAt,
           updatedAt: item.product.updatedAt,
         }
