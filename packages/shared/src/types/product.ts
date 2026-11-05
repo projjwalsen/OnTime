@@ -61,6 +61,7 @@ export interface Product {
   tier2Price?: number | null;
   tier3Price?: number | null;
   noVat?: boolean;
+  taxRate?: number;
   tags?: string[];
   categoryId?: string | null;
   category?: Category | null;
@@ -82,6 +83,7 @@ export interface CreateProductDto {
   tier2Price?: number | undefined;
   tier3Price?: number | undefined;
   noVat?: boolean | undefined;
+  taxRate?: number | undefined;
   tags?: string[] | undefined;
   categoryId?: string | undefined;
   unit?: string | undefined;

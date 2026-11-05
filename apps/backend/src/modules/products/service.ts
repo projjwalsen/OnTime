@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { settingsService } from '../settings/service';
 import {
   type Product,
   type ProductVariant,
@@ -27,46 +28,57 @@ export interface ListProductsResult {
   pagination: PaginationMeta;
 }
 
-function formatProduct(p: {
-  id: string;
-  name: string;
-  sku: string;
-  description: string | null;
-  price: any;
-  tier1Price?: any;
-  tier2Price?: any;
-  tier3Price?: any;
-  noVat?: boolean;
-  tags?: string[];
-  categoryId: string | null;
-  unit: string;
-  isActive: boolean;
-  images?: string[];
-  packagingNote?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  category?: {
+function formatProduct(
+  p: {
     id: string;
     name: string;
+    sku: string;
     description: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  } | null;
-  variants?: Array<{
-    id: string;
-    productId: string;
-    sku?: string | null;
-    weight: string | null;
-    description: string | null;
-    image: string | null;
     price: any;
     tier1Price?: any;
     tier2Price?: any;
     tier3Price?: any;
+    noVat?: boolean;
+    taxRate?: any;
+    tags?: string[];
+    categoryId: string | null;
+    unit: string;
+    isActive: boolean;
+    images?: string[];
+    packagingNote?: string | null;
     createdAt: Date;
     updatedAt: Date;
-  }>;
-}): Product {
+    category?: {
+      id: string;
+      name: string;
+      description: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    } | null;
+    variants?: Array<{
+      id: string;
+      productId: string;
+      sku?: string | null;
+      weight: string | null;
+      description: string | null;
+      image: string | null;
+      price: any;
+      tier1Price?: any;
+      tier2Price?: any;
+      tier3Price?: any;
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+  },
+  platformTaxRate: number = 0,
+): Product {
+  const isNoVat = Boolean(p.noVat);
+  const effectiveTaxRate = isNoVat
+    ? 0
+    : p.taxRate !== undefined && p.taxRate !== null
+      ? Number(p.taxRate)
+      : platformTaxRate;
+
   return {
     id: p.id,
     name: p.name,
@@ -76,7 +88,8 @@ function formatProduct(p: {
     tier1Price: p.tier1Price !== null && p.tier1Price !== undefined ? Number(p.tier1Price) : null,
     tier2Price: p.tier2Price !== null && p.tier2Price !== undefined ? Number(p.tier2Price) : null,
     tier3Price: p.tier3Price !== null && p.tier3Price !== undefined ? Number(p.tier3Price) : null,
-    noVat: p.noVat ?? false,
+    noVat: isNoVat,
+    taxRate: effectiveTaxRate,
     tags: p.tags ?? [],
     categoryId: p.categoryId,
     category: p.category
@@ -101,9 +114,12 @@ function formatProduct(p: {
         description: v.description,
         image: v.image,
         price: Number(v.price),
-        tier1Price: v.tier1Price !== null && v.tier1Price !== undefined ? Number(v.tier1Price) : null,
-        tier2Price: v.tier2Price !== null && v.tier2Price !== undefined ? Number(v.tier2Price) : null,
-        tier3Price: v.tier3Price !== null && v.tier3Price !== undefined ? Number(v.tier3Price) : null,
+        tier1Price:
+          v.tier1Price !== null && v.tier1Price !== undefined ? Number(v.tier1Price) : null,
+        tier2Price:
+          v.tier2Price !== null && v.tier2Price !== undefined ? Number(v.tier2Price) : null,
+        tier3Price:
+          v.tier3Price !== null && v.tier3Price !== undefined ? Number(v.tier3Price) : null,
         createdAt: v.createdAt,
         updatedAt: v.updatedAt,
       })) ?? [],
@@ -237,7 +253,7 @@ export class ProductsService {
       where.AND = andConditions;
     }
 
-    const [total, products] = await Promise.all([
+    const [total, products, taxSettings] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
         where,
@@ -253,10 +269,13 @@ export class ProductsService {
           createdAt: 'desc',
         },
       }),
+      settingsService.getTaxSettings(),
     ]);
 
+    const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
+
     return {
-      products: products.map(formatProduct),
+      products: products.map((p) => formatProduct(p, platformTaxRate)),
       pagination: {
         total,
         page,
@@ -277,19 +296,23 @@ export class ProductsService {
    * Get product by ID.
    */
   async getProductById(id: string): Promise<Product | null> {
-    const p = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        category: true,
-        variants: {
-          orderBy: { createdAt: 'asc' },
+    const [p, taxSettings] = await Promise.all([
+      prisma.product.findUnique({
+        where: { id },
+        include: {
+          category: true,
+          variants: {
+            orderBy: { createdAt: 'asc' },
+          },
         },
-      },
-    });
+      }),
+      settingsService.getTaxSettings(),
+    ]);
 
     if (!p) return null;
 
-    return formatProduct(p);
+    const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
+    return formatProduct(p, platformTaxRate);
   }
 
   /**
@@ -360,7 +383,9 @@ export class ProductsService {
       },
     });
 
-    return formatProduct(p);
+    const taxSettings = await settingsService.getTaxSettings();
+    const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
+    return formatProduct(p, platformTaxRate);
   }
 
   /**
@@ -448,7 +473,9 @@ export class ProductsService {
       });
     });
 
-    return formatProduct(p);
+    const taxSettings = await settingsService.getTaxSettings();
+    const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
+    return formatProduct(p, platformTaxRate);
   }
 
   /**
@@ -629,25 +656,29 @@ export class ProductsService {
       };
     }
 
-    // Fetch full product details for the paginated product IDs
-    const products = await prisma.product.findMany({
-      where: {
-        id: { in: pageProductIds },
-      },
-      include: {
-        category: true,
-        variants: {
-          orderBy: { createdAt: 'asc' },
+    const [taxSettings, products] = await Promise.all([
+      settingsService.getTaxSettings(),
+      prisma.product.findMany({
+        where: {
+          id: { in: pageProductIds },
         },
-      },
-    });
+        include: {
+          category: true,
+          variants: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      }),
+    ]);
+
+    const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
 
     // Restore the recency order since SQL `IN` does not guarantee order
     const productMap = new Map(products.map((p) => [p.id, p]));
     const orderedProducts = pageProductIds
       .map((id) => productMap.get(id))
       .filter((p): p is NonNullable<typeof p> => Boolean(p))
-      .map(formatProduct);
+      .map((p) => formatProduct(p, platformTaxRate));
 
     return {
       products: orderedProducts,
