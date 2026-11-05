@@ -143,6 +143,7 @@ export type {
   CustomerOverallPurchaseHistory,
   CustomerProductPurchaseHistory,
 } from './types/reports';
+export type { TaxSettings, UpdateTaxSettingsDto } from './types/settings';
 
 // Constants
 export {

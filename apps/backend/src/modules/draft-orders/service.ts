@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { settingsService } from '../settings/service';
 import {
   type AuthContext,
   type DraftOrder,
@@ -371,6 +372,7 @@ export class DraftOrdersService {
       unitPrice: number;
       quantity: number;
       totalPrice: number;
+      noVat?: boolean;
     }> = [];
 
     let subtotal = 0;
@@ -390,11 +392,20 @@ export class DraftOrdersService {
           unitPrice: resolved.unitPrice,
           quantity: item.quantity,
           totalPrice: itemTotal,
+          noVat: !!resolved.product.noVat,
         });
       }
     }
 
-    const taxAmount = 0.0;
+    const taxCalc = await settingsService.calculateOrderTax(
+      preparedItems.map((pi) => ({
+        unitPrice: pi.unitPrice,
+        quantity: pi.quantity,
+        noVat: (pi as any).noVat,
+      })),
+      0,
+    );
+    const taxAmount = taxCalc.taxAmount;
     const totalAmount = subtotal + taxAmount;
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
@@ -1049,6 +1060,7 @@ export class DraftOrdersService {
       unitPrice: number;
       quantity: number;
       totalPrice: number;
+      noVat?: boolean;
     }> = [];
 
     let subtotal = 0;
@@ -1067,10 +1079,19 @@ export class DraftOrdersService {
         unitPrice: resolved.unitPrice,
         quantity: draftItem.quantity,
         totalPrice: itemTotal,
+        noVat: !!resolved.product.noVat,
       });
     }
 
-    const taxAmount = 0.0;
+    const taxCalc = await settingsService.calculateOrderTax(
+      preparedOrderItems.map((pi) => ({
+        unitPrice: pi.unitPrice,
+        quantity: pi.quantity,
+        noVat: (pi as any).noVat,
+      })),
+      0,
+    );
+    const taxAmount = taxCalc.taxAmount;
     const totalAmount = subtotal + taxAmount;
     const notes = overrides?.notes?.trim() ?? draft.notes;
     const deliveryAddress =

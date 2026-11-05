@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Server, AlertCircle, Key } from 'lucide-react';
+import { ShieldCheck, Server, AlertCircle, Key, Receipt, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../lib/api';
 import { Card } from '../../../components/ui/Card';
@@ -21,6 +21,13 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
 
+  // Tax & Billing Settings (Requirement 1.C & Admin Tax Application)
+  const [taxName, setTaxName] = useState('VAT');
+  const [taxRate, setTaxRate] = useState<number>(15);
+  const [taxEnabled, setTaxEnabled] = useState<boolean>(true);
+  const [taxLoading, setTaxLoading] = useState(true);
+  const [savingTax, setSavingTax] = useState(false);
+
   // Health Stats
   const [healthData, setHealthData] = useState<{
     status: string;
@@ -30,24 +37,69 @@ export default function SettingsPage() {
   const [healthLoading, setHealthLoading] = useState(true);
 
   useEffect(() => {
-    async function getHealth() {
+    async function loadInitialData() {
       setHealthLoading(true);
+      setTaxLoading(true);
       try {
-        const res = await api.checkHealth();
-        if (res.success && res.data) {
-          setHealthData(res.data);
+        const [healthRes, taxRes] = await Promise.all([
+          api.checkHealth().catch(() => ({ success: false, data: null })),
+          api.getTaxSettings().catch(() => ({ success: false, data: null })),
+        ]);
+
+        if (healthRes.success && healthRes.data) {
+          setHealthData(healthRes.data);
         } else {
           setHealthData({ status: 'offline' });
+        }
+
+        if (taxRes.success && taxRes.data) {
+          setTaxName(taxRes.data.taxName || 'VAT');
+          setTaxRate(taxRes.data.taxRate ?? 0);
+          setTaxEnabled(!!taxRes.data.isEnabled);
         }
       } catch {
         setHealthData({ status: 'offline' });
       } finally {
         setHealthLoading(false);
+        setTaxLoading(false);
       }
     }
 
-    void getHealth();
+    void loadInitialData();
   }, []);
+
+  const handleSaveTaxSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (taxRate < 0 || taxRate > 100) {
+      toastError('Tax rate must be between 0% and 100%');
+      return;
+    }
+
+    setSavingTax(true);
+    try {
+      const res = await api.updateTaxSettings({
+        taxName: taxName.trim() || 'VAT',
+        taxRate: Number(taxRate),
+        isEnabled: taxEnabled,
+      });
+
+      if (res.success) {
+        success('Tax settings updated and applied across orders & checkout!');
+        if (res.data) {
+          setTaxName(res.data.taxName);
+          setTaxRate(res.data.taxRate);
+          setTaxEnabled(res.data.isEnabled);
+        }
+      } else {
+        toastError(res.error || 'Failed to save tax settings');
+      }
+    } catch {
+      toastError('An unexpected error occurred while saving tax settings');
+    } finally {
+      setSavingTax(false);
+    }
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,6 +299,200 @@ export default function SettingsPage() {
 
         {/* Right Column: Platform Diagnostics & Environment */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Tax & Billing Settings Card */}
+          <Card>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    backgroundColor: '#eff6ff',
+                    color: '#2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Receipt size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0f172a' }}>
+                    Tax & VAT Configuration
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    Configure the platform tax rate applied to non-exempt wholesale items
+                  </p>
+                </div>
+              </div>
+              <Badge variant={taxEnabled ? 'success' : 'warning'}>
+                {taxEnabled ? 'Active' : 'Disabled'}
+              </Badge>
+            </div>
+
+            {taxLoading ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b' }}>
+                Loading tax configuration...
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSaveTaxSettings}
+                style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+              >
+                {/* Enable Tax Toggle */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 14px',
+                    backgroundColor: taxEnabled ? '#f0fdf4' : '#f8fafc',
+                    border: `1px solid ${taxEnabled ? '#bbf7d0' : '#e2e8f0'}`,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setTaxEnabled(!taxEnabled)}
+                >
+                  <input
+                    type="checkbox"
+                    id="taxEnabled"
+                    checked={taxEnabled}
+                    onChange={(e) => setTaxEnabled(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label
+                    htmlFor="taxEnabled"
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: taxEnabled ? '#166534' : '#475569',
+                    }}
+                  >
+                    Enable Tax / VAT calculation during order placement & checkout
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <Input
+                    label="Tax Label / Name"
+                    placeholder="e.g. VAT or GST"
+                    value={taxName}
+                    onChange={(e) => setTaxName(e.target.value)}
+                    required
+                  />
+
+                  <Input
+                    label="Tax Rate Percentage (%)"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="e.g. 15.00"
+                    value={taxRate.toString()}
+                    onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                    required
+                  />
+                </div>
+
+                {/* Exemption Rule Notice & Live Preview */}
+                <div
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: '#334155',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <HelpCircle size={15} color="#2563eb" />
+                    <span>Tax Calculation Rules & Live Checkout Preview</span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '0.785rem',
+                      color: '#64748b',
+                      margin: 0,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    Items marked with <strong>No VAT (Tax-Exempt)</strong> in the product catalog
+                    are completely excluded from tax (0% tax applied).
+                  </p>
+
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      paddingTop: '8px',
+                      borderTop: '1px dashed #cbd5e1',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <div
+                      style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}
+                    >
+                      <span>Taxable Product ($100.00 subtotal):</span>
+                      <span style={{ fontWeight: 600, color: taxEnabled ? '#0f172a' : '#94a3b8' }}>
+                        +${((100 * (taxEnabled ? taxRate : 0)) / 100).toFixed(2)} ({taxName})
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}
+                    >
+                      <span>Tax-Exempt "No VAT" Product ($50.00):</span>
+                      <span style={{ fontWeight: 600, color: '#10b981' }}>+$0.00 (Exempt)</span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        paddingTop: '4px',
+                        borderTop: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <span>Sample Order Grand Total:</span>
+                      <span style={{ color: '#2563eb' }}>
+                        ${(150 + (100 * (taxEnabled ? taxRate : 0)) / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={savingTax}
+                  style={{ width: 'auto', alignSelf: 'flex-start' }}
+                >
+                  Save & Apply Tax Settings
+                </Button>
+              </form>
+            )}
+          </Card>
+
           <Card>
             <div
               style={{

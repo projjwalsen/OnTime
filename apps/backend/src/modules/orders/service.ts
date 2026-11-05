@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { emailService } from '../../lib/email.service';
 import { couponsService } from '../coupons/service';
+import { settingsService } from '../settings/service';
 import {
   type AuthContext,
   type Order,
@@ -268,6 +269,7 @@ export class OrdersService {
       quantity: number;
       originalQuantity: number;
       totalPrice: number;
+      noVat: boolean;
     }> = [];
 
     let subtotal = 0;
@@ -362,6 +364,7 @@ export class OrdersService {
         quantity: item.quantity,
         originalQuantity: item.quantity,
         totalPrice: itemTotal,
+        noVat: !!product.noVat,
       });
     }
 
@@ -386,7 +389,15 @@ export class OrdersService {
       }
     }
 
-    const taxAmount = 0.0;
+    const taxCalc = await settingsService.calculateOrderTax(
+      preparedItems.map((pi) => ({
+        unitPrice: pi.unitPrice,
+        quantity: pi.quantity,
+        noVat: pi.noVat,
+      })),
+      discountAmount,
+    );
+    const taxAmount = taxCalc.taxAmount;
     const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount);
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
@@ -591,6 +602,7 @@ export class OrdersService {
       quantity: number;
       originalQuantity: number;
       totalPrice: number;
+      noVat: boolean;
     }> = [];
 
     let subtotal = 0;
@@ -654,11 +666,21 @@ export class OrdersService {
         quantity: item.quantity,
         originalQuantity,
         totalPrice: itemTotal,
+        noVat: !!product.noVat,
       });
     }
 
-    const taxAmount = 0.0;
-    const totalAmount = subtotal + taxAmount;
+    const discountAmount = Number(existing.discountAmount) || 0;
+    const taxCalc = await settingsService.calculateOrderTax(
+      preparedItems.map((pi) => ({
+        unitPrice: pi.unitPrice,
+        quantity: pi.quantity,
+        noVat: pi.noVat,
+      })),
+      discountAmount,
+    );
+    const taxAmount = taxCalc.taxAmount;
+    const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount);
     const targetStatus = data.status || OrderStatus.AWAITING;
 
     // Transactionally update items, order and audit history
