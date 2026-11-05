@@ -25,7 +25,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { api } from '../../../../lib/api';
-import { type Order, type Product, OrderStatus, UserRole } from '@ontime/shared';
+import { type Order, type Product, type TaxSettings, OrderStatus, UserRole } from '@ontime/shared';
 import { OrderStatusBadge } from '../../../../components/orders/OrderStatusBadge';
 
 function formatCurrency(amount: number): string {
@@ -102,6 +102,7 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
 
   // Catalog for adding replacement items
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
+  const [taxSettings, setTaxSettings] = useState<TaxSettings | null>(null);
   const [selectedAddProductId, setSelectedAddProductId] = useState<string>('');
   const [selectedAddVariantId, setSelectedAddVariantId] = useState<string>('');
   const [selectedAddQty, setSelectedAddQty] = useState<number>(1);
@@ -116,10 +117,15 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
     try {
       setLoading(true);
       setActionError(null);
-      const [orderRes, productsRes] = await Promise.all([
+      const [orderRes, productsRes, taxRes] = await Promise.all([
         api.getOrderById(orderId),
         api.getProducts({ limit: 100, isActive: true }),
+        api.getTaxSettings().catch(() => ({ success: false, data: null })),
       ]);
+
+      if (taxRes.success && taxRes.data) {
+        setTaxSettings(taxRes.data);
+      }
 
       if (orderRes.success && orderRes.data?.order) {
         const ord = orderRes.data.order;
@@ -215,13 +221,6 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
     setSelectedAddVariantId('');
     setSelectedAddQty(1);
   }
-
-  // Calculate live totals
-  const subtotal = editableItems.reduce(
-    (sum, it) => sum + (it.quantity > 0 ? it.totalPrice : 0),
-    0,
-  );
-  const totalAmount = subtotal;
 
   const hasItemsChanged = () => {
     if (!order?.items) return false;
@@ -428,6 +427,38 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
     order.status === OrderStatus.CANCELLED ||
     order.status === OrderStatus.REJECTED ||
     order.status === OrderStatus.DELIVERED;
+
+  // Live order calculations
+  const isEditing = isEditable && hasItemsChanged();
+  const subtotal = isEditing
+    ? editableItems.reduce((sum, it) => sum + (it.quantity > 0 ? it.totalPrice : 0), 0)
+    : Number(order.subtotal || 0);
+
+  const discountAmount = Number(order.discountAmount || 0);
+
+  let taxAmount = Number(order.taxAmount || 0);
+  if (isEditing) {
+    if (taxSettings?.isEnabled && taxSettings.taxRate > 0) {
+      const taxableSubtotal = editableItems
+        .filter((it) => {
+          if (it.quantity <= 0) return false;
+          const prod = catalogProducts.find((p) => p.id === it.productId);
+          return !prod?.noVat;
+        })
+        .reduce((sum, it) => sum + it.totalPrice, 0);
+
+      const proportionalDiscount =
+        subtotal > 0 && discountAmount > 0 ? (discountAmount * taxableSubtotal) / subtotal : 0;
+      const taxableBase = Math.max(0, taxableSubtotal - proportionalDiscount);
+      taxAmount = Math.round(((taxableBase * taxSettings.taxRate) / 100) * 100) / 100;
+    } else {
+      taxAmount = 0;
+    }
+  }
+
+  const totalAmount = isEditing
+    ? Math.max(0, subtotal - discountAmount + taxAmount)
+    : Number(order.totalAmount || 0);
 
   return (
     <div style={{ paddingBottom: '3rem' }}>
@@ -1641,8 +1672,8 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                 </div>
               ) : null}
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                <span>Tax / GST:</span>
-                <span>{formatCurrency(0)}</span>
+                <span>{taxSettings?.taxName || 'Tax / VAT'}:</span>
+                <span>{formatCurrency(taxAmount)}</span>
               </div>
               <div
                 style={{

@@ -719,3 +719,19 @@ model EmailChangeRequest {
   @@index([oldEmailToken])
   @@map("email_change_requests")
 }
+
+// ============================================================
+// TAX SETTING
+// Global tax/VAT configuration managed via Admin Panel.
+// ============================================================
+
+model TaxSetting {
+  id        String   @id @default("default")
+  taxName   String   @default("VAT")
+  taxRate   Decimal  @default(0.00) @db.Decimal(5, 2)
+  isEnabled Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("tax_settings")
+}

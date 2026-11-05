@@ -15,6 +15,7 @@ import { helpRoutes } from '../../modules/help';
 import { couponsRoutes } from '../../modules/coupons';
 import { bannersRoutes } from '../../modules/banners';
 import { reportsRoutes } from '../../modules/reports';
+import { settingsRoutes } from '../../modules/settings';
 
 const router = Router();
 
@@ -113,5 +114,11 @@ router.use('/banners', bannersRoutes);
  * @desc   Customer overall and product-wise purchase history reports
  */
 router.use('/reports', reportsRoutes);
+
+/**
+ * @route  /api/v1/settings
+ * @desc   Platform global configuration (Tax, etc.)
+ */
+router.use('/settings', settingsRoutes);
 
 export default router;

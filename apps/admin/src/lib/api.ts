@@ -76,6 +76,8 @@ import {
   type UpdateBannerDto,
   type CustomerOverallPurchaseHistory,
   type CustomerProductPurchaseHistory,
+  type TaxSettings,
+  type UpdateTaxSettingsDto,
   UserRole,
 } from '@ontime/shared';
 
@@ -1378,6 +1380,19 @@ class ApiClient {
     return this.request<CustomerProductPurchaseHistory>(
       `/v1/reports/purchase-history/product-wise/${organisationId}`,
     );
+  }
+
+  // ── Platform Settings (Tax Configuration) ───────────────
+
+  async getTaxSettings(): Promise<ApiResponse<TaxSettings>> {
+    return this.request<TaxSettings>('/settings/tax');
+  }
+
+  async updateTaxSettings(dto: UpdateTaxSettingsDto): Promise<ApiResponse<TaxSettings>> {
+    return this.request<TaxSettings>('/settings/tax', {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
   }
 }
 
