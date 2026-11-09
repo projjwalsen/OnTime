@@ -2,10 +2,12 @@ import { prisma } from '../../lib/prisma';
 import { settingsService } from '../settings/service';
 import {
   type Product,
+  type ProductTag,
   type ProductVariant,
   type PaginationMeta,
   type AuthContext,
   OrderStatus,
+  resolveProductTag,
 } from '@ontime/shared';
 import {
   type CreateProductInput,
@@ -40,7 +42,7 @@ function formatProduct(
     tier3Price?: any;
     noVat?: boolean;
     taxRate?: any;
-    tags?: string[];
+    tags?: Array<string | ProductTag>;
     categoryId: string | null;
     unit: string;
     isActive: boolean;
@@ -90,7 +92,9 @@ function formatProduct(
     tier3Price: p.tier3Price !== null && p.tier3Price !== undefined ? Number(p.tier3Price) : null,
     noVat: isNoVat,
     taxRate: effectiveTaxRate,
-    tags: p.tags ?? [],
+    tags: (p.tags ?? [])
+      .filter((t) => (typeof t === 'string' ? t.trim().length > 0 : Boolean(t?.name?.trim())))
+      .map(resolveProductTag),
     categoryId: p.categoryId,
     category: p.category
       ? {

@@ -14,6 +14,29 @@ export const productVariantSchema = z.object({
   tier3Price: z.number().positive().optional(),
 });
 
+export const tagInputSchema = z.union([
+  z.string().trim(),
+  z
+    .object({
+      name: z.string().trim(),
+      textColor: z.string().trim().optional(),
+      backgroundColor: z.string().trim().optional(),
+      bgColor: z.string().trim().optional(),
+    })
+    .transform((val) => {
+      const bg = val.backgroundColor || val.bgColor;
+      if (val.textColor || bg) {
+        return JSON.stringify({
+          name: val.name,
+          textColor: val.textColor || '#1d4ed8',
+          backgroundColor: bg || '#eff6ff',
+          bgColor: bg || '#eff6ff',
+        });
+      }
+      return val.name;
+    }),
+]);
+
 export const createProductSchema = z.object({
   name: z.string({ message: 'Product name is required' }).min(2).trim(),
   sku: z.string({ message: 'SKU is required' }).min(1).trim(),
@@ -23,7 +46,7 @@ export const createProductSchema = z.object({
   tier2Price: z.number().positive().optional(),
   tier3Price: z.number().positive().optional(),
   noVat: z.boolean().default(false),
-  tags: z.array(z.string().trim()).default([]),
+  tags: z.array(tagInputSchema).default([]),
   categoryId: z.string().optional(),
   unit: z.string().default('piece'),
   isActive: z.boolean().default(true),
