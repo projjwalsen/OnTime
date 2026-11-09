@@ -56,6 +56,7 @@ export type {
 } from './types/user';
 export type {
   Product,
+  ProductTag,
   ProductVariant,
   ProductVariantDto,
   Category,
@@ -66,6 +67,7 @@ export type {
   CategoryFilterParams,
   ProductFilterParams,
 } from './types/product';
+export { resolveProductTag, PRESET_TAG_COLORS, DYNAMIC_TAG_PALETTES } from './types/product';
 export type {
   OrderItem,
   Order,

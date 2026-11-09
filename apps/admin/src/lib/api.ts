@@ -528,6 +528,12 @@ class ApiClient {
     return this.request(`/products${queryString}`);
   }
 
+  async getProduct(
+    id: string,
+  ): Promise<{ success: boolean; data?: { product: Product }; error?: string }> {
+    return this.request(`/products/${id}`);
+  }
+
   async createProduct(
     dto: CreateProductDto,
   ): Promise<{ success: boolean; data?: { product: Product }; error?: string }> {

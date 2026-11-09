@@ -609,7 +609,8 @@ textarea {
   transition: all var(--transition-fast);
 }
 
-.form-input:focus {
+.form-input:focus,
+.form-input:focus-within {
   border-color: var(--primary-600);
   box-shadow: 0 0 0 3px var(--primary-100);
 }
