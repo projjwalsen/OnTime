@@ -44,7 +44,14 @@ export const listProducts: RequestHandler = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const filters = req.query as unknown as ProductFilterInput;
-      const result = await productsService.listProducts(filters);
+      const organisationId =
+        (req.query.organisationId as string) ||
+        (req.query.organizationId as string) ||
+        (req.headers['x-organisation-id'] as string) ||
+        (req.headers['x-organization-id'] as string) ||
+        req.user?.organisationId;
+
+      const result = await productsService.listProducts(filters, organisationId);
       successResponse(res, 'Products retrieved successfully', result);
     } catch (error) {
       handleProductError(res, error);
@@ -82,7 +89,15 @@ export const getProductById: RequestHandler = asyncHandler(
         errorResponse(res, 'Product ID is required', 400);
         return;
       }
-      const product = await productsService.getProductById(id);
+      const organisationId =
+        (req.query.organisationId as string) ||
+        (req.query.organizationId as string) ||
+        (req.headers['x-organisation-id'] as string) ||
+        (req.headers['x-organization-id'] as string) ||
+        req.user?.organisationId;
+      const explicitTier = req.query.pricingTier as string | undefined;
+
+      const product = await productsService.getProductById(id, organisationId, explicitTier);
       if (!product) {
         errorResponse(res, 'Product not found', 404);
         return;
