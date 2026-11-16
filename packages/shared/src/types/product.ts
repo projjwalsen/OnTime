@@ -29,6 +29,7 @@ export interface ProductVariant {
   description?: string | null;
   image?: string | null;
   price: number;
+  tierPrice?: number | null;
   tier1Price?: number | null;
   tier2Price?: number | null;
   tier3Price?: number | null;
@@ -161,12 +162,51 @@ export function resolveProductTag(
   };
 }
 
+/**
+ * Calculates the exact tier price for a product or variant based on an organisation's configured pricing tier.
+ * Tiers: TIER_1 (default wholesale base), TIER_2, TIER_3.
+ */
+export function calculateTierPrice(
+  item: {
+    price: number | string;
+    tier1Price?: number | string | null;
+    tier2Price?: number | string | null;
+    tier3Price?: number | string | null;
+  },
+  pricingTier?: string | null,
+): number {
+  const basePrice = Number(item.price);
+  const t1 = item.tier1Price != null && item.tier1Price !== '' ? Number(item.tier1Price) : null;
+  const t2 = item.tier2Price != null && item.tier2Price !== '' ? Number(item.tier2Price) : null;
+  const t3 = item.tier3Price != null && item.tier3Price !== '' ? Number(item.tier3Price) : null;
+
+  const normalizedTier = (pricingTier || 'TIER_1').trim().toUpperCase();
+
+  if (normalizedTier === 'TIER_3') {
+    if (t3 != null && !isNaN(t3) && t3 > 0) return t3;
+    if (t2 != null && !isNaN(t2) && t2 > 0) return t2;
+    if (t1 != null && !isNaN(t1) && t1 > 0) return t1;
+    return basePrice;
+  }
+
+  if (normalizedTier === 'TIER_2') {
+    if (t2 != null && !isNaN(t2) && t2 > 0) return t2;
+    if (t1 != null && !isNaN(t1) && t1 > 0) return t1;
+    return basePrice;
+  }
+
+  // Default to TIER_1
+  if (t1 != null && !isNaN(t1) && t1 > 0) return t1;
+  return basePrice;
+}
+
 export interface Product {
   id: string;
   name: string;
   sku: string;
   description?: string | null;
   price: number;
+  tierPrice?: number | null;
   tier1Price?: number | null;
   tier2Price?: number | null;
   tier3Price?: number | null;

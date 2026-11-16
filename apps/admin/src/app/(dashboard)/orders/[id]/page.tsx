@@ -19,7 +19,6 @@ import {
   MapPin,
   FileText,
   User as UserIcon,
-  Send,
   History,
   Calendar,
   Shield,
@@ -275,46 +274,6 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
       await loadOrder();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error confirming order';
-      setActionError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  // Super Admin submits modified/partial order for Retailer Approval (transitions to AWAITING)
-  async function handleSubmitForRetailerApproval() {
-    if (!order) return;
-    setSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const activeItems = editableItems.filter((it) => it.quantity > 0);
-      if (activeItems.length === 0) {
-        setActionError('Please specify at least one product with quantity > 0');
-        setSubmitting(false);
-        return;
-      }
-
-      const res = await api.modifyOrder(order.id, {
-        items: activeItems.map((it) => ({
-          productId: it.productId,
-          variantId: it.variantId,
-          quantity: it.quantity,
-        })),
-        modificationNote: modificationNote.trim() || undefined,
-        status: OrderStatus.AWAITING,
-      });
-
-      if (res.success) {
-        setActionSuccess(
-          'Order modified as per stock and placed in AWAITING status. Retailer has been notified to review & approve.',
-        );
-        await loadOrder();
-      } else {
-        setActionError(res.error || 'Failed to submit partial order');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error modifying order';
       setActionError(msg);
     } finally {
       setSubmitting(false);
@@ -1704,7 +1663,7 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
               >
                 <button
                   type="button"
-                  onClick={handleSubmitForRetailerApproval}
+                  onClick={handleConfirmFullOrder}
                   disabled={
                     submitting || editableItems.filter((it) => it.quantity > 0).length === 0
                   }
@@ -1713,35 +1672,14 @@ export default function OrderDetailPage({ params }: { params?: { id: string } })
                     height: '42px',
                     width: '100%',
                     justifyContent: 'center',
-                    backgroundColor: '#d97706',
-                    borderColor: '#b45309',
+                    backgroundColor: '#16a34a',
+                    borderColor: '#15803d',
                     fontSize: '0.875rem',
                     fontWeight: 600,
                   }}
                 >
-                  <Send size={15} />
-                  <span>Send Modified Order for Approval</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleConfirmFullOrder}
-                  disabled={
-                    submitting || editableItems.filter((it) => it.quantity > 0).length === 0
-                  }
-                  className="btn-secondary"
-                  style={{
-                    height: '42px',
-                    width: '100%',
-                    justifyContent: 'center',
-                    backgroundColor: '#eff6ff',
-                    borderColor: '#bfdbfe',
-                    color: '#1d4ed8',
-                    fontWeight: 600,
-                  }}
-                >
                   <CheckCircle2 size={15} />
-                  <span>Confirm Full Order Directly</span>
+                  <span>Confirm Order Directly</span>
                 </button>
 
                 {order.status === OrderStatus.PENDING && (

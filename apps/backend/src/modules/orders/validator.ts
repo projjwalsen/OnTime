@@ -19,6 +19,9 @@ export const createOrderSchema = z.object({
   organisationId: z.string().nullable().optional(),
   customerPoNumber: z.string().trim().nullable().optional(),
   couponCode: z.string().trim().nullable().optional(),
+  deliveryCharge: z.number().min(0).nullable().optional(),
+  otherCharges: z.number().min(0).nullable().optional(),
+  otherChargesNote: z.string().trim().nullable().optional(),
 });
 
 export const modifyOrderItemSchema = z.object({

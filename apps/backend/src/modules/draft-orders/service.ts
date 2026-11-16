@@ -7,6 +7,7 @@ import {
   type Order,
   OrderStatus,
   UserRole,
+  calculateTierPrice,
 } from '@ontime/shared';
 import {
   type CreateDraftOrderInput,
@@ -285,9 +286,13 @@ export class DraftOrdersService {
   }
 
   /**
-   * Helper to resolve product and variant pricing.
+   * Helper to resolve product and variant pricing with retailer pricing tier.
    */
-  private async resolveItemPricing(productId: string, variantId?: string | null) {
+  private async resolveItemPricing(
+    productId: string,
+    variantId?: string | null,
+    pricingTier: string = 'TIER_1',
+  ) {
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -307,7 +312,15 @@ export class DraftOrdersService {
       );
     }
 
-    let unitPrice = Number(product.price);
+    let unitPrice = calculateTierPrice(
+      {
+        price: Number(product.price),
+        tier1Price: product.tier1Price ? Number(product.tier1Price) : null,
+        tier2Price: product.tier2Price ? Number(product.tier2Price) : null,
+        tier3Price: product.tier3Price ? Number(product.tier3Price) : null,
+      },
+      pricingTier,
+    );
     let variantWeight: string | null = null;
     let selectedVariantId: string | null = null;
 
@@ -315,7 +328,15 @@ export class DraftOrdersService {
       const variant = product.variants.find((v) => v.id === variantId);
       if (variant) {
         selectedVariantId = variant.id;
-        unitPrice = Number(variant.price);
+        unitPrice = calculateTierPrice(
+          {
+            price: Number(variant.price),
+            tier1Price: variant.tier1Price ? Number(variant.tier1Price) : null,
+            tier2Price: variant.tier2Price ? Number(variant.tier2Price) : null,
+            tier3Price: variant.tier3Price ? Number(variant.tier3Price) : null,
+          },
+          pricingTier,
+        );
         variantWeight = variant.weight;
       } else {
         throw new DraftOrderError(
@@ -327,11 +348,18 @@ export class DraftOrdersService {
       const defaultVariant = product.variants?.[0];
       if (defaultVariant) {
         selectedVariantId = defaultVariant.id;
-        unitPrice = Number(defaultVariant.price);
+        unitPrice = calculateTierPrice(
+          {
+            price: Number(defaultVariant.price),
+            tier1Price: defaultVariant.tier1Price ? Number(defaultVariant.tier1Price) : null,
+            tier2Price: defaultVariant.tier2Price ? Number(defaultVariant.tier2Price) : null,
+            tier3Price: defaultVariant.tier3Price ? Number(defaultVariant.tier3Price) : null,
+          },
+          pricingTier,
+        );
         variantWeight = defaultVariant.weight;
       } else {
         selectedVariantId = null;
-        unitPrice = Number(product.price);
         variantWeight = null;
       }
     }
@@ -363,6 +391,8 @@ export class DraftOrdersService {
       );
     }
 
+    const orgTier = organisation.pricingTier || 'TIER_1';
+
     const preparedItems: Array<{
       productId: string;
       variantId: string | null;
@@ -379,7 +409,7 @@ export class DraftOrdersService {
 
     if (data.items && data.items.length > 0) {
       for (const item of data.items) {
-        const resolved = await this.resolveItemPricing(item.productId, item.variantId);
+        const resolved = await this.resolveItemPricing(item.productId, item.variantId, orgTier);
         const itemTotal = resolved.unitPrice * item.quantity;
         subtotal += itemTotal;
 
@@ -406,7 +436,12 @@ export class DraftOrdersService {
       0,
     );
     const taxAmount = taxCalc.taxAmount;
-    const totalAmount = subtotal + taxAmount;
+    const deliveryCharge = Math.max(0, Number(data.deliveryCharge || 0));
+    const otherCharges = Math.max(0, Number(data.otherCharges || 0));
+    const totalAmount = Math.max(
+      0,
+      Math.round((subtotal + taxAmount + deliveryCharge + otherCharges) * 100) / 100,
+    );
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
     const draftOrder = await prisma.draftOrder.create({
@@ -583,6 +618,7 @@ export class DraftOrdersService {
       unitPrice: number;
       quantity: number;
       totalPrice: number;
+      noVat: boolean;
     }> | null = null;
     let newSubtotal = Number(existing.subtotal);
 
@@ -603,11 +639,31 @@ export class DraftOrdersService {
           unitPrice: resolved.unitPrice,
           quantity: item.quantity,
           totalPrice: itemTotal,
+          noVat: !!resolved.product.noVat,
         });
       }
     }
 
-    const totalAmount = newSubtotal;
+    let newTaxAmount = Number(existing.taxAmount || 0);
+    let newTotalAmount = Number(existing.totalAmount || 0);
+
+    if (preparedItems !== null) {
+      const taxCalc = await settingsService.calculateOrderTax(
+        preparedItems.map((pi) => ({
+          unitPrice: pi.unitPrice,
+          quantity: pi.quantity,
+          noVat: !!pi.noVat,
+        })),
+        0,
+      );
+      newTaxAmount = taxCalc.taxAmount;
+      const deliveryCharge = Math.max(0, Number(data.deliveryCharge || 0));
+      const otherCharges = Math.max(0, Number(data.otherCharges || 0));
+      newTotalAmount = Math.max(
+        0,
+        Math.round((newSubtotal + newTaxAmount + deliveryCharge + otherCharges) * 100) / 100,
+      );
+    }
 
     return await prisma.$transaction(async (tx) => {
       if (preparedItems !== null) {
@@ -627,7 +683,8 @@ export class DraftOrdersService {
                 ? data.deliveryAddress?.trim() || null
                 : existing.deliveryAddress,
             subtotal: newSubtotal,
-            totalAmount,
+            taxAmount: newTaxAmount,
+            totalAmount: newTotalAmount,
             items: {
               create: preparedItems.map((item) => ({
                 productId: item.productId,
@@ -749,13 +806,23 @@ export class DraftOrdersService {
       // Recalculate draft totals
       const allItems = await tx.draftOrderItem.findMany({
         where: { draftOrderId },
+        include: { product: true },
       });
       const subtotal = allItems.reduce((acc, curr) => acc + Number(curr.totalPrice), 0);
-      const totalAmount = subtotal;
+      const taxCalc = await settingsService.calculateOrderTax(
+        allItems.map((it) => ({
+          unitPrice: Number(it.unitPrice),
+          quantity: it.quantity,
+          noVat: !!it.product?.noVat,
+        })),
+        0,
+      );
+      const taxAmount = taxCalc.taxAmount;
+      const totalAmount = subtotal + taxAmount;
 
       const updated = await tx.draftOrder.update({
         where: { id: draftOrderId },
-        data: { subtotal, totalAmount },
+        data: { subtotal, taxAmount, totalAmount },
         include: {
           items: {
             include: { product: true, variant: true },
@@ -832,13 +899,23 @@ export class DraftOrdersService {
 
       const allItems = await tx.draftOrderItem.findMany({
         where: { draftOrderId },
+        include: { product: true },
       });
       const subtotal = allItems.reduce((acc, curr) => acc + Number(curr.totalPrice), 0);
-      const totalAmount = subtotal;
+      const taxCalc = await settingsService.calculateOrderTax(
+        allItems.map((it) => ({
+          unitPrice: Number(it.unitPrice),
+          quantity: it.quantity,
+          noVat: !!it.product?.noVat,
+        })),
+        0,
+      );
+      const taxAmount = taxCalc.taxAmount;
+      const totalAmount = subtotal + taxAmount;
 
       const updated = await tx.draftOrder.update({
         where: { id: draftOrderId },
-        data: { subtotal, totalAmount },
+        data: { subtotal, taxAmount, totalAmount },
         include: {
           items: {
             include: { product: true, variant: true },
@@ -893,13 +970,23 @@ export class DraftOrdersService {
 
       const allItems = await tx.draftOrderItem.findMany({
         where: { draftOrderId },
+        include: { product: true },
       });
       const subtotal = allItems.reduce((acc, curr) => acc + Number(curr.totalPrice), 0);
-      const totalAmount = subtotal;
+      const taxCalc = await settingsService.calculateOrderTax(
+        allItems.map((it) => ({
+          unitPrice: Number(it.unitPrice),
+          quantity: it.quantity,
+          noVat: !!it.product?.noVat,
+        })),
+        0,
+      );
+      const taxAmount = taxCalc.taxAmount;
+      const totalAmount = subtotal + taxAmount;
 
       const updated = await tx.draftOrder.update({
         where: { id: draftOrderId },
-        data: { subtotal, totalAmount },
+        data: { subtotal, taxAmount, totalAmount },
         include: {
           items: {
             include: { product: true, variant: true },
@@ -953,13 +1040,23 @@ export class DraftOrdersService {
 
       const allItems = await tx.draftOrderItem.findMany({
         where: { draftOrderId },
+        include: { product: true },
       });
       const subtotal = allItems.reduce((acc, curr) => acc + Number(curr.totalPrice), 0);
-      const totalAmount = subtotal;
+      const taxCalc = await settingsService.calculateOrderTax(
+        allItems.map((it) => ({
+          unitPrice: Number(it.unitPrice),
+          quantity: it.quantity,
+          noVat: !!it.product?.noVat,
+        })),
+        0,
+      );
+      const taxAmount = taxCalc.taxAmount;
+      const totalAmount = subtotal + taxAmount;
 
       const updated = await tx.draftOrder.update({
         where: { id: draftOrderId },
-        data: { subtotal, totalAmount },
+        data: { subtotal, taxAmount, totalAmount },
         include: {
           items: {
             include: { product: true, variant: true },

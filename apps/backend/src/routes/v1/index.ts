@@ -7,6 +7,7 @@ import { productsRoutes } from '../../modules/products';
 import { categoriesRoutes } from '../../modules/categories';
 import { ordersRoutes } from '../../modules/orders';
 import { draftOrdersRoutes } from '../../modules/draft-orders';
+import { cartRoutes } from '../../modules/cart';
 import { mediaRoutes } from '../../modules/media';
 import { addressesRoutes } from '../../modules/addresses';
 import { notificationsRoutes } from '../../modules/notifications';
@@ -66,6 +67,12 @@ router.use('/orders', ordersRoutes);
  * @desc   Draft order management endpoints (Retailer Admin / Staff only)
  */
 router.use('/draft-orders', draftOrdersRoutes);
+
+/**
+ * @route  /api/v1/cart
+ * @desc   Cart management, tax & charges calculation & order preview endpoints
+ */
+router.use('/cart', cartRoutes);
 
 /**
  * @route  /api/v1/media

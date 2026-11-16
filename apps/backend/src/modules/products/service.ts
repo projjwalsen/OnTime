@@ -8,6 +8,7 @@ import {
   type AuthContext,
   OrderStatus,
   resolveProductTag,
+  calculateTierPrice,
 } from '@ontime/shared';
 import {
   type CreateProductInput,
@@ -28,6 +29,38 @@ export class ProductError extends Error {
 export interface ListProductsResult {
   products: Product[];
   pagination: PaginationMeta;
+}
+
+/**
+ * Resolves the effective pricing tier ('TIER_1' | 'TIER_2' | 'TIER_3')
+ * based on explicit tier query or retailer organisation configuration.
+ */
+export async function resolvePricingTier(
+  organisationId?: string | null,
+  explicitTier?: string | null,
+): Promise<string> {
+  if (explicitTier && ['TIER_1', 'TIER_2', 'TIER_3'].includes(explicitTier.trim().toUpperCase())) {
+    return explicitTier.trim().toUpperCase();
+  }
+
+  if (organisationId && organisationId.trim()) {
+    try {
+      const org = await prisma.organisation.findUnique({
+        where: { id: organisationId.trim() },
+        select: { pricingTier: true },
+      });
+      if (org?.pricingTier) {
+        return org.pricingTier;
+      }
+    } catch (e) {
+      console.warn(
+        `[ProductsService] Could not lookup pricingTier for organisation "${organisationId}":`,
+        e,
+      );
+    }
+  }
+
+  return 'TIER_1';
 }
 
 function formatProduct(
@@ -73,6 +106,7 @@ function formatProduct(
     }>;
   },
   platformTaxRate: number = 0,
+  pricingTier?: string | null,
 ): Product {
   const isNoVat = Boolean(p.noVat);
   const effectiveTaxRate = isNoVat
@@ -81,12 +115,24 @@ function formatProduct(
       ? Number(p.taxRate)
       : platformTaxRate;
 
+  const basePrice = Number(p.price);
+  const effectiveTierPrice = calculateTierPrice(
+    {
+      price: basePrice,
+      tier1Price: p.tier1Price,
+      tier2Price: p.tier2Price,
+      tier3Price: p.tier3Price,
+    },
+    pricingTier,
+  );
+
   return {
     id: p.id,
     name: p.name,
     sku: p.sku,
     description: p.description,
-    price: Number(p.price),
+    price: basePrice,
+    tierPrice: effectiveTierPrice,
     tier1Price: p.tier1Price !== null && p.tier1Price !== undefined ? Number(p.tier1Price) : null,
     tier2Price: p.tier2Price !== null && p.tier2Price !== undefined ? Number(p.tier2Price) : null,
     tier3Price: p.tier3Price !== null && p.tier3Price !== undefined ? Number(p.tier3Price) : null,
@@ -110,23 +156,37 @@ function formatProduct(
     images: p.images ?? [],
     packagingNote: p.packagingNote ?? null,
     variants:
-      p.variants?.map((v): ProductVariant => ({
-        id: v.id,
-        productId: v.productId,
-        sku: v.sku ?? null,
-        weight: v.weight,
-        description: v.description,
-        image: v.image,
-        price: Number(v.price),
-        tier1Price:
-          v.tier1Price !== null && v.tier1Price !== undefined ? Number(v.tier1Price) : null,
-        tier2Price:
-          v.tier2Price !== null && v.tier2Price !== undefined ? Number(v.tier2Price) : null,
-        tier3Price:
-          v.tier3Price !== null && v.tier3Price !== undefined ? Number(v.tier3Price) : null,
-        createdAt: v.createdAt,
-        updatedAt: v.updatedAt,
-      })) ?? [],
+      p.variants?.map((v): ProductVariant => {
+        const variantPrice = Number(v.price);
+        const variantTierPrice = calculateTierPrice(
+          {
+            price: variantPrice,
+            tier1Price: v.tier1Price,
+            tier2Price: v.tier2Price,
+            tier3Price: v.tier3Price,
+          },
+          pricingTier,
+        );
+
+        return {
+          id: v.id,
+          productId: v.productId,
+          sku: v.sku ?? null,
+          weight: v.weight,
+          description: v.description,
+          image: v.image,
+          price: variantPrice,
+          tierPrice: variantTierPrice,
+          tier1Price:
+            v.tier1Price !== null && v.tier1Price !== undefined ? Number(v.tier1Price) : null,
+          tier2Price:
+            v.tier2Price !== null && v.tier2Price !== undefined ? Number(v.tier2Price) : null,
+          tier3Price:
+            v.tier3Price !== null && v.tier3Price !== undefined ? Number(v.tier3Price) : null,
+          createdAt: v.createdAt,
+          updatedAt: v.updatedAt,
+        };
+      }) ?? [],
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -136,7 +196,10 @@ export class ProductsService {
   /**
    * List or search products in catalog with multi-field search, filtering, and pagination.
    */
-  async listProducts(filters?: ProductFilterInput): Promise<ListProductsResult> {
+  async listProducts(
+    filters?: ProductFilterInput,
+    contextOrgId?: string | null,
+  ): Promise<ListProductsResult> {
     const page = Math.max(1, filters?.page || 1);
     const limit = Math.min(100, Math.max(1, filters?.limit || 20));
     const skip = (page - 1) * limit;
@@ -257,7 +320,9 @@ export class ProductsService {
       where.AND = andConditions;
     }
 
-    const [total, products, taxSettings] = await Promise.all([
+    const targetOrgId = filters?.organisationId || (filters as any)?.organizationId || contextOrgId;
+
+    const [total, products, taxSettings, pricingTier] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
         where,
@@ -274,12 +339,13 @@ export class ProductsService {
         },
       }),
       settingsService.getTaxSettings(),
+      resolvePricingTier(targetOrgId, (filters as any)?.pricingTier),
     ]);
 
     const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
 
     return {
-      products: products.map((p) => formatProduct(p, platformTaxRate)),
+      products: products.map((p) => formatProduct(p, platformTaxRate, pricingTier)),
       pagination: {
         total,
         page,
@@ -292,15 +358,22 @@ export class ProductsService {
   /**
    * Global search for products (alias for listProducts with search parameters).
    */
-  async searchProducts(filters?: ProductFilterInput): Promise<ListProductsResult> {
-    return this.listProducts(filters);
+  async searchProducts(
+    filters?: ProductFilterInput,
+    contextOrgId?: string | null,
+  ): Promise<ListProductsResult> {
+    return this.listProducts(filters, contextOrgId);
   }
 
   /**
    * Get product by ID.
    */
-  async getProductById(id: string): Promise<Product | null> {
-    const [p, taxSettings] = await Promise.all([
+  async getProductById(
+    id: string,
+    organisationId?: string | null,
+    explicitTier?: string | null,
+  ): Promise<Product | null> {
+    const [p, taxSettings, pricingTier] = await Promise.all([
       prisma.product.findUnique({
         where: { id },
         include: {
@@ -311,12 +384,13 @@ export class ProductsService {
         },
       }),
       settingsService.getTaxSettings(),
+      resolvePricingTier(organisationId, explicitTier),
     ]);
 
     if (!p) return null;
 
     const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
-    return formatProduct(p, platformTaxRate);
+    return formatProduct(p, platformTaxRate, pricingTier);
   }
 
   /**
@@ -493,6 +567,9 @@ export class ProductsService {
     const limit = Math.min(100, Math.max(1, filters?.limit || 20));
     const skip = (page - 1) * limit;
 
+    const targetOrgId =
+      filters?.organisationId || (filters as any)?.organizationId || authContext.organisationId;
+
     // Filter orders by organisation if present (for retailer users), otherwise for super admin across all orders
     const orderWhere: any = {
       status: {
@@ -502,6 +579,8 @@ export class ProductsService {
 
     if (authContext.organisationId) {
       orderWhere.organisationId = authContext.organisationId;
+    } else if (targetOrgId) {
+      orderWhere.organisationId = targetOrgId;
     }
 
     // Build product filter conditions if search/filters provided
@@ -660,7 +739,7 @@ export class ProductsService {
       };
     }
 
-    const [taxSettings, products] = await Promise.all([
+    const [taxSettings, products, pricingTier] = await Promise.all([
       settingsService.getTaxSettings(),
       prisma.product.findMany({
         where: {
@@ -673,6 +752,7 @@ export class ProductsService {
           },
         },
       }),
+      resolvePricingTier(targetOrgId, (filters as any)?.pricingTier),
     ]);
 
     const platformTaxRate = taxSettings.isEnabled ? Number(taxSettings.taxRate) : 0;
@@ -682,7 +762,7 @@ export class ProductsService {
     const orderedProducts = pageProductIds
       .map((id) => productMap.get(id))
       .filter((p): p is NonNullable<typeof p> => Boolean(p))
-      .map((p) => formatProduct(p, platformTaxRate));
+      .map((p) => formatProduct(p, platformTaxRate, pricingTier));
 
     return {
       products: orderedProducts,
