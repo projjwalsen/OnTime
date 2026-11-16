@@ -100,6 +100,17 @@ export type {
   DraftOrderFilterParams,
 } from './types/draft-order';
 export type {
+  Cart,
+  CartItem,
+  CartSummary,
+  CartItemInputDto,
+  CartPreviewDto,
+  CartPreviewResult,
+  UpdateCartDto,
+  CartCheckoutDto,
+  CartSaveDraftDto,
+} from './types/cart';
+export type {
   LoginCredentialsDto,
   AuthTokens,
   AuthResponse,

@@ -400,7 +400,13 @@ export class OrdersService {
       discountAmount,
     );
     const taxAmount = taxCalc.taxAmount;
-    const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount);
+    const deliveryCharge = Math.max(0, Number(data.deliveryCharge || 0));
+    const otherCharges = Math.max(0, Number(data.otherCharges || 0));
+    const totalAmount = Math.max(
+      0,
+      Math.round((subtotal - discountAmount + taxAmount + deliveryCharge + otherCharges) * 100) /
+        100,
+    );
     const deliveryAddress = data.deliveryAddress?.trim() || organisation.address || null;
 
     // Retry loop for unique order number collision resilience
@@ -460,6 +466,12 @@ export class OrdersService {
                 performedByUserRole: caller.role,
                 metadata: {
                   itemCount: preparedItems.length,
+                  subtotal,
+                  discountAmount,
+                  taxAmount,
+                  deliveryCharge,
+                  otherCharges,
+                  otherChargesNote: data.otherChargesNote?.trim() || null,
                   totalAmount,
                   customerPoNumber: data.customerPoNumber?.trim() || null,
                   couponCode: appliedCouponCode,

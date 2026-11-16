@@ -78,6 +78,13 @@ import {
   type CustomerProductPurchaseHistory,
   type TaxSettings,
   type UpdateTaxSettingsDto,
+  type Cart,
+  type CartItemInputDto,
+  type CartPreviewDto,
+  type CartPreviewResult,
+  type UpdateCartDto,
+  type CartCheckoutDto,
+  type CartSaveDraftDto,
   UserRole,
 } from '@ontime/shared';
 
@@ -1398,6 +1405,82 @@ class ApiClient {
     return this.request<TaxSettings>('/settings/tax', {
       method: 'PUT',
       body: JSON.stringify(dto),
+    });
+  }
+
+  // ── Cart & Order Preview ─────────────────────────────────
+
+  async getCartPreview(dto: CartPreviewDto): Promise<ApiResponse<CartPreviewResult>> {
+    return this.request<CartPreviewResult>('/cart/preview', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async getCart(): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart');
+  }
+
+  async addCartItem(dto: CartItemInputDto): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async updateCartItem(
+    id: string,
+    dto: { quantity: number },
+  ): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>(`/cart/items/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async removeCartItem(id: string): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>(`/cart/items/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async clearCart(): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart', {
+      method: 'DELETE',
+    });
+  }
+
+  async updateCart(dto: UpdateCartDto): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart', {
+      method: 'PATCH',
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async applyCartCoupon(couponCode: string): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart/coupon', {
+      method: 'POST',
+      body: JSON.stringify({ couponCode }),
+    });
+  }
+
+  async removeCartCoupon(): Promise<ApiResponse<{ cart: Cart }>> {
+    return this.request<{ cart: Cart }>('/cart/coupon', {
+      method: 'DELETE',
+    });
+  }
+
+  async checkoutCart(dto?: CartCheckoutDto): Promise<ApiResponse<{ order: Order }>> {
+    return this.request<{ order: Order }>('/cart/checkout', {
+      method: 'POST',
+      body: JSON.stringify(dto || {}),
+    });
+  }
+
+  async saveDraftCart(dto?: CartSaveDraftDto): Promise<ApiResponse<{ draftOrder: DraftOrder }>> {
+    return this.request<{ draftOrder: DraftOrder }>('/cart/save-draft', {
+      method: 'POST',
+      body: JSON.stringify(dto || {}),
     });
   }
 }

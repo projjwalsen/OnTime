@@ -17,6 +17,9 @@ export const createDraftOrderSchema = z.object({
   deliveryAddress: z.string().trim().nullable().optional(),
   customerPoNumber: z.string().trim().nullable().optional(),
   couponCode: z.string().trim().nullable().optional(),
+  deliveryCharge: z.number().min(0).nullable().optional(),
+  otherCharges: z.number().min(0).nullable().optional(),
+  otherChargesNote: z.string().trim().nullable().optional(),
 });
 
 export const updateDraftOrderSchema = z.object({
@@ -26,6 +29,9 @@ export const updateDraftOrderSchema = z.object({
   customerPoNumber: z.string().trim().nullable().optional(),
   couponCode: z.string().trim().nullable().optional(),
   items: z.array(createDraftOrderItemSchema).optional(),
+  deliveryCharge: z.number().min(0).nullable().optional(),
+  otherCharges: z.number().min(0).nullable().optional(),
+  otherChargesNote: z.string().trim().nullable().optional(),
 });
 
 export const addDraftOrderItemSchema = z.object({
